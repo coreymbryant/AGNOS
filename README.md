@@ -1,4 +1,4 @@
 AGNoS
 =====
 
-AGNoS: Adaptive Goal-oriented Non-intrusive Surrogate model construction
+AGNoS: Adaptive Goal-oriented Non-intrusive Surrogates
