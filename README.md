@@ -1,7 +1,7 @@
-AGNoS
+AGNOS
 =====
 
-AGNoS: Adaptive Goal-oriented Non-intrusive Surrogates
+AGNOS: Adaptive Goal-oriented Non-intrusive Surrogates
 
 (Agnostos is the greek word for unknown. One could alternatively say AGNoStoS: Adaptive Goal-oreinted Non-intrusive Stochastic Surrogates, but AGNoS is much easier to write)
 
