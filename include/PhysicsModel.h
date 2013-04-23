@@ -1,6 +1,13 @@
 
 // Do we need both versions of the defined functions, or just get by with the
 // one given the solution and pass it in if needed
+//
+// Solve functions intentially do not return the solution. There may be cases
+// where we want to solve the problem internally but not create a new instance
+// of the solution. Create get..Solution functions to check if solution exists
+// and if not solve problem first. These should be what is used by surrogate
+// model.
+
 
 
 #ifndef PHYSICS_MODEL_H
@@ -16,43 +23,41 @@ namespace AGNOS
     
     public: 
 
-      virtual void solvePrimal( 
-          ParameterDataType parameterValue  /**< paramter value to solve at*/
-          );
+      PhysicsModel( );   /**< Default constructor */
+      ~PhysicsModel( );  /**< Default destructor */
 
-      /** One version uses existing solution (or solves) other solves adjoint
-       * for given solution */
-      virtual void solveAdjoint( 
+      virtual void solvePrimal( 
           ParameterDataType parameterValue  
           );
+
       virtual void solveAdjoint( 
           ParameterDataType parameterValue,  
-          PhysicsDataType primalSolution    /**< solution */
+          PhysicsDataType primalSolution    
           );
 
-      /** One version uses existing solution (or solves) other evaluates QoI for
-       * given solution */
-      virtual RealNumberDataType evaluateQoi( 
-          ParameterDataType parameterValue 
-          );
-      virtual RealNumberDataType evaluateQoi( 
+      virtual double evaluateQoi( 
           ParameterDataType parameterValue,
-          PhysicsDataType primalSolution    /**< provided solution */
+          PhysicsDataType primalSolution    
           );
 
-      /** One version uses existing solution (or solves) other evaluates for
-       * given solution */
-      virtual void estimateError( 
-          ParameterDataType parameterValue,  
-          );
-      virtual void estimateError( 
+      virtual double estimateError( 
           ParameterDataType parameterValue,  
           PhysicsDataType primalSolution,   
           PhysicsDataType adjointSolution  
           );
 
+      const PhysicsDataType& getPrimalSolution( ) const;
+      const PhysicsDataType& getAdjointSolution( ) const;
+      // this may need a different type
+      const PhysicsDataType& getErrorIndicators( ) const;
+
       
     protected:
+
+      PhysicsDataType& m_primalSolution;
+      PhysicsDataType& m_adjointSolution;
+      // this may need a different type
+      PhysicsDataType& m_errorIndicators;
       
   } // PhysicsModel class
 
