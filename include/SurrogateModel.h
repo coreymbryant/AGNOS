@@ -1,31 +1,37 @@
 
-#ifndef SURROGAT_MODEL_H 
-#define SURROGAT_MODEL_H 
+#ifndef SURROGATE_MODEL_H 
+#define SURROGATE_MODEL_H 
 
-/********************************************//**
- * Abstract definition of the surrogate model class
- ***********************************************/
-class SurrogateModel
+namespace AGNOS
 {
 
-  public: 
+  /********************************************//**
+   * \brief Abstract definition of the surrogate model class
+   ***********************************************/
+  class SurrogateModel
+  {
 
-    SurrogateModel();           /**< Default constructor */
-    virtual ~SurrogateModel();  /**< Default destructor */
+    public: 
 
-    /** construct surrogate model */
-    virtual void construct( 
-        PhysicsModel& physicsModel /**< underlying physics model class */
-        ); 
+      SurrogateModel();           /**< Default constructor */
+      virtual ~SurrogateModel();  /**< Default destructor */
 
-    /** evaluate surrogate model */
-    virtual PhysicsDataType evaluate( 
-        ParameterDataType& parameterValues /**< parameter values to evaluate at*/
-        );
+      virtual void build( ); 
 
-    /**< refine surrogate model*/
-    virtual void refine( );
+      virtual PhysicsDataType evaluate( 
+          ParameterDataType& parameterValues /**< parameter values to evaluate*/
+          );
 
-};
+      virtual void refine( );
 
-#endif //SURROGAT_MODEL_H
+      void setPhysicsModel(PhysicsModel& physicsModel) const;
+      const PhysicsModel& getPhysicsModel( ) const;
+
+    protected: 
+
+      const PhysicsModel& m_physicsModel ; 
+
+  } //SurrogateModel class
+
+}
+#endif //SURROGATE_MODEL_H
