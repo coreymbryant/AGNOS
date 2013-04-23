@@ -1,4 +1,7 @@
 
+// should be able to build up multi-element approaches based on basic surrogate
+// definition I think. Even if we use libmesh?
+
 #ifndef SURROGATE_MODEL_H 
 #define SURROGATE_MODEL_H 
 
@@ -13,8 +16,8 @@ namespace AGNOS
 
     public: 
 
-      SurrogateModel();           /**< Default constructor */
-      virtual ~SurrogateModel();  /**< Default destructor */
+      SurrogateModel( );           /**< Default constructor */
+      ~SurrogateModel( );  /**< Default destructor */
 
       virtual void build( ); 
 
@@ -24,12 +27,19 @@ namespace AGNOS
 
       virtual void refine( );
 
-      void setPhysicsModel(PhysicsModel& physicsModel) const;
-      const PhysicsModel& getPhysicsModel( ) const;
+      void setParameterDimension(unsigned int parameterDimension) ;
+      unsigned int getParameterDimension( ) const;
 
     protected: 
 
-      const PhysicsModel& m_physicsModel ; 
+      PhysicsModel* m_physicsModel ; 
+
+      // may want to define a new class that encapsulates the paramters
+      // similar to how pmpack does it
+      unsigned int m_parameterDimension ;
+      std::vector<double> m_parameterMins ;
+      std::vector<double> m_parameterMaxs ;
+      
 
   } //SurrogateModel class
 
