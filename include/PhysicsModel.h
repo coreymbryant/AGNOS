@@ -27,23 +27,23 @@ namespace AGNOS
       ~PhysicsModel( );  /**< Default destructor */
 
       virtual void solvePrimal( 
-          ParameterDataType parameterValue  
+          ParameterDataType& parameterValue  
           );
 
       virtual void solveAdjoint( 
-          ParameterDataType parameterValue,  
-          PhysicsDataType primalSolution    
+          ParameterDataType& parameterValue,  
+          PhysicsDataType& primalSolution    
           );
 
       virtual double evaluateQoi( 
-          ParameterDataType parameterValue,
-          PhysicsDataType primalSolution    
+          ParameterDataType& parameterValue,
+          PhysicsDataType& primalSolution    
           );
 
       virtual double estimateError( 
-          ParameterDataType parameterValue,  
-          PhysicsDataType primalSolution,   
-          PhysicsDataType adjointSolution  
+          ParameterDataType& parameterValue,  
+          PhysicsDataType& primalSolution,   
+          PhysicsDataType& adjointSolution  
           );
 
       const PhysicsDataType& getPrimalSolution( ) const;
