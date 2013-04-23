@@ -1,4 +1,6 @@
 
+#ifndef SURROGAT_MODEL_H 
+#define SURROGAT_MODEL_H 
 
 /********************************************//**
  * Abstract definition of the surrogate model class
@@ -25,3 +27,5 @@ class SurrogateModel
     virtual void refine( );
 
 };
+
+#endif //SURROGAT_MODEL_H
