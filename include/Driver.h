@@ -7,8 +7,26 @@ namespace AGNOS
 
   class Driver
   { 
-    // empty
+
+    public:
+
+      Driver( );
+      ~Driver( );
+
+      void run( );
   };
+
+
+  // an initial driver run routine for testing
+  Driver::run( )
+  {
+
+    int N = 1;
+    PhysicsModel* physics = new CatenaryModel( );
+    SurrogateModel* surrogate = new PseudoSpectral( );
+    
+    return;
+  }
 
 }
 
