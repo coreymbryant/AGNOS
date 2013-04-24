@@ -11,7 +11,7 @@ namespace AGNOS
   /********************************************//**
    * \brief Abstract definition of the surrogate model class
    ***********************************************/
-  template<ParameterDataType, PhysicsDataType>
+  template<class T_S, class T_P>
   class SurrogateModel
   {
 
@@ -22,8 +22,8 @@ namespace AGNOS
 
       virtual void build( ); 
 
-      virtual PhysicsDataType& evaluate( 
-          ParameterDataType& parameterValues /**< parameter values to evaluate*/
+      virtual T_P& evaluate( 
+          T_S& parameterValues /**< parameter values to evaluate*/
           );
 
       virtual void refine( );
@@ -33,7 +33,7 @@ namespace AGNOS
 
     protected: 
 
-      PhysicsModel* m_physicsModel ; 
+      PhysicsModel<T_S,T_P>* m_physicsModel ; 
 
       // may want to define a new class that encapsulates the paramters
       // similar to how pmpack does it
@@ -42,30 +42,30 @@ namespace AGNOS
       std::vector<double> m_parameterMaxs ;
       
 
-  } //SurrogateModel class
+  }; //SurrogateModel class
 
 
-  template<ParameterDataType, PhysicsDataType>
-    SurrogateModel::SurrogateModel( )
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::SurrogateModel( )
     {
       return;
     }
 
-  template<ParameterDataType, PhysicsDataType>
-    SurrogateModel::~SurrogateModel( )
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::~SurrogateModel( )
     {
       return;
     }
 
-  template<ParameterDataType, PhysicsDataType>
-    void SurrogateModel::setParameterDimension( unsigned int parameterDimension )
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::setParameterDimension( unsigned int parameterDimension )
     {
       m_parameterDimension = parameterDimension ;
       return;
     }
 
-  template<ParameterDataType, PhysicsDataType>
-    unsigned int SurrogateModel::getParameterDimension( ) const
+  template<class T_S, class T_P>
+    unsigned int SurrogateModel<T_S,T_P>::getParameterDimension( ) const
     {
       return m_parameterDimension ;
     }
