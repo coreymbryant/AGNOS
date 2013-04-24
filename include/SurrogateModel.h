@@ -11,6 +11,7 @@ namespace AGNOS
   /********************************************//**
    * \brief Abstract definition of the surrogate model class
    ***********************************************/
+  template<ParameterDataType, PhysicsDataType>
   class SurrogateModel
   {
 
@@ -42,6 +43,28 @@ namespace AGNOS
       
 
   } //SurrogateModel class
+
+
+  SurrogateModel::SurrogateModel( )
+  {
+    return;
+  }
+
+  SurrogateModel::~SurrogateModel( )
+  {
+    return;
+  }
+
+  void SurrogateModel::setParameterDimension( unsigned int parameterDimension )
+  {
+    m_parameterDimension = parameterDimension ;
+    return;
+  }
+
+  unsigned int SurrogateModel::getParameterDimension( ) const
+  {
+    return m_parameterDimension ;
+  }
 
 }
 #endif //SURROGATE_MODEL_H
