@@ -22,7 +22,7 @@ namespace AGNOS
 
       virtual void build( ); 
 
-      virtual PhysicsDataType evaluate( 
+      virtual PhysicsDataType& evaluate( 
           ParameterDataType& parameterValues /**< parameter values to evaluate*/
           );
 
@@ -45,26 +45,30 @@ namespace AGNOS
   } //SurrogateModel class
 
 
-  SurrogateModel::SurrogateModel( )
-  {
-    return;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    SurrogateModel::SurrogateModel( )
+    {
+      return;
+    }
 
-  SurrogateModel::~SurrogateModel( )
-  {
-    return;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    SurrogateModel::~SurrogateModel( )
+    {
+      return;
+    }
 
-  void SurrogateModel::setParameterDimension( unsigned int parameterDimension )
-  {
-    m_parameterDimension = parameterDimension ;
-    return;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    void SurrogateModel::setParameterDimension( unsigned int parameterDimension )
+    {
+      m_parameterDimension = parameterDimension ;
+      return;
+    }
 
-  unsigned int SurrogateModel::getParameterDimension( ) const
-  {
-    return m_parameterDimension ;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    unsigned int SurrogateModel::getParameterDimension( ) const
+    {
+      return m_parameterDimension ;
+    }
 
 }
 #endif //SURROGATE_MODEL_H
