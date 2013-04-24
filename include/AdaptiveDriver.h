@@ -2,6 +2,8 @@
 #ifndef ADAPTIVE_DRIVER_H
 #define ADAPTIVE_DRIVER_H
 
+#include "Driver.h"
+
 namespace AGNOS
 {
 
@@ -14,7 +16,7 @@ namespace AGNOS
    * refinement function of that model class. 
    * 
    ***********************************************/
-  class AdaptiveDriver
+  class AdaptiveDriver : public Driver
   {
 
     public:
