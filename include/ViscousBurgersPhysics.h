@@ -11,6 +11,7 @@ namespace AGNOS
    *
    * This example is given in the Le Maitre book
    ***********************************************/
+  template<ParameterDataType, PhysicsDataType>
   class ViscousBurgersPhysics : public PhysicsModel
   {
     public:
@@ -26,37 +27,42 @@ namespace AGNOS
   };
 
 
-  ViscousBurgersPhysics::ViscousBurgersPhysics( )
-    : xMin = -10, xMax = 10
-  {
-    return;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    ViscousBurgersPhysics::ViscousBurgersPhysics( )
+      : xMin = -10, xMax = 10
+    {
+      return;
+    }
 
-  ViscousBurgersPhysics::~ViscousBurgersPhysics( )
-  {
-    return;
-  }
-
-
-  void ViscousBurgersPhysics::solvePrimal(
-      ParameterDataType& paramaterValue)
-  {
-    m_primalSolution = 1.0;
-    return ;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    ViscousBurgersPhysics::~ViscousBurgersPhysics( )
+    {
+      return;
+    }
 
 
-  void ViscousBurgersPhysics::solveAdjoint(
-      ParameterDataType& paramaterValue,
-      PhysicsDataType& primalSolution
-      )
-  {
-    m_adjointSolution = -1.0;
-    return ;
-  }
+  template<ParameterDataType, PhysicsDataType>
+    void ViscousBurgersPhysics::solvePrimal(
+        ParameterDataType& paramaterValue)
+    {
+      m_primalSolution = 1.0;
+      return ;
+    }
+
+
+  template<ParameterDataType, PhysicsDataType>
+    void ViscousBurgersPhysics::solveAdjoint(
+        ParameterDataType& paramaterValue,
+        PhysicsDataType& primalSolution
+        )
+    {
+      m_adjointSolution = -1.0;
+      return ;
+    }
 
 
 
+  template<ParameterDataType, PhysicsDataType>
     double ViscousBurgersPhysics::evaluateQoi( 
         ParameterDataType& parameterValue,
         PhysicsDataType& primalSolution    
@@ -65,6 +71,7 @@ namespace AGNOS
       return 10.0;
     }
 
+  template<ParameterDataType, PhysicsDataType>
     double ViscousBurgersPhysics::estimateError( 
         ParameterDataType& parameterValue,  
         PhysicsDataType& primalSolution,   

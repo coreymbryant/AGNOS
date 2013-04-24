@@ -3,6 +3,9 @@
 #ifndef CATENARY_MODEL_H
 #define CATENARY_MODEL_H
 
+#define ParameterDataType double
+#define PhysicsDataType double
+
 #include "PhysicsModel.h"
 
 namespace AGNOS
@@ -17,8 +20,6 @@ namespace AGNOS
     ~CatenaryModel( );
   
   private:
-    double m_xMin;
-    double m_xMax;
     double m_T;
   };
 
@@ -29,7 +30,7 @@ namespace AGNOS
   //        and only coefficients for 1dof finite element solution are returned
   template<ParameterDataType, PhysicsDataType>
   CatenaryModel::CatenaryModel( )
-    : m_xMin = 0., m_xMax = 1., m_T = -10.;
+    :m_T = -10.;
   {
     return;
   }
