@@ -1,9 +1,9 @@
-include $(top_srcdir)doxygen/aminclude.am
+include $(top_srcdir)/doxygen/aminclude.am
 
 AUTOMAKE_OPTIONS = foreign
-ACLOCAL_AMFLAGS  = -I m4
+#ACLOCAL_AMFLAGS  = 
 
-SUBDIRS          = src src/contrib test doxygen 
+SUBDIRS          = src contrib test doxygen 
 #EXTRA_DIST       =
 
 # Files to be deleted by 'make maintainer-clean'
@@ -19,6 +19,7 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
                        config.h.in                              \
                        Makefile.in                              \
                        src/Makefile.in                          \
-											 test/Makefile.in 
+											 test/Makefile.in 												\
+											 doxygen/Makefile.in
 
 
