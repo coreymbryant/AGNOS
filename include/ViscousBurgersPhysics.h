@@ -11,8 +11,8 @@ namespace AGNOS
    *
    * This example is given in the Le Maitre book
    ***********************************************/
-  template<ParameterDataType, PhysicsDataType>
-  class ViscousBurgersPhysics : public PhysicsModel
+  template<T_S, T_P>
+  class ViscousBurgersPhysics : public PhysicsModel<T_S,T_P>
   {
     public:
       ViscousBurgersPhysics( ) ;
@@ -27,33 +27,33 @@ namespace AGNOS
   };
 
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     ViscousBurgersPhysics::ViscousBurgersPhysics( )
       : xMin = -10, xMax = 10
     {
       return;
     }
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     ViscousBurgersPhysics::~ViscousBurgersPhysics( )
     {
       return;
     }
 
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     void ViscousBurgersPhysics::solvePrimal(
-        ParameterDataType& paramaterValue)
+        T_S& paramaterValue)
     {
       m_primalSolution = 1.0;
       return ;
     }
 
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     void ViscousBurgersPhysics::solveAdjoint(
-        ParameterDataType& paramaterValue,
-        PhysicsDataType& primalSolution
+        T_S& paramaterValue,
+        T_P& primalSolution
         )
     {
       m_adjointSolution = -1.0;
@@ -62,20 +62,20 @@ namespace AGNOS
 
 
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     double ViscousBurgersPhysics::evaluateQoi( 
-        ParameterDataType& parameterValue,
-        PhysicsDataType& primalSolution    
+        T_S& parameterValue,
+        T_P& primalSolution    
         )
     {
       return 10.0;
     }
 
-  template<ParameterDataType, PhysicsDataType>
+  template<T_S, T_P>
     double ViscousBurgersPhysics::estimateError( 
-        ParameterDataType& parameterValue,  
-        PhysicsDataType& primalSolution,   
-        PhysicsDataType& adjointSolution  
+        T_S& parameterValue,  
+        T_P& primalSolution,   
+        T_P& adjointSolution  
         )
     {
       return 20.0;

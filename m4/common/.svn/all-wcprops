@@ -1,0 +1,383 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/pecos/!svn/ver/38592/common/software/m4_macros
+END
+ax_pkg_swig.m4
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/repos/pecos/!svn/ver/22760/common/software/m4_macros/ax_pkg_swig.m4
+END
+ann.m4
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/ann.m4
+END
+ax_add_am_macro.m4
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_add_am_macro.m4
+END
+pecos_ablation.m4
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/repos/pecos/!svn/ver/27847/common/software/m4_macros/pecos_ablation.m4
+END
+antioch.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/37348/common/software/m4_macros/antioch.m4
+END
+gsl.m4
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/gsl.m4
+END
+grvy.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/13380/common/software/m4_macros/grvy.m4
+END
+ax_python_devel.m4
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/pecos/!svn/ver/22113/common/software/m4_macros/ax_python_devel.m4
+END
+ax_am_macros.m4
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_am_macros.m4
+END
+3PH.m4
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/repos/pecos/!svn/ver/37680/common/software/m4_macros/3PH.m4
+END
+ax_trilinos_epetra.m4
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/pecos/!svn/ver/37916/common/software/m4_macros/ax_trilinos_epetra.m4
+END
+hpct.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/hpct.m4
+END
+ax_append_to_file.m4
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_append_to_file.m4
+END
+ann_extern.m4
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/ann_extern.m4
+END
+pecos_radiation.m4
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/pecos/!svn/ver/33353/common/software/m4_macros/pecos_radiation.m4
+END
+ax_cc_minopt.m4
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/repos/pecos/!svn/ver/20113/common/software/m4_macros/ax_cc_minopt.m4
+END
+chemay.m4
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/repos/pecos/!svn/ver/18587/common/software/m4_macros/chemay.m4
+END
+ax_cflags_warn_all.m4
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/pecos/!svn/ver/38303/common/software/m4_macros/ax_cflags_warn_all.m4
+END
+ax_file_escapes.m4
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_file_escapes.m4
+END
+ax_add_am_trilinos_makefile_export.m4
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_add_am_trilinos_makefile_export.m4
+END
+acx_mpi.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/acx_mpi.m4
+END
+ax_fftw3.m4
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/pecos/!svn/ver/13676/common/software/m4_macros/ax_fftw3.m4
+END
+metaphysicl.m4
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/repos/pecos/!svn/ver/37348/common/software/m4_macros/metaphysicl.m4
+END
+prefix_config.m4
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/pecos/!svn/ver/29590/common/software/m4_macros/prefix_config.m4
+END
+hdf5.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/13222/common/software/m4_macros/hdf5.m4
+END
+eigen.m4
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/repos/pecos/!svn/ver/38592/common/software/m4_macros/eigen.m4
+END
+ax_append_flag.m4
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/repos/pecos/!svn/ver/38303/common/software/m4_macros/ax_append_flag.m4
+END
+config_environment.m4
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/pecos/!svn/ver/34934/common/software/m4_macros/config_environment.m4
+END
+glpk_old.m4
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/pecos/!svn/ver/17570/common/software/m4_macros/glpk_old.m4
+END
+gl_trilinos_absolute_header.m4
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/gl_trilinos_absolute_header.m4
+END
+coverage.m4
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/pecos/!svn/ver/38450/common/software/m4_macros/coverage.m4
+END
+libmesh_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/repos/pecos/!svn/ver/36308/common/software/m4_macros/libmesh_new.m4
+END
+ax_cxx_compile_stdcxx_11.m4
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/repos/pecos/!svn/ver/38425/common/software/m4_macros/ax_cxx_compile_stdcxx_11.m4
+END
+queso_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/repos/pecos/!svn/ver/38511/common/software/m4_macros/queso_new.m4
+END
+ax_fc_minopt.m4
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/repos/pecos/!svn/ver/28022/common/software/m4_macros/ax_fc_minopt.m4
+END
+acx_mkl.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/13676/common/software/m4_macros/acx_mkl.m4
+END
+ax_cxx_minopt.m4
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/pecos/!svn/ver/20122/common/software/m4_macros/ax_cxx_minopt.m4
+END
+masa.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/27847/common/software/m4_macros/masa.m4
+END
+buck.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/37681/common/software/m4_macros/buck.m4
+END
+ax_print_to_file.m4
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/repos/pecos/!svn/ver/12145/common/software/m4_macros/ax_print_to_file.m4
+END
+ax_trilinos_base.m4
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/repos/pecos/!svn/ver/37909/common/software/m4_macros/ax_trilinos_base.m4
+END
+ax_warnings_sanitize.m4
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/ax_warnings_sanitize.m4
+END
+ax_tls.m4
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/repos/pecos/!svn/ver/31520/common/software/m4_macros/ax_tls.m4
+END
+pecos_ablation_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/pecos/!svn/ver/32126/common/software/m4_macros/pecos_ablation_new.m4
+END
+ax_mpip.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/32406/common/software/m4_macros/ax_mpip.m4
+END
+gsl_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/37680/common/software/m4_macros/gsl_new.m4
+END
+esio.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/21663/common/software/m4_macros/esio.m4
+END
+grvy_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/pecos/!svn/ver/31571/common/software/m4_macros/grvy_new.m4
+END
+ax_check_compiler_flags.m4
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/ax_check_compiler_flags.m4
+END
+petsc.m4
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/repos/pecos/!svn/ver/37695/common/software/m4_macros/petsc.m4
+END
+iMut.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/17817/common/software/m4_macros/iMut.m4
+END
+ax_compiler_vendor.m4
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/pecos/!svn/ver/13938/common/software/m4_macros/ax_compiler_vendor.m4
+END
+grins.m4
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/repos/pecos/!svn/ver/35212/common/software/m4_macros/grins.m4
+END
+acx_pthread.m4
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/repos/pecos/!svn/ver/13676/common/software/m4_macros/acx_pthread.m4
+END
+libmesh.m4
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/pecos/!svn/ver/29288/common/software/m4_macros/libmesh.m4
+END
+ax_openmp.m4
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/repos/pecos/!svn/ver/13676/common/software/m4_macros/ax_openmp.m4
+END
+boost.m4
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/repos/pecos/!svn/ver/28862/common/software/m4_macros/boost.m4
+END
+unordered.m4
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/repos/pecos/!svn/ver/31115/common/software/m4_macros/unordered.m4
+END
+ax_split_version.m4
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/ax_split_version.m4
+END
+queso.m4
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/repos/pecos/!svn/ver/19142/common/software/m4_macros/queso.m4
+END
+ax_prog_doxygen.m4
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/pecos/!svn/ver/31520/common/software/m4_macros/ax_prog_doxygen.m4
+END
+glpk.m4
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/pecos/!svn/ver/20894/common/software/m4_macros/glpk.m4
+END
+hdf5_new.m4
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/pecos/!svn/ver/31520/common/software/m4_macros/hdf5_new.m4
+END

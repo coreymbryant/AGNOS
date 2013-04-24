@@ -1,10 +1,12 @@
 
-#include "driver.h"
+#include <vector>
+#include "Driver.h"
 
 int main(int argc, char* argv[])
 {
 
-  AGNOS::Driver agnos( );
+
+  AGNOS::Driver agnos;
 
   agnos.run();
 

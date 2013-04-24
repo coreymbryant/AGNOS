@@ -18,7 +18,7 @@ namespace AGNOS
   /********************************************//**
    * \brief Abstract physics model class
    ***********************************************/
-  template<ParameterDataType, PhysicsDataType>
+  template<class T_S, class T_P>
   class PhysicsModel
   {
     
@@ -28,62 +28,72 @@ namespace AGNOS
       ~PhysicsModel( );  /**< Default destructor */
 
       virtual void solvePrimal( 
-          ParameterDataType& parameterValue  
+          T_S& parameterValue  
           );
 
       virtual void solveAdjoint( 
-          ParameterDataType& parameterValue,  
-          PhysicsDataType& primalSolution    
+          T_S& parameterValue,  
+          T_P& primalSolution    
           );
 
       virtual double evaluateQoi( 
-          ParameterDataType& parameterValue,
-          PhysicsDataType& primalSolution    
+          T_S& parameterValue,
+          T_P& primalSolution    
           );
 
       virtual double estimateError( 
-          ParameterDataType& parameterValue,  
-          PhysicsDataType& primalSolution,   
-          PhysicsDataType& adjointSolution  
+          T_S& parameterValue,  
+          T_P& primalSolution,   
+          T_P& adjointSolution  
           );
 
-      const PhysicsDataType& getPrimalSolution( ) const;
-      const PhysicsDataType& getAdjointSolution( ) const;
+      const T_P& getPrimalSolution( ) const;
+      const T_P& getAdjointSolution( ) const;
       // this may need a different type
-      const PhysicsDataType& getErrorIndicators( ) const;
+      const T_P& getErrorIndicators( ) const;
 
       
     protected:
 
-      PhysicsDataType& m_primalSolution;
-      PhysicsDataType& m_adjointSolution;
+      T_P* m_primalSolution;
+      T_P* m_adjointSolution;
       // this may need a different type
-      PhysicsDataType& m_errorIndicators;
+      T_P* m_errorIndicators;
       
-  } // PhysicsModel class
+  }; // PhysicsModel class
 
-  PhysicsModel::PhysicsModel( )
+
+
+  template<class T_S, class T_P>
+  PhysicsModel<T_S,T_P>::PhysicsModel( )
+  {
+    m_primalSolution = new T_P ;
+    m_adjointSolution = new T_P ;
+    m_errorIndicators = new T_P ;
+    return;
+  }
+
+  template<class T_S, class T_P>
+  PhysicsModel<T_S,T_P>::~PhysicsModel( )
   {
     return;
   }
 
-  PhysicsModel::~PhysicsModel( )
-  {
-    return;
-  }
 
-
-  const PhysicsDataType& PhysicsModel::getPrimalSolution( ) const
+  template<class T_S, class T_P>
+  const T_P& PhysicsModel<T_S,T_P>::getPrimalSolution( ) const
   {
     return m_primalSolution;
   }
 
-  const PhysicsDataType& PhysicsModel::getAdjointSolution( ) const
+  template<class T_S, class T_P>
+  const T_P& PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
   {
     return m_adjointSolution;
   }
 
-  const PhysicsDataType& PhysicsModel::getErrorIndicators( ) const
+  template<class T_S, class T_P>
+  const T_P& PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
   {
     return m_errorIndicators;
   }

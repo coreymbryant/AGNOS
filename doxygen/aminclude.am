@@ -3,7 +3,7 @@
 # dependencies here.
 #-----------------------------------
 
-PECOS_extra_dependencies = README.md
+PECOS_extra_dependencies = README.md 
 
 ## --------------------------------- ##
 ## Format-independent Doxygen rules. ##
