@@ -16,21 +16,21 @@ namespace AGNOS
     CatenaryModel( );
     ~CatenaryModel( );
 
-    virtual void solvePrimal( 
+    void solvePrimal( 
         T_S& parameterValue  
         );
 
-    virtual void solveAdjoint( 
+    void solveAdjoint( 
         T_S& parameterValue,  
         T_P& primalSolution    
         );
 
-    virtual double evaluateQoi( 
+    double evaluateQoi( 
         T_S& parameterValue,
         T_P& primalSolution    
         );
 
-    virtual double estimateError( 
+    double estimateError( 
         T_S& parameterValue,  
         T_P& primalSolution,   
         T_P& adjointSolution  
@@ -49,7 +49,11 @@ namespace AGNOS
   CatenaryModel<T_S,T_P>::CatenaryModel( )
     :m_T(-10.0)
   {
-    return;
+  }
+
+  template<class T_S, class T_P>
+  CatenaryModel<T_S,T_P>::~CatenaryModel( )
+  {
   }
 
   template<class T_S, class T_P>

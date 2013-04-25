@@ -25,27 +25,27 @@ namespace AGNOS
     public: 
 
       PhysicsModel( );   /**< Default constructor */
-      ~PhysicsModel( );  /**< Default destructor */
+      virtual ~PhysicsModel( );  /**< Default destructor */
 
       virtual void solvePrimal( 
           T_S& parameterValue  
-          );
+          ) = 0;
 
       virtual void solveAdjoint( 
           T_S& parameterValue,  
           T_P& primalSolution    
-          );
+          ) = 0;
 
       virtual double evaluateQoi( 
           T_S& parameterValue,
           T_P& primalSolution    
-          );
+          ) = 0;
 
       virtual double estimateError( 
           T_S& parameterValue,  
           T_P& primalSolution,   
           T_P& adjointSolution  
-          );
+          ) = 0;
 
       const T_P& getPrimalSolution( ) const;
       const T_P& getAdjointSolution( ) const;
@@ -70,13 +70,14 @@ namespace AGNOS
     m_primalSolution = new T_P ;
     m_adjointSolution = new T_P ;
     m_errorIndicators = new T_P ;
-    return;
   }
 
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::~PhysicsModel( )
   {
-    return;
+    delete [] m_primalSolution;
+    delete [] m_adjointSolution;
+    delete [] m_errorIndicators;
   }
 
 
