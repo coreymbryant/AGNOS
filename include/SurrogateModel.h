@@ -18,15 +18,15 @@ namespace AGNOS
     public: 
 
       SurrogateModel( );           /**< Default constructor */
-      ~SurrogateModel( );  /**< Default destructor */
+      virtual ~SurrogateModel( );  /**< Default destructor */
 
-      virtual void build( ); 
+      virtual void build( ) = 0; 
 
       virtual T_P& evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
-          );
+          ) = 0;
 
-      virtual void refine( );
+      virtual void refine( ) = 0;
 
       void setParameterDimension(unsigned int parameterDimension) ;
       unsigned int getParameterDimension( ) const;
@@ -48,13 +48,11 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( )
     {
-      return;
     }
 
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::~SurrogateModel( )
     {
-      return;
     }
 
   template<class T_S, class T_P>

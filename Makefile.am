@@ -3,7 +3,8 @@ include $(top_srcdir)/doxygen/aminclude.am
 AUTOMAKE_OPTIONS = foreign
 #ACLOCAL_AMFLAGS  = 
 
-SUBDIRS          = src contrib test doxygen 
+SUBDIRS          = src test doxygen 
+#SUBDIRS 				+= contrib
 #EXTRA_DIST       =
 
 # Files to be deleted by 'make maintainer-clean'
