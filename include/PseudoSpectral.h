@@ -19,12 +19,22 @@ namespace AGNOS
     public:
 
       PseudoSpectral( 
-          unsigned int dimension
-          std::vector<unsigned int> order, 
+          unsigned int dimension,
+          unsigned int order 
+          );
+      PseudoSpectral( 
+          unsigned int dimension,
+          std::vector<unsigned int> order
           );
       PseudoSpectral( 
           unsigned int dimension, 
           unsigned int order, 
+          std::vector<double>& m_mins, 
+          std::vector<double>& m_maxs
+          );
+      PseudoSpectral( 
+          unsigned int dimension, 
+          std::vector<unsigned int> order, 
           std::vector<double>& m_mins, 
           std::vector<double>& m_maxs
           );
@@ -50,7 +60,7 @@ namespace AGNOS
     private:
 
       unsigned int m_dimension;   // all uniform distributed
-      unsigned int m_order;       // isotropic for now
+      std::vector<unsigned int> m_order; // anisotropic
       std::vector<double> m_mins; // can have different range though
       std::vector<double> m_maxs;
 
@@ -64,7 +74,7 @@ namespace AGNOS
       virtual void constructQuadRule();
 
       void recurQuad(
-          const int dim, const int order, 
+          const int dim, const std::vector<unsigned int> order, 
           double currentWeights[], double* currentPoints[] );
 
   };
@@ -77,8 +87,9 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( )
-      : m_order(0), m_dimension(1)
+      : m_dimension(1)
     {
+      m_order.push_back(0);
       m_mins.push_back(-1.0);
       m_maxs.push_back(1.0);
       constructQuadRule();
@@ -91,13 +102,14 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        unsigned int order, 
-        unsigned int dimension, 
-        std::vector<double>& mins, 
-        std::vector<double>& maxs
+        unsigned int dimension,
+        unsigned int order
         )
-      : m_order(order),m_dimension(dimension), m_mins(mins), m_maxs(maxs)
+      : m_dimension(dimension)
     {
+      m_order = std::vector<unsigned int>(dimension,order);
+      m_mins.push_back(-1.0);
+      m_maxs.push_back(1.0);
       constructQuadRule();
     }
 
@@ -108,13 +120,48 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        unsigned int order, 
-        unsigned int dimension
+        unsigned int dimension,
+        std::vector<unsigned int> order
         )
       : m_order(order), m_dimension(dimension)
     {
       m_mins.push_back(-1.0);
       m_maxs.push_back(1.0);
+      constructQuadRule();
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P>
+    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        unsigned int dimension, 
+        unsigned int order, 
+        std::vector<double>& mins, 
+        std::vector<double>& maxs
+        )
+      : m_dimension(dimension), m_mins(mins), m_maxs(maxs)
+    {
+      m_order = std::vector<unsigned int>(dimension,order);
+      constructQuadRule();
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P>
+    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        unsigned int dimension, 
+        std::vector<unsigned int> order, 
+        std::vector<double>& mins, 
+        std::vector<double>& maxs
+        )
+      : m_order(order),m_dimension(dimension), m_mins(mins), m_maxs(maxs)
+    {
       constructQuadRule();
     }
 
@@ -127,7 +174,9 @@ namespace AGNOS
   template<class T_S,class T_P>
     void PseudoSpectral<T_S,T_P>::constructQuadRule( )
     {
-      m_nQuadPoints = pow(m_order+1,m_dimension);
+      m_nQuadPoints = m_order[0]+1;
+      for(unsigned int i=1; i< m_dimension; i++)
+        m_nQuadPoints *= (m_order[i]+1);
 
       m_quadPoints = new double*[m_nQuadPoints];
       for(unsigned int i=0; i<m_nQuadPoints; i++)
@@ -148,19 +197,19 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     void PseudoSpectral<T_S,T_P>::recurQuad(
-        const int dim, const int order, 
+        const int dim, const std::vector<unsigned int> order, 
         double currentWeights[], double* currentPoints[] )
     {
-      double* oneDimQuadWeights = new double[order+1];
-      double* oneDimQuadPoints = new double[order+1];
-      webbur::legendre_compute( order+1, oneDimQuadPoints, oneDimQuadWeights );
+      double* oneDimQuadWeights = new double[order[dim-1]+1];
+      double* oneDimQuadPoints = new double[order[dim-1]+1];
+      webbur::legendre_compute( order[dim-1]+1, oneDimQuadPoints, oneDimQuadWeights );
 
       double scaling = (m_maxs[dim-1]-m_mins[dim-1])/2.0;
       double midpoint = (m_maxs[dim-1]+m_mins[dim-1])/2.0;
 
       if (dim == 1) 
       {
-        for(unsigned int id=0; id < order+1; id++)
+        for(unsigned int id=0; id < order[dim-1]+1; id++)
         {
           /* currentPoints[dim-1][id] = midpoint */ 
           /*   + oneDimQuadPoints[id] * scaling; */
@@ -176,25 +225,24 @@ namespace AGNOS
         recurQuad(dim-1,order,currentWeights,currentPoints);
         
         // keep track of how many array elements are non-zero
-        int prevSize = pow(order+1,dim-1) ;
+        int prevSize = order[0]+1;
+        for(unsigned int i=0; i < dim-2; i++)
+          prevSize *= order[i+1] + 1;
 
         for(int outer=prevSize-1; outer >= 0; outer--)
         {
-          for(int inner=order; inner >= 0 ; inner--)
+          for(int inner=order[dim-1]; inner >= 0 ; inner--)
           {
-            std::cout << "INDEX = " << outer*(order+1) + inner << std::endl;
-            currentWeights[(outer)*(order+1) + inner] = 
+            currentWeights[(outer)*(order[dim-1]+1) + inner] = 
               currentWeights[outer] * oneDimQuadWeights[inner] * scaling;
             
             for(int dir=0; dir < dim-1; dir++)
             {
-              std::cout << "dir = " << dir << std::endl;
-              currentPoints[(outer)*(order+1) + inner][dir]
+              currentPoints[(outer)*(order[dim-1]+1) + inner][dir]
                 = currentPoints[outer][dir];
-              std::cout << currentPoints[outer][dir] << std::endl;
             }
 
-            currentPoints[(outer)*(order+1) + inner][dim-1] 
+            currentPoints[(outer)*(order[dim-1]+1) + inner][dim-1] 
               = midpoint + oneDimQuadPoints[inner] * scaling;
           }
         }
@@ -309,7 +357,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PseudoSpectral<T_S,T_P>::refine( )
     {
-      m_order = m_order + 1;
+      for(unsigned int i=0; i<m_dimension; i++)
+        m_order[i]++;
     }
 
 
