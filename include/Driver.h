@@ -46,14 +46,19 @@ namespace AGNOS
   // an initial driver run routine for testing
   void Driver::run( )
   {
-    int d=2;
+    int d=10;
+    std::vector<unsigned int> order = std::vector<unsigned int>(d,2);
+    /* order[0] = 4; */
+    /* order[1] = 2; */
+    /* order[2] = 1; */
+    /* order[3] = 0; */
 
     std::vector<double> mins(d,-1.0);
     std::vector<double> maxs(d,1.0);
 
     PhysicsModel<T_S,T_P>* physics = new CatenaryModel<T_S,T_P>( );
     PseudoSpectral<T_S,T_P>* surrogate = new
-      PseudoSpectral<T_S,T_P>(2,d,mins,maxs);
+      PseudoSpectral<T_S,T_P>(d,order,mins,maxs);
 
     surrogate->printQuadPoints( );
     surrogate->printQuadWeights( );
