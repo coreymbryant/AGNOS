@@ -46,7 +46,7 @@ namespace AGNOS
   // an initial driver run routine for testing
   void Driver::run( )
   {
-    int d=10;
+    int d=1;
     std::vector<unsigned int> order = std::vector<unsigned int>(d,2);
     /* order[0] = 4; */
     /* order[1] = 2; */
