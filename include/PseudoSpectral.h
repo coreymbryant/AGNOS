@@ -19,12 +19,12 @@ namespace AGNOS
     public:
 
       PseudoSpectral( 
-          unsigned int order, 
           unsigned int dimension
+          std::vector<unsigned int> order, 
           );
       PseudoSpectral( 
-          unsigned int order, 
           unsigned int dimension, 
+          unsigned int order, 
           std::vector<double>& m_mins, 
           std::vector<double>& m_maxs
           );
@@ -65,7 +65,7 @@ namespace AGNOS
 
       void recurQuad(
           const int dim, const int order, 
-          double currentWeights[], double* currentPointsp[] );
+          double currentWeights[], double* currentPoints[] );
 
   };
 
@@ -129,9 +129,9 @@ namespace AGNOS
     {
       m_nQuadPoints = pow(m_order+1,m_dimension);
 
-      m_quadPoints = new double*[m_dimension];
-      for(unsigned int i=0; i<m_dimension; i++)
-        m_quadPoints[i] = new double[m_nQuadPoints];
+      m_quadPoints = new double*[m_nQuadPoints];
+      for(unsigned int i=0; i<m_nQuadPoints; i++)
+        m_quadPoints[i] = new double[m_dimension];
       m_quadWeights = new double[m_nQuadPoints];
 
       recurQuad(m_dimension,m_order,m_quadWeights,m_quadPoints);
@@ -140,39 +140,6 @@ namespace AGNOS
 
       return ;
     }
-  
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-// TODO adapt to this code
-// recursive quad points
-/* getQuadPoints() */
-/* { */
-/*   nQuadPoints_ = pow(order_+1,nDim_) ; */
-/*   quadPoints_.Resize( nQuadPoints_, nDim_, NULL); */
-
-/*   UQTKArray1D<double> points1D = p_basis_->quadPoints_; */
-  
-/*   for(int dit=0; dit < nDim_; dit++) */
-/*   { */
-/*     int total = 0; */
-/*     while(total < nQuadPoints_) */
-/*     { */
-/*       for(int pit=0; pit < points1D.XSize(); pit++) */
-/*         for(int rit=0; rit < pow(order_+1,nDim_-(dit+1)); rit++) */
-/*         { */
-/*           quadPoints_(total,dit)   = points1D(pit); */
-/*           if (UQTKVERBOSE) */
-/*             cout << "qPoint ( " << total << " , " << dit << " ) = " << */
-/*               quadPoints_(total,dit) << endl; */
-/*           total++; */
-/*         } */
-/*       } */
-/*   } */
-/*   return quadPoints_; */
-/* } */
   
 /********************************************//**
  * \brief 
@@ -190,19 +157,17 @@ namespace AGNOS
 
       double scaling = (m_maxs[dim-1]-m_mins[dim-1])/2.0;
       double midpoint = (m_maxs[dim-1]+m_mins[dim-1])/2.0;
-          std::cout << scaling << std::endl;
 
       if (dim == 1) 
       {
-
         for(unsigned int id=0; id < order+1; id++)
         {
           /* currentPoints[dim-1][id] = midpoint */ 
           /*   + oneDimQuadPoints[id] * scaling; */
             
           currentWeights[id] = oneDimQuadWeights[id] * scaling;
-          std::cout << currentWeights[id] << std::endl;
-          std::cout << scaling << std::endl;
+          currentPoints[id][0] = midpoint 
+            + oneDimQuadPoints[id] * scaling;
         }
       }
 
@@ -213,13 +178,24 @@ namespace AGNOS
         // keep track of how many array elements are non-zero
         int prevSize = pow(order+1,dim-1) ;
 
-        for(int outer=0; outer < prevSize; outer++)
+        for(int outer=prevSize-1; outer >= 0; outer--)
         {
-          currentWeights[(outer+1)*(order+1)] = currentWeights[]
-          for(int inner=0; inner < order+1 ; inner++)
+          for(int inner=order; inner >= 0 ; inner--)
           {
+            std::cout << "INDEX = " << outer*(order+1) + inner << std::endl;
             currentWeights[(outer)*(order+1) + inner] = 
               currentWeights[outer] * oneDimQuadWeights[inner] * scaling;
+            
+            for(int dir=0; dir < dim-1; dir++)
+            {
+              std::cout << "dir = " << dir << std::endl;
+              currentPoints[(outer)*(order+1) + inner][dir]
+                = currentPoints[outer][dir];
+              std::cout << currentPoints[outer][dir] << std::endl;
+            }
+
+            currentPoints[(outer)*(order+1) + inner][dim-1] 
+              = midpoint + oneDimQuadPoints[inner] * scaling;
           }
         }
       }
@@ -267,7 +243,7 @@ namespace AGNOS
         for(int iy=0; iy < m_dimension; iy++)
         {
           std::cout << std::scientific << std::setprecision(5) << std::setw(12)
-            << m_quadPoints[iy][ix] << "  ";
+            << m_quadPoints[ix][iy] << "  ";
         }
         std::cout << std::endl;
       }
@@ -283,6 +259,7 @@ namespace AGNOS
   template<class T_S,class T_P>
     void PseudoSpectral<T_S,T_P>::printQuadWeights( ) const
     {
+      double sum = 0.0;
       std::cout << std::endl;
       std::cout << "====================================================" <<
         std::endl;
@@ -293,7 +270,9 @@ namespace AGNOS
         std::cout << ip << "   | ";
         std::cout << m_quadWeights[ip] << "  ";
         std::cout << std::endl;
+        sum += m_quadWeights[ip];
       }
+      std::cout << "Sum = " << sum << std::endl;
       std::cout << std::endl;
       return;
     }
