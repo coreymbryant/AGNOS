@@ -8,8 +8,13 @@ namespace AGNOS
 {
 
 /********************************************//**
- * \brief 
+ * \brief Pseudo-spectral projection surrogate model
  *
+ * This class provides the framework for constructing surrogate models using
+ * non-intrusive spectral projection methods. Both isotropic and non-isotropic
+ * polynomial orders are supported. 
+ *
+ * Only Uniform Random variables at the moment
  * 
  ***********************************************/
   template<class T_S, class T_P>
@@ -71,7 +76,12 @@ namespace AGNOS
       double* m_quadWeights;
       unsigned int m_nQuadPoints;
 
-      virtual void constructQuadRule();
+      void constructQuadRule();
+
+      // We can use this to derive other classes for non-uniform RV (if needed)
+      virtual void oneDimQuadRule(
+        unsigned int order, 
+        double oneDimQuadPoints[], double oneDimQuadWeights[] );
 
       void recurQuad(
           const int dim, const std::vector<unsigned int> order, 
@@ -202,7 +212,7 @@ namespace AGNOS
     {
       double* oneDimQuadWeights = new double[order[dim-1]+1];
       double* oneDimQuadPoints = new double[order[dim-1]+1];
-      webbur::legendre_compute( order[dim-1]+1, oneDimQuadPoints, oneDimQuadWeights );
+      oneDimQuadRule( order[dim-1]+1, oneDimQuadPoints, oneDimQuadWeights );
 
       double scaling = (m_maxs[dim-1]-m_mins[dim-1])/2.0;
       double midpoint = (m_maxs[dim-1]+m_mins[dim-1])/2.0;
@@ -248,6 +258,19 @@ namespace AGNOS
         }
       }
       return ;
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PseudoSpectral<T_S,T_P>::oneDimQuadRule(
+        unsigned int order, 
+        double oneDimQuadPoints[], double oneDimQuadWeights[] )
+    {
+      webbur::legendre_compute( order, oneDimQuadPoints, oneDimQuadWeights );
     }
 
 /********************************************//**
