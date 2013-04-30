@@ -3,17 +3,17 @@
 #define DRIVER_H
 
 
-#include "PhysicsModel.h"
-#include "SurrogateModel.h"
-#include "CatenaryModel.h"
-#include "PseudoSpectral.h"
 #include <iostream>
+#include <stdio.h>
+#include <assert.h>
+#include "TensorProductPseudoSpectral.h"
+#include "CatenaryModel.h"
 
 namespace AGNOS
 {
-  //typedef std::vector<double> T_S ;
+  typedef std::vector<double> T_S ;
   typedef std::vector<double> T_P ;
-  typedef double* T_S ;
+  //typedef double* T_S ;
 
   class Driver
   { 
@@ -47,22 +47,32 @@ namespace AGNOS
   // an initial driver run routine for testing
   void Driver::run( )
   {
-    int d=1;
-    std::vector<unsigned int> order = std::vector<unsigned int>(d,2);
-    /* order[0] = 4; */
-    /* order[1] = 2; */
-    /* order[2] = 1; */
-    /* order[3] = 0; */
 
-    std::vector<double> mins(d,-1.0);
-    std::vector<double> maxs(d,1.0);
+    unsigned int dimension = 2;
 
-    PhysicsModel<T_S,T_P>* physics = new CatenaryModel<T_S,T_P>( );
-    PseudoSpectral<T_S,T_P>* surrogate = new
-      PseudoSpectral<T_S,T_P>((physics->getPrimalSolution()),d,order,mins,maxs);
+    std::vector<Parameter*> myParameters(dimension, new Parameter()); 
+    myParameters[0] = new Parameter(UNIFORM,0.0,1.0 );
+    myParameters[1] = new Parameter(UNIFORM,0.0,1.0 );
 
-    surrogate->printQuadPoints( );
-    surrogate->printQuadWeights( );
+    std::vector<unsigned int> myOrder(dimension,1);
+
+    PhysicsModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
+
+    typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
+    PhysicsMemberFcn physicsFunction = &PhysicsModel<T_S,T_P>::solvePrimal;
+    /* PhysicsFunc myFunc = myPhysics->solvePrimal ; */
+
+
+    TensorProductPseudoSpectral<T_S,T_P>* mySurrogate = new 
+      TensorProductPseudoSpectral<T_S,T_P>(
+          physicsFunction, // TODO THIS STILL WONT WORK
+          myParameters, 
+          myOrder  
+          );
+
+
+    mySurrogate->printQuadPoints( );
+    mySurrogate->printQuadWeights( );
 
     return;
   }

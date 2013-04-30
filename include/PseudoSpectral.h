@@ -4,6 +4,7 @@
 #define PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
 
+
 namespace AGNOS
 {
 
@@ -26,13 +27,14 @@ namespace AGNOS
 
     public:
 
+      typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
       PseudoSpectral( 
-          T_P* (*physicsFunction)(T_S& parameterValue),
+          PhysicsMemberFcn physicsFunction,
           std::vector<Parameter*> parameters,
           unsigned int order 
           );
       PseudoSpectral( 
-          T_P* (*physicsFunction)(T_S& parameterValue),
+          PhysicsMemberFcn physicsFunction,
           std::vector<Parameter*> parameters,
           std::vector<unsigned int>& order
           );
@@ -49,7 +51,7 @@ namespace AGNOS
       void setExpansionOrder( std::vector<unsigned int>& order);
       std::vector<unsigned int> getExpansionOrder( ) const;
 
-    private:
+    protected:
 
       std::vector<unsigned int> m_order;  // anisotropic
 
@@ -61,13 +63,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P* (*physicsFunction)(T_S& parameterValue),
+        PhysicsMemberFcn physicsFunction,
         std::vector<Parameter*> parameters,
         unsigned int order
         )
-      : SurrogateModel(physicsFunction,parameters)
+      : SurrogateModel<T_S,T_P>(physicsFunction,parameters)
     {
-      m_order = std::vector<unsigned int>(m_dimension,order);
+      m_order = std::vector<unsigned int>(this->m_dimension,order);
     }
 
 
@@ -76,12 +78,30 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P* (*physicsFunction)(T_S& parameterValue),
+        PhysicsMemberFcn physicsFunction,
         std::vector<Parameter*> parameters,
         std::vector<unsigned int>& order
         )
-      : SurrogateModel(physicsFunction,parameters), 
+      : SurrogateModel<T_S,T_P>(physicsFunction,parameters), 
       m_order(order)
+    {
+      if (m_order.size() != parameters.size() )
+      {
+        std::cout 
+          << std::endl
+          << "\tERROR:"
+          << " order vector dimension does not match number of parameters"
+          << std::endl
+          << std::endl;
+        assert(0);
+      }
+    }
+
+/********************************************//**
+ * \brief Constructor for anisotropic order
+ ***********************************************/
+  template<class T_S, class T_P>
+    PseudoSpectral<T_S,T_P>::~PseudoSpectral( )
     {
     }
 
