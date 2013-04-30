@@ -27,30 +27,30 @@ namespace AGNOS
       PhysicsModel( );   /**< Default constructor */
       virtual ~PhysicsModel( );  /**< Default destructor */
 
-      virtual void solvePrimal( 
+      virtual T_P* solvePrimal( 
           T_S& parameterValue  
           ) = 0;
 
-      virtual void solveAdjoint( 
+      virtual T_P* solveAdjoint( 
           T_S& parameterValue,  
           T_P& primalSolution    
           ) = 0;
 
-      virtual double evaluateQoi( 
+      virtual T_P* evaluateQoi( 
           T_S& parameterValue,
           T_P& primalSolution    
           ) = 0;
 
-      virtual double estimateError( 
+      virtual T_P* estimateError( 
           T_S& parameterValue,  
           T_P& primalSolution,   
           T_P& adjointSolution  
           ) = 0;
 
-      const T_P& getPrimalSolution( ) const;
-      const T_P& getAdjointSolution( ) const;
+      const T_P* getPrimalSolution( ) const;
+      const T_P* getAdjointSolution( ) const;
       // this may need a different type
-      const T_P& getErrorIndicators( ) const;
+      const T_P* getErrorIndicators( ) const;
 
       
     protected:
@@ -82,19 +82,19 @@ namespace AGNOS
 
 
   template<class T_S, class T_P>
-  const T_P& PhysicsModel<T_S,T_P>::getPrimalSolution( ) const
+  const T_P* PhysicsModel<T_S,T_P>::getPrimalSolution( ) const
   {
     return m_primalSolution;
   }
 
   template<class T_S, class T_P>
-  const T_P& PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
+  const T_P* PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
   {
     return m_adjointSolution;
   }
 
   template<class T_S, class T_P>
-  const T_P& PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
+  const T_P* PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
   {
     return m_errorIndicators;
   }

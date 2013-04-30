@@ -16,21 +16,21 @@ namespace AGNOS
     CatenaryModel( );
     ~CatenaryModel( );
 
-    void solvePrimal( 
+    T_P* solvePrimal( 
         T_S& parameterValue  
         );
 
-    void solveAdjoint( 
+    T_P* solveAdjoint( 
         T_S& parameterValue,  
         T_P& primalSolution    
         );
 
-    double evaluateQoi( 
+    T_P* evaluateQoi( 
         T_S& parameterValue,
         T_P& primalSolution    
         );
 
-    double estimateError( 
+    T_P* estimateError( 
         T_S& parameterValue,  
         T_P& primalSolution,   
         T_P& adjointSolution  
@@ -57,37 +57,37 @@ namespace AGNOS
   }
 
   template<class T_S, class T_P>
-    void CatenaryModel<T_S,T_P>::solvePrimal( 
+    T_P* CatenaryModel<T_S,T_P>::solvePrimal( 
         T_S& parameterValue  
         )
     {
       //m_primalSolution =  m_T / (8. * parameterValue) ;
-      return;
+      return NULL;
     }
 
   template<class T_S, class T_P>
-    void CatenaryModel<T_S,T_P>::solveAdjoint( 
+    T_P* CatenaryModel<T_S,T_P>::solveAdjoint( 
         T_S& parameterValue,  
         T_P& primalSolution    
         )
     {
       //m_adjointSolution = 1.0 / (4. * parameterValue) ;
-      return ;
+      return NULL;
     }
 
   template<class T_S, class T_P>
-    double CatenaryModel<T_S,T_P>::evaluateQoi( 
+    T_P* CatenaryModel<T_S,T_P>::evaluateQoi( 
         T_S& parameterValue,
         T_P& primalSolution    
         )
     {
       // QoI is just primal at x=1/2 so its just coefficient value
       //return m_primalSolution ; 
-      return 0.;
+      return NULL;
     }
 
   template<class T_S, class T_P>
-    double CatenaryModel<T_S,T_P>::estimateError( 
+    T_P* CatenaryModel<T_S,T_P>::estimateError( 
         T_S& parameterValue,  
         T_P& primalSolution,   
         T_P& adjointSolution  
@@ -95,7 +95,7 @@ namespace AGNOS
     {
       // in this case the FE solution interpolates at x=1/2 so the QoI is
       // evaluated exactly
-      return 0;
+      return NULL;
     }
 
 
