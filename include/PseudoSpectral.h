@@ -1,8 +1,10 @@
+// TODO need to change double** into some sort of array of T_P
 
 #ifndef PSEUDO_SPECTRAL_H
 #define PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
 #include "sandia_rules.hpp"
+#include <assert.h>
 
 namespace AGNOS
 {
@@ -11,7 +13,10 @@ namespace AGNOS
  * \brief Pseudo-spectral projection surrogate model
  *
  * This class provides the framework for constructing surrogate models using
- * non-intrusive spectral projection methods. Both isotropic and non-isotropic
+ * non-intrusive spectral projection methods. 
+ *
+ * As of now it is only Tensor product quadrature to comptue coefficients but
+ * could be extended to other methods as well. Both isotropic and non-isotropic
  * polynomial orders are supported. 
  *
  * Only Uniform Random variables at the moment
@@ -24,20 +29,24 @@ namespace AGNOS
     public:
 
       PseudoSpectral( 
+          T_P (*physicsFunc)(double*),
           unsigned int dimension,
           unsigned int order 
           );
       PseudoSpectral( 
+          T_P (*physicsFunc)(double*),
           unsigned int dimension,
           std::vector<unsigned int> order
           );
       PseudoSpectral( 
+          T_P (*physicsFunc)(double*),
           unsigned int dimension, 
           unsigned int order, 
           std::vector<double>& m_mins, 
           std::vector<double>& m_maxs
           );
       PseudoSpectral( 
+          T_P (*physicsFunc)(double*),
           unsigned int dimension, 
           std::vector<unsigned int> order, 
           std::vector<double>& m_mins, 
@@ -64,12 +73,13 @@ namespace AGNOS
 
     private:
 
+      T_P (*m_physicsFunc)(double*);
       unsigned int m_dimension;   // all uniform distributed
       std::vector<unsigned int> m_order; // anisotropic
       std::vector<double> m_mins; // can have different range though
       std::vector<double> m_maxs;
 
-      std::vector<double> m_coefficients;
+      std::vector<T_P> m_coefficients;
       std::vector<double> m_indexSet;
 
       double**  m_quadPoints;
@@ -95,15 +105,13 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::PseudoSpectral( )
-      : m_dimension(1)
-    {
-      m_order.push_back(0);
-      m_mins.push_back(-1.0);
-      m_maxs.push_back(1.0);
-      constructQuadRule();
-    }
+  /* template<class T_S, class T_P> */
+  /*   PseudoSpectral<T_S,T_P>::PseudoSpectral( ) */
+  /*   { */
+  /*     std::cout << "ERROR: \t Must provide a physics class to evaluate\n"; */
+  /*       std::endl; */
+  /*     assert(0); */
+  /*   } */
 
 /********************************************//**
  * \brief 
@@ -112,6 +120,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        T_P (*physicsFunc)(double*),
         unsigned int dimension,
         unsigned int order
         )
@@ -121,6 +130,7 @@ namespace AGNOS
       m_mins.push_back(-1.0);
       m_maxs.push_back(1.0);
       constructQuadRule();
+      m_coefficients.resize(m_nQuadPoints);
     }
 
 /********************************************//**
@@ -130,6 +140,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        T_P (*physicsFunc)(double*),
         unsigned int dimension,
         std::vector<unsigned int> order
         )
@@ -138,6 +149,7 @@ namespace AGNOS
       m_mins.push_back(-1.0);
       m_maxs.push_back(1.0);
       constructQuadRule();
+      m_coefficients.resize(m_nQuadPoints);
     }
 
 /********************************************//**
@@ -147,6 +159,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        T_P (*physicsFunc)(double*),
         unsigned int dimension, 
         unsigned int order, 
         std::vector<double>& mins, 
@@ -156,6 +169,7 @@ namespace AGNOS
     {
       m_order = std::vector<unsigned int>(dimension,order);
       constructQuadRule();
+      m_coefficients.resize(m_nQuadPoints);
     }
 
 /********************************************//**
@@ -165,6 +179,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+        T_P (*physicsFunc)(double*),
         unsigned int dimension, 
         std::vector<unsigned int> order, 
         std::vector<double>& mins, 
@@ -173,6 +188,7 @@ namespace AGNOS
       : m_order(order),m_dimension(dimension), m_mins(mins), m_maxs(maxs)
     {
       constructQuadRule();
+      m_coefficients.resize(m_nQuadPoints);
     }
 
   
@@ -194,7 +210,6 @@ namespace AGNOS
       m_quadWeights = new double[m_nQuadPoints];
 
       recurQuad(m_dimension,m_order,m_quadWeights,m_quadPoints);
-      /* setQuadPoints( ); */
 
 
       return ;
@@ -270,6 +285,7 @@ namespace AGNOS
         unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
+      // this class assumes uniform distribution
       webbur::legendre_compute( order, oneDimQuadPoints, oneDimQuadWeights );
     }
 
@@ -357,6 +373,14 @@ namespace AGNOS
     void PseudoSpectral<T_S,T_P>::build( )
     {
       // TODO
+      for(unsigned int pt=0; pt < m_nQuadPoints; pt++)
+      {
+        T_P ptSol = m_physicsFunc(m_quadPoints[pt]);
+        for(unsigned int coeff; coeff < m_nQuadPoints; coeff++)
+          // coeff += sol * poly * weight
+          m_coefficients[coeff] += ptSol;
+          /*   * POLY[coeff] * m_quadWeights[coeff] ; */
+      }
     }
 
 /********************************************//**
@@ -369,7 +393,12 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
+      T_P currSol;
       // TODO
+      for(unsigned int coeff=0; coeff < m_nQuadPoints; coeff++)
+        /* currSol += coeff * Poly ; */
+        currSol = 0;
+
     }
 
 /********************************************//**

@@ -11,8 +11,9 @@
 
 namespace AGNOS
 {
-  typedef std::vector<double> T_S ;
+  //typedef std::vector<double> T_S ;
   typedef std::vector<double> T_P ;
+  typedef double* T_S ;
 
   class Driver
   { 
@@ -58,7 +59,7 @@ namespace AGNOS
 
     PhysicsModel<T_S,T_P>* physics = new CatenaryModel<T_S,T_P>( );
     PseudoSpectral<T_S,T_P>* surrogate = new
-      PseudoSpectral<T_S,T_P>(d,order,mins,maxs);
+      PseudoSpectral<T_S,T_P>((physics->getPrimalSolution()),d,order,mins,maxs);
 
     surrogate->printQuadPoints( );
     surrogate->printQuadWeights( );
