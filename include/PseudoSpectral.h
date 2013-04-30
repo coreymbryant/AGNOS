@@ -3,8 +3,6 @@
 #ifndef PSEUDO_SPECTRAL_H
 #define PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
-#include "sandia_rules.hpp"
-#include <assert.h>
 
 namespace AGNOS
 {
@@ -29,390 +27,87 @@ namespace AGNOS
     public:
 
       PseudoSpectral( 
-          T_P (*physicsFunc)(double*),
-          unsigned int dimension,
+          T_P* (*physicsFunction)(T_S& parameterValue),
+          std::vector<Parameter*> parameters,
           unsigned int order 
           );
       PseudoSpectral( 
-          T_P (*physicsFunc)(double*),
-          unsigned int dimension,
-          std::vector<unsigned int> order
+          T_P* (*physicsFunction)(T_S& parameterValue),
+          std::vector<Parameter*> parameters,
+          std::vector<unsigned int>& order
           );
-      PseudoSpectral( 
-          T_P (*physicsFunc)(double*),
-          unsigned int dimension, 
-          unsigned int order, 
-          std::vector<double>& m_mins, 
-          std::vector<double>& m_maxs
-          );
-      PseudoSpectral( 
-          T_P (*physicsFunc)(double*),
-          unsigned int dimension, 
-          std::vector<unsigned int> order, 
-          std::vector<double>& m_mins, 
-          std::vector<double>& m_maxs
-          );
-
-      PseudoSpectral( );
 
       ~PseudoSpectral( );
 
-      void build( ); 
+      // these should carry over from surrogateModel right?
+      /* virtual void build( ) = 0; */ 
+      /* virtual T_P& evaluate( */ 
+      /*     ) = 0; */
+      /* virtual void refine( ) = 0; */
 
-      T_P& evaluate( 
-          T_S& parameterValues /**< parameter values to evaluate*/
-          );
-
-      void refine( );
-
-      void setParameterDimension(unsigned int parameterDimension) ;
-      unsigned int getParameterDimension( ) const;
-
-      void printQuadWeights( ) const;
-      void printQuadPoints( ) const;
+      // Manipulators
+      void setExpansionOrder( std::vector<unsigned int>& order);
+      std::vector<unsigned int> getExpansionOrder( ) const;
 
     private:
 
-      T_P (*m_physicsFunc)(double*);
-      unsigned int m_dimension;   // all uniform distributed
-      std::vector<unsigned int> m_order; // anisotropic
-      std::vector<double> m_mins; // can have different range though
-      std::vector<double> m_maxs;
-
-      std::vector<T_P> m_coefficients;
-      std::vector<double> m_indexSet;
-
-      double**  m_quadPoints;
-      double* m_quadWeights;
-      unsigned int m_nQuadPoints;
-
-      void constructQuadRule();
-
-      // We can use this to derive other classes for non-uniform RV (if needed)
-      virtual void oneDimQuadRule(
-        unsigned int order, 
-        double oneDimQuadPoints[], double oneDimQuadWeights[] );
-
-      void recurQuad(
-          const int dim, const std::vector<unsigned int> order, 
-          double currentWeights[], double* currentPoints[] );
+      std::vector<unsigned int> m_order;  // anisotropic
 
   };
 
 
 /********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  /* template<class T_S, class T_P> */
-  /*   PseudoSpectral<T_S,T_P>::PseudoSpectral( ) */
-  /*   { */
-  /*     std::cout << "ERROR: \t Must provide a physics class to evaluate\n"; */
-  /*       std::endl; */
-  /*     assert(0); */
-  /*   } */
-
-/********************************************//**
- * \brief 
- *
- * 
+ * \brief Constructor for isotropic order
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P (*physicsFunc)(double*),
-        unsigned int dimension,
+        T_P* (*physicsFunction)(T_S& parameterValue),
+        std::vector<Parameter*> parameters,
         unsigned int order
         )
-      : m_dimension(dimension)
+      : SurrogateModel(physicsFunction,parameters)
     {
-      m_order = std::vector<unsigned int>(dimension,order);
-      m_mins.push_back(-1.0);
-      m_maxs.push_back(1.0);
-      constructQuadRule();
-      m_coefficients.resize(m_nQuadPoints);
+      m_order = std::vector<unsigned int>(m_dimension,order);
     }
 
+
 /********************************************//**
- * \brief 
- *
- * 
+ * \brief Constructor for anisotropic order
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P (*physicsFunc)(double*),
-        unsigned int dimension,
-        std::vector<unsigned int> order
+        T_P* (*physicsFunction)(T_S& parameterValue),
+        std::vector<Parameter*> parameters,
+        std::vector<unsigned int>& order
         )
-      : m_order(order), m_dimension(dimension)
+      : SurrogateModel(physicsFunction,parameters), 
+      m_order(order)
     {
-      m_mins.push_back(-1.0);
-      m_maxs.push_back(1.0);
-      constructQuadRule();
-      m_coefficients.resize(m_nQuadPoints);
     }
 
 /********************************************//**
- * \brief 
- *
- * 
+ * \brief Set expansion order
  ***********************************************/
   template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P (*physicsFunc)(double*),
-        unsigned int dimension, 
-        unsigned int order, 
-        std::vector<double>& mins, 
-        std::vector<double>& maxs
+    void PseudoSpectral<T_S,T_P>::setExpansionOrder( 
+        std::vector<unsigned int>& order
         )
-      : m_dimension(dimension), m_mins(mins), m_maxs(maxs)
-    {
-      m_order = std::vector<unsigned int>(dimension,order);
-      constructQuadRule();
-      m_coefficients.resize(m_nQuadPoints);
-    }
+  {
+    m_order = order ;
+    return ;
+  }
 
 /********************************************//**
- * \brief 
- *
- * 
+ * \brief Get the current expansion order
  ***********************************************/
   template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        T_P (*physicsFunc)(double*),
-        unsigned int dimension, 
-        std::vector<unsigned int> order, 
-        std::vector<double>& mins, 
-        std::vector<double>& maxs
-        )
-      : m_order(order),m_dimension(dimension), m_mins(mins), m_maxs(maxs)
-    {
-      constructQuadRule();
-      m_coefficients.resize(m_nQuadPoints);
-    }
+    std::vector<unsigned int> PseudoSpectral<T_S,T_P>::getExpansionOrder( )
+    const
+  {
+    return m_order;
+  }
 
   
-/********************************************//**
- * \brief Rountine to populate quadPoints and quadWeights
- *
- * 
- ***********************************************/
-  template<class T_S,class T_P>
-    void PseudoSpectral<T_S,T_P>::constructQuadRule( )
-    {
-      m_nQuadPoints = m_order[0]+1;
-      for(unsigned int i=1; i< m_dimension; i++)
-        m_nQuadPoints *= (m_order[i]+1);
-
-      m_quadPoints = new double*[m_nQuadPoints];
-      for(unsigned int i=0; i<m_nQuadPoints; i++)
-        m_quadPoints[i] = new double[m_dimension];
-      m_quadWeights = new double[m_nQuadPoints];
-
-      recurQuad(m_dimension,m_order,m_quadWeights,m_quadPoints);
-
-
-      return ;
-    }
-  
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::recurQuad(
-        const int dim, const std::vector<unsigned int> order, 
-        double currentWeights[], double* currentPoints[] )
-    {
-      double* oneDimQuadWeights = new double[order[dim-1]+1];
-      double* oneDimQuadPoints = new double[order[dim-1]+1];
-      oneDimQuadRule( order[dim-1]+1, oneDimQuadPoints, oneDimQuadWeights );
-
-      double scaling = (m_maxs[dim-1]-m_mins[dim-1])/2.0;
-      double midpoint = (m_maxs[dim-1]+m_mins[dim-1])/2.0;
-
-      if (dim == 1) 
-      {
-        for(unsigned int id=0; id < order[dim-1]+1; id++)
-        {
-          /* currentPoints[dim-1][id] = midpoint */ 
-          /*   + oneDimQuadPoints[id] * scaling; */
-            
-          currentWeights[id] = oneDimQuadWeights[id] * scaling;
-          currentPoints[id][0] = midpoint 
-            + oneDimQuadPoints[id] * scaling;
-        }
-      }
-
-      else 
-      {
-        recurQuad(dim-1,order,currentWeights,currentPoints);
-        
-        // keep track of how many array elements are non-zero
-        int prevSize = order[0]+1;
-        for(unsigned int i=0; i < dim-2; i++)
-          prevSize *= order[i+1] + 1;
-
-        for(int outer=prevSize-1; outer >= 0; outer--)
-        {
-          for(int inner=order[dim-1]; inner >= 0 ; inner--)
-          {
-            currentWeights[(outer)*(order[dim-1]+1) + inner] = 
-              currentWeights[outer] * oneDimQuadWeights[inner] * scaling;
-            
-            for(int dir=0; dir < dim-1; dir++)
-            {
-              currentPoints[(outer)*(order[dim-1]+1) + inner][dir]
-                = currentPoints[outer][dir];
-            }
-
-            currentPoints[(outer)*(order[dim-1]+1) + inner][dim-1] 
-              = midpoint + oneDimQuadPoints[inner] * scaling;
-          }
-        }
-      }
-      return ;
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::oneDimQuadRule(
-        unsigned int order, 
-        double oneDimQuadPoints[], double oneDimQuadWeights[] )
-    {
-      // this class assumes uniform distribution
-      webbur::legendre_compute( order, oneDimQuadPoints, oneDimQuadWeights );
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::~PseudoSpectral()
-    {
-      delete [] m_quadPoints;
-      delete [] m_quadWeights;
-    }
-
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::printQuadPoints( ) const
-    {
-      std::cout << std::endl;
-      std::cout << "====================================================" <<
-        std::endl;
-      std::cout << " Quadrature points " << std::endl;
-      std::cout << "----------------------------------------------------" <<
-        std::endl;
-      std::cout << "  \\ x        " << std::endl;
-      std::cout << "   \\" ;
-      for(unsigned int dim=0; dim < m_dimension; dim++)
-        std::cout << std::setw(12) << "x_" << dim << " " ;
-      std::cout << std::endl;
-      std::cout << " id \\  " << std::endl;
-      std::cout << "----------------------------------------------------" <<
-        std::endl;
-      for(int ix=0; ix < m_nQuadPoints ; ix++)  
-      {
-        std::cout << std::setw(3) << ix << "  |  " ;
-        for(int iy=0; iy < m_dimension; iy++)
-        {
-          std::cout << std::scientific << std::setprecision(5) << std::setw(12)
-            << m_quadPoints[ix][iy] << "  ";
-        }
-        std::cout << std::endl;
-      }
-      std::cout << std::endl;
-      return;
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S,class T_P>
-    void PseudoSpectral<T_S,T_P>::printQuadWeights( ) const
-    {
-      double sum = 0.0;
-      std::cout << std::endl;
-      std::cout << "====================================================" <<
-        std::endl;
-      std::cout << " Quadrature weights " << std::endl;
-      std::cout << "----------------------------------------------------" <<
-        std::endl;
-      for(int ip=0; ip < m_nQuadPoints; ip++){  
-        std::cout << ip << "   | ";
-        std::cout << m_quadWeights[ip] << "  ";
-        std::cout << std::endl;
-        sum += m_quadWeights[ip];
-      }
-      std::cout << "Sum = " << sum << std::endl;
-      std::cout << std::endl;
-      return;
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::build( )
-    {
-      // TODO
-      for(unsigned int pt=0; pt < m_nQuadPoints; pt++)
-      {
-        T_P ptSol = m_physicsFunc(m_quadPoints[pt]);
-        for(unsigned int coeff; coeff < m_nQuadPoints; coeff++)
-          // coeff += sol * poly * weight
-          m_coefficients[coeff] += ptSol;
-          /*   * POLY[coeff] * m_quadWeights[coeff] ; */
-      }
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    T_P& PseudoSpectral<T_S,T_P>::evaluate( 
-        T_S& parameterValues /**< parameter values to evaluate*/
-        )
-    {
-      T_P currSol;
-      // TODO
-      for(unsigned int coeff=0; coeff < m_nQuadPoints; coeff++)
-        /* currSol += coeff * Poly ; */
-        currSol = 0;
-
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::refine( )
-    {
-      for(unsigned int i=0; i<m_dimension; i++)
-        m_order[i]++;
-    }
-
 
   
 }

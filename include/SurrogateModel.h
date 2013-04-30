@@ -17,55 +17,89 @@ namespace AGNOS
 
     public: 
 
+      // provided physics must me defined
+      // easiest way to accomplish this is to pass a function pointer
+      // alternatively we could have made a virtual function, but we would have
+      // to derive many additional classes to group forward and adjoint solution
+      // evaluations etc. 
+      SurrogateModel(
+          T_P* (*physicsFunction)(T_S& parameterValue),
+          std::vector<Parameter*> parameters
+          );
+
       SurrogateModel( );           /**< Default constructor */
       virtual ~SurrogateModel( );  /**< Default destructor */
 
+      // surrogate construction and evaluation
       virtual void build( ) = 0; 
-
-      virtual T_P& evaluate( 
+      virtual T_P* evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
           ) = 0;
-
       virtual void refine( ) = 0;
 
-      void setParameterDimension(unsigned int parameterDimension) ;
-      unsigned int getParameterDimension( ) const;
+
+      // Manipulators
+      void setParameters( std::vector<Parameter*> parameters );
+      std::vector<Parameter*> getParameters( ) const;
 
     protected: 
+      
+      T_P* (*m_physicsFunction)(T_S& parameterValues);
+      std::vector<Parameter*> m_parameters;
+      unsigned int m_dimension;
 
-      PhysicsModel<T_S,T_P>* m_physicsModel ; 
-
-      // may want to define a new class that encapsulates the paramters
-      // similar to how pmpack does it
-      unsigned int m_parameterDimension ;
-      std::vector<double> m_parameterMins ;
-      std::vector<double> m_parameterMaxs ;
       
 
   }; //SurrogateModel class
 
+/********************************************//*
+ * \brief Constructor
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::SurrogateModel( 
+        T_P* (*physicsFunction)(T_S& parameterValue),
+        std::vector<Parameter*> parameters
+        )
+      : m_physicsFunction(physicsFunction), m_parameters(parameters)
+      m_dimension(parameters.size())
+    {
+    }
 
+/********************************************//*
+ * \brief Default constructor
+ ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( )
     {
     }
 
+/********************************************//**
+ * \brief Default destructor
+ ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::~SurrogateModel( )
     {
     }
 
+/********************************************//**
+ * \brief set parameters
+ ***********************************************/
   template<class T_S, class T_P>
-    void SurrogateModel<T_S,T_P>::setParameterDimension( unsigned int parameterDimension )
+    void SurrogateModel<T_S,T_P>::setParameters( 
+        std::vector<Parameter*> parameters)
     {
-      m_parameterDimension = parameterDimension ;
+      m_parameters = parameters ;
+      m_dimension = parameters.size();
       return;
     }
 
+/********************************************//**
+ * \brief get number of parameters
+ ***********************************************/
   template<class T_S, class T_P>
-    unsigned int SurrogateModel<T_S,T_P>::getParameterDimension( ) const
+    std::vector<Parameter*> SurrogateModel<T_S,T_P>::getParameters( ) const
     {
-      return m_parameterDimension ;
+      return m_parameters ;
     }
 
 }
