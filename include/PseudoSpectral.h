@@ -30,16 +30,16 @@ namespace AGNOS
       typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
       PseudoSpectral( 
           PhysicsMemberFcn physicsFunction,
-          std::vector<Parameter*> parameters,
-          unsigned int order 
+          const std::vector<Parameter*> parameters,
+          const unsigned int order 
           );
       PseudoSpectral( 
           PhysicsMemberFcn physicsFunction,
-          std::vector<Parameter*> parameters,
-          std::vector<unsigned int>& order
+          const std::vector<Parameter*> parameters,
+          const std::vector<unsigned int>& order
           );
 
-      ~PseudoSpectral( );
+      virtual ~PseudoSpectral( );
 
       // these should carry over from surrogateModel right?
       /* virtual void build( ) = 0; */ 
@@ -64,8 +64,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
         PhysicsMemberFcn physicsFunction,
-        std::vector<Parameter*> parameters,
-        unsigned int order
+        const std::vector<Parameter*> parameters,
+        const unsigned int order
         )
       : SurrogateModel<T_S,T_P>(physicsFunction,parameters)
     {
@@ -79,8 +79,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
         PhysicsMemberFcn physicsFunction,
-        std::vector<Parameter*> parameters,
-        std::vector<unsigned int>& order
+        const std::vector<Parameter*> parameters,
+        const std::vector<unsigned int>& order
         )
       : SurrogateModel<T_S,T_P>(physicsFunction,parameters), 
       m_order(order)

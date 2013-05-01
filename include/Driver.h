@@ -71,8 +71,8 @@ namespace AGNOS
           );
 
 
-    mySurrogate->printQuadPoints( );
-    mySurrogate->printQuadWeights( );
+    mySurrogate->getQuadRule()->printQuadPoints( );
+    mySurrogate->getQuadRule()->printQuadWeights( );
 
     return;
   }
