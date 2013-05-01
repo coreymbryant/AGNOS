@@ -27,9 +27,9 @@ AC_LANG([C++])
 #----------------
 # Check for boost
 #----------------
-#BOOST_REQUIRE([1.36])
-#BOOST_MATH()
-#BOOST_PROGRAM_OPTIONS()
+BOOST_REQUIRE([1.36])
+BOOST_MATH()
+BOOST_PROGRAM_OPTIONS()
 
 #--------------------------------
 # Query configuration environment
