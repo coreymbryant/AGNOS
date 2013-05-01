@@ -28,4 +28,5 @@ src/agnos.o
 stamp-h1
 test/Makefile
 test/Makefile.in
+texput.log
   
