@@ -1,44 +1,63 @@
 
 #ifndef TENSOR_PRODUCT_QUADRATURE_H
 #define TENSOR_PRODUCT_QUADRATURE_H
-#include "sandia_rules.hpp"
-#include "Parameter.h"
 #include <assert.h>
+#include "QuadratureRule.h"
 
 // TensorProduct namespace since we may eventually have sparse grid as well
 namespace AGNOS
 {
-  namespace TensorProduct
+  class TensorProductQuadrature : public QuadratureRule
   {
 
-    void constructQuadRule( 
-        const std::vector<Parameter*>& parameters,
-        const std::vector<unsigned int>& order,
-        double quadWeights[], double* quadPoints[]
-        );
+    public:
 
-    void recurQuad(
-        const std::vector<Parameter*>& parameters,
-        const int dim, const std::vector<unsigned int>& order, 
-        double currentWeights[], double* currentPoints[] );
+      TensorProductQuadrature( 
+          const std::vector<Parameter*>& parameters,
+          const std::vector<unsigned int>& order
+          );
 
-    void oneDimQuadRule(
-      enum parameterType, const unsigned int order, 
-      double oneDimQuadPoints[], double oneDimQuadWeights[] );
+      TensorProductQuadrature( );
+      ~TensorProductQuadrature( );
 
+    protected:
+
+      void recurQuad(
+          const std::vector<Parameter*>& parameters,
+          const int dim, const std::vector<unsigned int>& order, 
+          double currentWeights[], double* currentPoints[] );
+
+      void oneDimQuadRule(
+        enum parameterType, const unsigned int order, 
+        double oneDimQuadPoints[], double oneDimQuadWeights[] );
+
+  };
 
 
   /********************************************//**
    * \brief Rountine to populate quadPoints and quadWeights
    * 
    ***********************************************/
-    void constructQuadRule(
-      const std::vector<Parameter*>& parameters,
-      const std::vector<unsigned int>& order,
-      double quadWeights[], double* quadPoints[]
-      )
+    TensorProductQuadrature::TensorProductQuadrature( 
+        const std::vector<Parameter*>& parameters, 
+        const std::vector<unsigned int>& order 
+        )
     {
-      recurQuad(parameters,parameters.size(),order,quadWeights,quadPoints);
+      this->m_dimension = parameters.size();
+
+      this->m_nQuadPoints = order[0]+1;
+      for(unsigned int i=1; i< this->m_dimension; i++)
+        this->m_nQuadPoints *= (order[i]+1);
+
+      this->m_quadPoints = new double*[this->m_nQuadPoints];
+      for(unsigned int i=0; i< this->m_nQuadPoints; i++)
+        this->m_quadPoints[i] = new double[this->m_dimension];
+      this->m_quadWeights = new double[this->m_nQuadPoints];
+
+      recurQuad(
+          parameters,this->m_dimension,order,
+          this->m_quadWeights,this->m_quadPoints);
+
       return ;
     }
 
@@ -46,7 +65,7 @@ namespace AGNOS
    * \brief recurs to produce quad rule for higher dimensions
    *
    ***********************************************/
-    void recurQuad(
+    void TensorProductQuadrature::recurQuad(
         const std::vector<Parameter*>& parameters,
         const int dim, const std::vector<unsigned int>& order, 
         double currentWeights[], double* currentPoints[] )
@@ -109,7 +128,7 @@ namespace AGNOS
    * 
    * Currently only unifrom is supported
    ***********************************************/
-      void oneDimQuadRule(
+      void TensorProductQuadrature::oneDimQuadRule(
           enum parameterType myType, const unsigned int order, 
           double oneDimQuadPoints[], double oneDimQuadWeights[] )
       {
@@ -126,7 +145,6 @@ namespace AGNOS
           
       }
 
-  }
 
 }
 
