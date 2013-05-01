@@ -29,12 +29,12 @@ namespace AGNOS
 
       typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
       PseudoSpectral( 
-          PhysicsMemberFcn physicsFunction,
+          PhysicsFunction<T_S,T_P>& solutionFunction,
           const std::vector<Parameter*> parameters,
           const unsigned int order 
           );
       PseudoSpectral( 
-          PhysicsMemberFcn physicsFunction,
+          PhysicsFunction<T_S,T_P>& solutionFunction,
           const std::vector<Parameter*> parameters,
           const std::vector<unsigned int>& order
           );
@@ -63,11 +63,11 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        PhysicsMemberFcn physicsFunction,
+        PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogateModel<T_S,T_P>(physicsFunction,parameters)
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters)
     {
       m_order = std::vector<unsigned int>(this->m_dimension,order);
     }
@@ -78,11 +78,11 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectral<T_S,T_P>::PseudoSpectral( 
-        PhysicsMemberFcn physicsFunction,
+        PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(physicsFunction,parameters), 
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters), 
       m_order(order)
     {
       if (m_order.size() != parameters.size() )

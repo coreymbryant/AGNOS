@@ -8,11 +8,13 @@
 #include <assert.h>
 #include "TensorProductPseudoSpectral.h"
 #include "CatenaryModel.h"
+#include "CombinedSolutionVector.h"
+
 
 namespace AGNOS
 {
-  typedef std::vector<double> T_S ;
   typedef std::vector<double> T_P ;
+  typedef std::vector<double> T_S ;
   //typedef double* T_S ;
 
   class Driver
@@ -30,45 +32,60 @@ namespace AGNOS
       int m_surrogateOrder;
   };
 
+/********************************************//**
+ * \brief 
+ * 
+ ***********************************************/
   Driver::Driver( )
     : m_surrogateOrder(1)
   {
   }
 
+/********************************************//**
+ * \brief 
+ * 
+ ***********************************************/
   Driver::Driver(int surrogateOrder )
     : m_surrogateOrder(surrogateOrder)
   {
   }
 
+/********************************************//**
+ * \brief 
+ * 
+ ***********************************************/
   Driver::~Driver( )
   {
   }
 
-  // an initial driver run routine for testing
+/********************************************//**
+ * \brief an initial driver run routine for testing
+ * 
+ ***********************************************/
   void Driver::run( )
   {
 
-    unsigned int dimension = 2;
+    unsigned int dimension = 1;
 
     std::vector<Parameter*> myParameters(dimension, new Parameter()); 
-    myParameters[0] = new Parameter(UNIFORM,0.0,1.0 );
-    myParameters[1] = new Parameter(UNIFORM,0.0,1.0 );
+    myParameters[0] = new Parameter(UNIFORM,-1.0,1.0 );
+    /* myParameters[1] = new Parameter(UNIFORM,0.0,1.0 ); */
 
     std::vector<unsigned int> myOrder(dimension,1);
 
-    PhysicsModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
+    CatenaryModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
 
-    typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
-    PhysicsMemberFcn physicsFunction = &PhysicsModel<T_S,T_P>::solvePrimal;
-    /* PhysicsFunc myFunc = myPhysics->solvePrimal ; */
-
+    PhysicsFunction<T_S,T_P>* myPhysicsFunction =
+      new CombinedSolutionVector<T_S,T_P>( *myPhysics ) ;
 
     TensorProductPseudoSpectral<T_S,T_P>* mySurrogate = new 
       TensorProductPseudoSpectral<T_S,T_P>(
-          physicsFunction, // TODO THIS STILL WONT WORK
+          *myPhysicsFunction, 
           myParameters, 
           myOrder  
           );
+
+    /* mySurrogate->build( ); */
 
 
     mySurrogate->getQuadRule()->printQuadPoints( );

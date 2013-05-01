@@ -7,7 +7,8 @@
 // TensorProduct namespace since we may eventually have sparse grid as well
 namespace AGNOS
 {
-  class TensorProductQuadrature : public QuadratureRule
+  template<class T_S>
+  class TensorProductQuadrature : public QuadratureRule<T_S>
   {
 
     public:
@@ -38,7 +39,8 @@ namespace AGNOS
    * \brief Rountine to populate quadPoints and quadWeights
    * 
    ***********************************************/
-    TensorProductQuadrature::TensorProductQuadrature( 
+  template<class T_S>
+    TensorProductQuadrature<T_S>::TensorProductQuadrature( 
         const std::vector<Parameter*>& parameters, 
         const std::vector<unsigned int>& order 
         )
@@ -65,7 +67,8 @@ namespace AGNOS
    * \brief recurs to produce quad rule for higher dimensions
    *
    ***********************************************/
-    void TensorProductQuadrature::recurQuad(
+  template<class T_S>
+    void TensorProductQuadrature<T_S>::recurQuad(
         const std::vector<Parameter*>& parameters,
         const int dim, const std::vector<unsigned int>& order, 
         double currentWeights[], double* currentPoints[] )
@@ -128,7 +131,8 @@ namespace AGNOS
    * 
    * Currently only unifrom is supported
    ***********************************************/
-      void TensorProductQuadrature::oneDimQuadRule(
+  template<class T_S>
+      void TensorProductQuadrature<T_S>::oneDimQuadRule(
           enum parameterType myType, const unsigned int order, 
           double oneDimQuadPoints[], double oneDimQuadWeights[] )
       {
@@ -136,8 +140,10 @@ namespace AGNOS
         {
           case UNIFORM:
             // this class assumes uniform distribution
-            webbur::legendre_compute( order, oneDimQuadPoints, oneDimQuadWeights );
+            webbur::legendre_compute( 
+                order, oneDimQuadPoints, oneDimQuadWeights);
             break;
+
           default:
             std::cout << "\n ERROR: Unrecognized parameter type\n\n" ;
             assert(0);
