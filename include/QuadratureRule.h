@@ -8,6 +8,7 @@
 namespace AGNOS
 {
 
+  template<class T_S>
   class QuadratureRule
   {
     public:
@@ -18,8 +19,8 @@ namespace AGNOS
       // Manipulators
       unsigned int getDimension( ) const;
       unsigned int getNQuadPoints( ) const;
-      double** getQuadPoints( ) const;
-      double* getQuadWeights( ) const;
+      std::vector<T_S> getQuadPoints( ) const;
+      T_S getQuadWeights( ) const;
       void printQuadWeights( ) const;
       void printQuadPoints( ) const;
 
@@ -34,7 +35,8 @@ namespace AGNOS
  * \brief 
  * 
  ***********************************************/
-  QuadratureRule::QuadratureRule( )
+  template<class T_S>
+  QuadratureRule<T_S>::QuadratureRule( )
   {
     // Do nothing, this needs to be defined for derived classes
   }
@@ -43,7 +45,8 @@ namespace AGNOS
  * \brief 
  * 
  ***********************************************/
-  QuadratureRule::~QuadratureRule( )
+  template<class T_S>
+  QuadratureRule<T_S>::~QuadratureRule( )
   {
     for (unsigned int i=0; i< m_nQuadPoints; i++)
       delete [] m_quadPoints[i] ;
@@ -57,7 +60,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  unsigned int QuadratureRule::getNQuadPoints( ) const
+  template<class T_S>
+  unsigned int QuadratureRule<T_S>::getNQuadPoints( ) const
   {
     return m_nQuadPoints;
   }
@@ -67,7 +71,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  unsigned int QuadratureRule::getDimension( ) const
+  template<class T_S>
+  unsigned int QuadratureRule<T_S>::getDimension( ) const
   {
     return m_dimension;
   }
@@ -77,9 +82,33 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  double** QuadratureRule::getQuadPoints( ) const
+  template<class T_S>
+  std::vector<T_S> QuadratureRule<T_S>::getQuadPoints( ) const
   {
-    return m_quadPoints;
+    std::vector<T_S> quadPoints;
+    quadPoints.resize(m_nQuadPoints);
+    for (unsigned int n=0; n< m_nQuadPoints; n++)
+    {
+      quadPoints[n] = T_S(m_dimension,0.0);
+      for(unsigned int d=0; d< m_dimension; d++)
+        quadPoints[n][d] = m_quadPoints[n][d];
+    }
+    return quadPoints;
+  }
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S>
+  T_S QuadratureRule<T_S>::getQuadWeights( ) const
+  {
+    std::vector<T_S> quadWeights;
+    quadWeights.resize(m_nQuadPoints);
+    for (unsigned int n=0; n< m_nQuadPoints; n++)
+      quadWeights[n] = m_quadWeights[n];
+
+    return quadWeights;
   }
 
 /********************************************//**
@@ -87,17 +116,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  double* QuadratureRule::getQuadWeights( ) const
-  {
-    return m_quadWeights;
-  }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  void QuadratureRule::printQuadPoints( ) const
+  template<class T_S>
+  void QuadratureRule<T_S>::printQuadPoints( ) const
   {
     std::cout << std::endl;
     std::cout << "====================================================" <<
@@ -132,7 +152,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  void QuadratureRule::printQuadWeights( ) const
+  template<class T_S>
+  void QuadratureRule<T_S>::printQuadWeights( ) const
   {
     double sum = 0.0;
     std::cout << std::endl;

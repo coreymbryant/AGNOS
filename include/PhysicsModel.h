@@ -27,51 +27,64 @@ namespace AGNOS
       PhysicsModel( );   /**< Default constructor */
       virtual ~PhysicsModel( );  /**< Default destructor */
 
-      virtual T_P* solvePrimal( 
-          T_S& parameterValue  
+      virtual T_P solvePrimal( 
+          const T_S& parameterValue  
           ) = 0;
 
-      virtual T_P* solveAdjoint( 
-          T_S& parameterValue,  
-          T_P& primalSolution    
+      virtual T_P solveAdjoint( 
+          const T_S& parameterValue,  
+          const T_P& primalSolution    
           ) = 0;
+      virtual T_P solveAdjoint( const T_S& parameterValue ) ;
 
-      virtual T_P* evaluateQoi( 
-          T_S& parameterValue,
-          T_P& primalSolution    
+      virtual T_P evaluateQoi( 
+          const T_S& parameterValue,
+          const T_P& primalSolution    
           ) = 0;
+      virtual T_P evaluateQoi( const T_S& parameterValue ) ;
 
-      virtual T_P* estimateError( 
-          T_S& parameterValue,  
-          T_P& primalSolution,   
-          T_P& adjointSolution  
+      virtual T_P estimateError( 
+          const T_S& parameterValue,  
+          const T_P& primalSolution,   
+          const T_P& adjointSolution  
           ) = 0;
+      virtual T_P estimateError( const T_S& parameterValue ) ;
 
-      const T_P* getPrimalSolution( ) const;
-      const T_P* getAdjointSolution( ) const;
+      const T_P* getPrimalSolution( ) ;
+      const T_P* getAdjointSolution( ) ;
+
       // this may need a different type
-      const T_P* getErrorIndicators( ) const;
+      const T_P* getErrorIndicators( ) ;
 
       
     protected:
 
       T_P* m_primalSolution;
       T_P* m_adjointSolution;
+      T_P* m_qoiValue;
       // this may need a different type
       T_P* m_errorIndicators;
+
       
   }; // PhysicsModel class
 
 
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::PhysicsModel( )
   {
-    m_primalSolution = new T_P ;
-    m_adjointSolution = new T_P ;
-    m_errorIndicators = new T_P ;
+    m_primalSolution  (NULL);
+    m_adjointSolution (NULL);
+    m_qoiValue        (NULL);
+    m_errorIndicators (NULL);
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::~PhysicsModel( )
   {
@@ -81,25 +94,50 @@ namespace AGNOS
   }
 
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
   template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getPrimalSolution( ) const
+  const T_P* PhysicsModel<T_S,T_P>::getPrimalSolution() const
   {
     return m_primalSolution;
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
   template<class T_S, class T_P>
   const T_P* PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
   {
     return m_adjointSolution;
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
   template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
+  const T_P PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
   {
     return m_errorIndicators;
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  T_P PhysicsModel<T_S,T_P>::solveAdjoint( const T_S& parameterValue ) ;
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  virtual T_P PhysicsModel<T_S,T_P>::evaluateQoi( const T_S& parameterValue ) ;
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  virtual T_P PhysicsModel<T_S,T_P>::estimateError( const T_S& parameterValue ) ;
 
 }
 

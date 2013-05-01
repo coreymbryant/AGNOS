@@ -2,6 +2,9 @@
 #ifndef PARAMETER_H
 #define PARAMETER_H
 
+#include <assert.h>
+#include <boost/math/special_functions/legendre.hpp>
+
 namespace AGNOS
 {
   enum parameterType { UNIFORM = 0 };
@@ -22,6 +25,7 @@ namespace AGNOS
       enum parameterType type() const; /**< 0: Uniform */
       double min() const;
       double max() const;
+      double evalBasisPoly( int l, double x);
 
     private:
 
@@ -76,6 +80,27 @@ namespace AGNOS
     return m_max;
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  double Parameter::evalBasisPoly( int l, double x)
+  {
+    double polyValue;
+    switch ( m_type )
+    {
+      case UNIFORM:
+        polyValue = boost::math::legendre_p( l, x);
+
+
+        break;
+
+      default:
+        std::cout << "\n ERROR: Unrecognized parameter type\n\n" ;
+        assert(0);
+
+    }
+    return polyValue;
+  }
 
 }
 
