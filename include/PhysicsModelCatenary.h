@@ -70,9 +70,9 @@ namespace AGNOS
         const T_S& parameterValue  
         )
     {
-      T_P imageValue(1,0.0);
+      T_P imageValue(1);
 
-      imageValue[0] =  m_T / (8. * parameterValue[0] ) ;
+      imageValue(0) =  m_T / (8. * parameterValue(0) ) ;
       *(this->m_primalSolution) = imageValue ;
       return imageValue;
     }
@@ -87,9 +87,9 @@ namespace AGNOS
         )
     {
 
-      T_P imageValue(1,0.0);
+      T_P imageValue(1);
 
-      imageValue[0] =  1.0 / (4. * parameterValue[0])  ;
+      imageValue(0) =  1.0 / (4. * parameterValue(0))  ;
       *(this->m_adjointSolution) = imageValue ;
       
       return imageValue;
@@ -106,8 +106,7 @@ namespace AGNOS
     {
       // QoI is just primal at x=1/2 so its just coefficient value
       //return m_primalSolution ; 
-      T_P dummy;
-      return dummy;
+      return primalSolution;
     }
 
 /********************************************//**
@@ -122,8 +121,10 @@ namespace AGNOS
     {
       // in this case the FE solution interpolates at x=1/2 so the QoI is
       // evaluated exactly
-      T_P dummy;
-      return dummy;
+      T_P imageValue(1);
+      imageValue.zero();
+
+      return imageValue;
     }
 
 

@@ -6,16 +6,19 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
-#include "TensorProductPseudoSpectral.h"
-#include "CatenaryModel.h"
-#include "CombinedSolutionVector.h"
+#include "SurrogateModelPseudoSpectralTensorProduct.h"
+#include "PhysicsModelCatenary.h"
+#include "PhysicsFunctionCombinedSolutionVector.h"
+
+#include "libmesh/dense_vector.h"
 
 
 namespace AGNOS
 {
-  typedef std::vector<double> T_P ;
-  typedef std::vector<double> T_S ;
-  //typedef double* T_S ;
+  /* typedef std::vector<double> T_P ; */
+  /* typedef std::vector<double> T_S ; */
+  typedef libMesh::DenseVector<double> T_P ;
+  typedef libMesh::DenseVector<double> T_S ;
 
   class Driver
   { 
@@ -65,18 +68,19 @@ namespace AGNOS
   void Driver::run( )
   {
 
-    unsigned int dimension = 1;
+    unsigned int dimension = 2;
 
-    std::vector<Parameter*> myParameters(dimension, new Parameter()); 
-    myParameters[0] = new Parameter(UNIFORM,-1.0,1.0 );
-    /* myParameters[1] = new Parameter(UNIFORM,0.0,1.0 ); */
+    std::vector<Parameter*> myParameters(
+        dimension, 
+        new Parameter(UNIFORM, 0.0,1.0)
+        ); 
 
     std::vector<unsigned int> myOrder(dimension,1);
 
     CatenaryModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
 
     PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-      new CombinedSolutionVector<T_S,T_P>( *myPhysics ) ;
+      new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ;
 
     TensorProductPseudoSpectral<T_S,T_P>* mySurrogate = new 
       TensorProductPseudoSpectral<T_S,T_P>(
@@ -88,8 +92,8 @@ namespace AGNOS
     /* mySurrogate->build( ); */
 
 
-    mySurrogate->getQuadRule()->printQuadPoints( );
-    mySurrogate->getQuadRule()->printQuadWeights( );
+    mySurrogate->printIntegrationPoints( );
+    mySurrogate->printIntegrationWeights( );
 
     return;
   }

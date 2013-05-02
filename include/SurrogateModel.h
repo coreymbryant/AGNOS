@@ -5,7 +5,6 @@
 #ifndef SURROGATE_MODEL_H 
 #define SURROGATE_MODEL_H 
 #include "Parameter.h"
-#include "PhysicsModel.h"
 #include "PhysicsFunction.h"
 #include <iostream>
 
@@ -21,7 +20,6 @@ namespace AGNOS
 
 
     public: 
-      typedef T_P* (PhysicsModel<T_S,T_P>::*PhysicsMemberFcn)(T_S&);
 
       // provided physics must me defined
       // easiest way to accomplish this is to pass a function pointer
@@ -30,7 +28,7 @@ namespace AGNOS
       // evaluations etc. 
       SurrogateModel(
           PhysicsFunction<T_S,T_P>& solutionFunction,
-          std::vector<Parameter*> parameters
+          std::vector<Parameter*>   parameters
           );
 
       SurrogateModel( );           /**< Default constructor */
@@ -51,8 +49,8 @@ namespace AGNOS
     protected: 
       
       PhysicsFunction<T_S,T_P>& m_solutionFunction;
-      std::vector<Parameter*> m_parameters;
-      unsigned int m_dimension;
+      std::vector<Parameter*>   m_parameters;
+      unsigned int              m_dimension;
 
       
 
