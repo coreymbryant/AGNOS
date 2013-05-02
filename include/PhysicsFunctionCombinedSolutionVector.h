@@ -58,25 +58,25 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      T_P* primalSol = this->m_physics.getPrimalSolution( paramVector ) ;
-      T_P* adjointSol = this->m_physics.getAdjointSolution( paramVector,
-          this->m_physics.getPrimalSolution() ) ;
-      T_P* qoiValue = this->m_physics.evaluateQoi( paramVector,
-          this->m_physics.getPrimalSolution() ) ;
-      unsigned int pSize = primalSol->size();
-      unsigned int aSize = adjointSol->size();
-      unsigned int qSize = qoiValue->size();
+      /* T_P* primalSol = this->m_physics.getPrimalSolution( ) ; */
+      /* T_P* adjointSol = this->m_physics.getAdjointSolution( , */
+      /*     this->m_physics.getPrimalSolution() ) ; */
+      /* T_P* qoiValue = this->m_physics.evaluateQoi( paramVector, */
+      /*     this->m_physics.getPrimalSolution() ) ; */
+      /* unsigned int pSize = primalSol->size(); */
+      /* unsigned int aSize = adjointSol->size(); */
+      /* unsigned int qSize = qoiValue->size(); */
 
-      imageVector.reserve( pSize + aSize + qSize );
+      /* imageVector.reserve( pSize + aSize + qSize ); */
 
-      for (unsigned int pIt=0; pIt < pSize; pIt++)
-        imageVector[pIt] = (*primalSol)[pIt];
+      /* for (unsigned int pIt=0; pIt < pSize; pIt++) */
+      /*   imageVector[pIt] = (*primalSol)[pIt]; */
 
-      for (unsigned int aIt=0; aIt < aSize; aIt++)
-        imageVector[ pSize + aIt] = (*adjointSol)[aIt];
+      /* for (unsigned int aIt=0; aIt < aSize; aIt++) */
+      /*   imageVector[ pSize + aIt] = (*adjointSol)[aIt]; */
 
-      for (unsigned int qIt=0; qIt < qSize; qIt++)
-        imageVector[ pSize + aSize + qIt] = (*qoiValue)[qIt];
+      /* for (unsigned int qIt=0; qIt < qSize; qIt++) */
+      /*   imageVector[ pSize + aSize + qIt] = (*qoiValue)[qIt]; */
 
     }
 

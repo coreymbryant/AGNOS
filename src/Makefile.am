@@ -13,7 +13,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 #-------------------------------------
 # External library include directories
 #-------------------------------------
-AM_CPPFLAGS += $(BOOST_CPPFLAGS)
+AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
 # Flags we need to pass to the linker
