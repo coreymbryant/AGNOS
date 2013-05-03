@@ -68,7 +68,7 @@ namespace AGNOS
   void Driver::run( )
   {
 
-    unsigned int dimension = 3;
+    unsigned int dimension = 1;
 
     std::vector<Parameter*> myParameters(
         dimension, 
@@ -76,12 +76,12 @@ namespace AGNOS
         ); 
 
     std::vector<unsigned int> myOrder(dimension,1);
-    myOrder.back() = 2;
+    myOrder.front() = 2;
 
     PhysicsCatenary<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( ) ;
 
     PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-      new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ;
+      new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ;
 
     PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
       PseudoSpectralTensorProduct<T_S,T_P>(
@@ -90,12 +90,12 @@ namespace AGNOS
           myOrder  
           );
 
-    /* mySurrogate->build( ); */
+    mySurrogate->build( );
 
 
-    /* mySurrogate->printIntegrationPoints( ); */
-    /* mySurrogate->printIntegrationWeights( ); */
-    /* mySurrogate->printIndexSet( ); */
+    mySurrogate->printIntegrationPoints( );
+    mySurrogate->printIntegrationWeights( );
+    mySurrogate->printIndexSet( );
 
     return;
   }

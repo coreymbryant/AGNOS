@@ -41,7 +41,11 @@ namespace AGNOS
       virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
-      T_P pointContribution( T_S& integrationPoint );
+      std::vector<T_P> pointContribution( 
+          T_S& integrationPoint, 
+          double& integrationWeight,
+          std::vector<double>& polyValues
+          );
       T_P evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
           );
@@ -51,8 +55,9 @@ namespace AGNOS
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
-      std::vector< std::vector<double> > getBasisEvaluations( ) const;
-      const std::vector< std::vector< unsigned int> > getIndexSet( ) const;
+      const std::vector< std::vector< unsigned int> > 
+                                getIndexSet( ) const;
+      std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
 
       void                      printIntegrationWeights( ) const;
       void                      printIntegrationPoints( ) const;
@@ -64,7 +69,6 @@ namespace AGNOS
       unsigned int              m_nIntegrationPoints;
       std::vector<T_S>          m_integrationPoints ;
       std::vector<double>       m_integrationWeights ;
-      std::vector< std::vector<double> >       m_basisEvaluations ;
 
       // TODO 
       std::vector<T_P>          m_coefficients;
@@ -167,22 +171,78 @@ namespace AGNOS
  *
  * 
  ***********************************************/
+  template<class T_S, class T_P> 
+    const std::vector< std::vector< unsigned int> > 
+    SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
+    {
+      return m_indexSet;
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::evaluateBasis( 
+        T_S& parameterValue 
+        ) const
+    {
+      unsigned int nTerms = this->m_indexSet.size() ;
+      std::vector<double> basisValues( nTerms ,0.);
+
+      for(unsigned int id=0; id < nTerms ; id++)
+        for(unsigned int dir=0; dir < this->m_dimension; dir++)
+        {
+          basisValues[id] 
+            += this->m_parameters[dir]->evalBasisPoly( 
+                m_indexSet[id][dir], parameterValue(dir) ) ;
+        }
+
+      return basisValues;
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
   template<class T_S, class T_P>
     void SurrogatePseudoSpectral<T_S,T_P>::build( )
     {
       // This is separated from the routine that actually computes contribution
       // so that we can group surrogate models together later and wll that needs
       // to be defined is build routine based on pointContribution( )
+      //
+      
+      std::vector<double> polyValues = evaluateBasis(m_integrationPoints[0]) ;
+      m_coefficients = pointContribution( 
+            m_integrationPoints[0], 
+            m_integrationWeights[0], 
+            polyValues
+            );
+      std::vector<T_P> contrib;
 
-      // m_integrationWeights
-      // poly value
-
-      /* for(unsigned int point=0; point < m_nIntegrationPoints; point++) */
-      /*   pointContribution( */ 
-      /*       m_integrationWeights[point], */ 
-      /*       m_integrationPoints[point], */ 
-      /*       polyValue */ 
-      /*       ); */
+      
+      for(unsigned int point=1; point < m_nIntegrationPoints; point++)
+      {
+        polyValues = evaluateBasis(m_integrationPoints[point]) ;
+        contrib = pointContribution( 
+            m_integrationPoints[point], 
+            m_integrationWeights[point], 
+            polyValues
+            );
+        for(unsigned int coeff=0; coeff < m_coefficients.size(); coeff++)
+        {
+          m_coefficients[coeff] += contrib[coeff];
+        }
+      }
+      
+      for(unsigned int i=0; i < m_coefficients.size(); i++ )
+        for(unsigned int j=0; j < m_coefficients[i].size(); j++ )
+          std::cout << "coeff[" << i << "](" << j << ") = " <<
+            m_coefficients[i](j) << std::endl;
+      return;
     } 
 
 /********************************************//**
@@ -191,49 +251,25 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P SurrogatePseudoSpectral<T_S,T_P>::pointContribution(
-        T_S& integrationPoint
+    std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::pointContribution(
+        T_S& integrationPoint, 
+        double& integrationWeight,
+        std::vector<double>& polyValues
         )
     {
+      T_P solution;
+      this->m_solutionFunction.compute( integrationPoint, solution );
 
-      /* for (unsigned int j=0; j < m_coefficients.size(); j++) */
-      /* { */
-      /*   T_P tmpSolution; */
-      /*   this->m_solutionFunction.compute( integrationPoint, tmpSolution ); */
+      std::vector<T_P> contrib;
+      contrib.resize( polyValues.size() ); // polyValues has same size as coeff
+      for (unsigned int i=0; i < contrib.size(); i++)
+      {
+        contrib[i] = solution ;
+        for (unsigned int j=0; j < solution.size(); j++)
+          contrib[i](j) *= polyValues[i] * integrationWeight ;
+      }
 
-      /*   if (m_coefficients[j].size() == 0) */
-      /*     m_coefficients[j] = tmpSolution  ; */
-      /*   else */
-      /*     m_coefficients[j] += */ 
-
-      /* } */
-      /* T_P solVec; */ 
-
-      /* unsigned int nQuadPoints = this->m_quadRule->getNQuadPoints(); */
-      /* std::vector<T_S> parameterValues */
-      /*   = this->m_quadRule->getQuadPoints(); */
-
-      /* for (unsigned int j=0; j < nQuadPoints; j++) */
-      /* { */
-      /*   this->m_solutionFunction.compute(paramValues[j],solVec); */
-
-      /*   for(unsigned int coeff=0; coeff < nQuadPoints; coeff++) */
-      /*   { */
-      /*     std::cout << "solVec[0] = " << solVec[0] << std::endl; */
-      /*     std::cout << "poly = " */ 
-      /*       << (this->m_parameters[0]->evalBasisPoly(coeff,paramVec[0]) ) */ 
-      /*       << std::endl; */
-      /*     std::cout << "weight = " */ 
-      /*       << (this->m_quadRule->getQuadWeights())[0] */
-      /*       << std::endl; */
-
-      /*     for(unsigned int solId; solId < numberOfSolutionVectors; solId++) */
-      /*       m_coefficients[coeff][solId][0] +=  solVec[solId][0] */
-      /*         * (this->m_parameters[0]->evalBasisPoly(coeff,paramVec[0][0]) ) */ 
-      /*         * (this->m_quadRule->getQuadWeights())[0] ; */
-      /*   } */
-      /*   std::cout << "coeff[" << j << "][0] = " << m_coefficients[j][0][0] << std::endl; */
-      /* } */
+      return contrib;
     }
 
 /********************************************//**
@@ -320,17 +356,6 @@ namespace AGNOS
     return;
   }
 
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P> 
-    const std::vector< std::vector< unsigned int> > 
-    SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
-    {
-      return m_indexSet;
-    }
 
 /********************************************//**
  * \brief 

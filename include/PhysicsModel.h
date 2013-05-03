@@ -76,10 +76,10 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::PhysicsModel( )
   {
-    m_primalSolution  = new T_P;
-    m_adjointSolution = new T_P;
-    m_qoiValue        = new T_P;
-    m_errorIndicators = new T_P;
+    /* m_primalSolution  = new T_P; */
+    /* m_adjointSolution = new T_P; */
+    /* m_qoiValue        = new T_P; */
+    /* m_errorIndicators = new T_P; */
 
     m_primalSolution  = NULL;
     m_adjointSolution = NULL;
@@ -134,9 +134,10 @@ namespace AGNOS
   void PhysicsModel<T_S,T_P>::setPrimalSolution( 
       T_P& primalSolution )
   {
-    *m_primalSolution = primalSolution ;
+    m_primalSolution = new T_P(primalSolution);
+    /* *m_primalSolution = primalSolution ; */
 
-    return 0;
+    return ;
   }
 
 /********************************************//**

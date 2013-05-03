@@ -88,6 +88,7 @@ namespace AGNOS
     {
       imageVector = this->m_physics.solvePrimal(paramVector);
       this->m_physics.setPrimalSolution(imageVector);
+      return ;
     }
   
 
