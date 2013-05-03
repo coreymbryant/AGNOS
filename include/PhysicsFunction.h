@@ -21,6 +21,7 @@ namespace AGNOS
       PhysicsFunction(
           PhysicsModel<T_S,T_P>& physics
           );
+      PhysicsFunction( T_P (*myFunction)(T_S&) );
       virtual ~PhysicsFunction();
 
       virtual void compute( 
@@ -30,6 +31,7 @@ namespace AGNOS
 
     protected:
       PhysicsModel<T_S,T_P>& m_physics;
+      T_P (*m_myFunction)(T_S&);
 
   };
 
@@ -43,6 +45,17 @@ namespace AGNOS
     : m_physics(physics)
     {
     }
+  
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    PhysicsFunction<T_S,T_P>::PhysicsFunction( 
+        T_P (*myFunction)(T_S&)  
+        )
+    : m_myFunction(myFunction)
+    {
+    }
 
 /********************************************//**
  * \brief 
@@ -52,6 +65,24 @@ namespace AGNOS
     {
     }
 
+/********************************************//**
+ * \brief Primal solution function
+ *
+ *
+ ***********************************************/
+  template<class T_S, class T_P>
+  class PhysicsFunctionSimple : public PhysicsFunction<T_S,T_P>
+  {
+    public:
+      PhysicsFunctionSimple( T_P (*myFunction)(T_S&)  ) 
+        : PhysicsFunction<T_S,T_P>( myFunction ) { };
+
+      void compute( const T_S& paramVector, T_P& imageVector)
+      {
+        imageVector = myFunction(paramVector) ;
+        return ;
+      };
+  };
 
 
 /********************************************//**
