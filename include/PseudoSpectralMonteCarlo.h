@@ -7,7 +7,7 @@
 namespace AGNOS
 {
   template<class T_S, class T_P>
-    class PseudoSpectralMonteCarlo : public PseudoSpectral<T_S,T_P>
+    class PseudoSpectralMonteCarlo : public SurrogatePseudoSpectral<T_S,T_P>
   {
     // TODO
   }

@@ -36,7 +36,7 @@ namespace AGNOS
         const T_P& adjointSolution  
         );
   
-  private:
+  protected:
     double m_T;
   };
 
@@ -71,9 +71,9 @@ namespace AGNOS
         )
     {
       T_P imageValue(1);
+      
 
-      imageValue(0) =  m_T / (8. * parameterValue(0) ) ;
-      *(this->m_primalSolution) = imageValue ;
+      imageValue(0) =  m_T / (8. * (1+ 0.5 * parameterValue(0)) ) ;
       return imageValue;
     }
 
@@ -90,7 +90,6 @@ namespace AGNOS
       T_P imageValue(1);
 
       imageValue(0) =  1.0 / (4. * parameterValue(0))  ;
-      *(this->m_adjointSolution) = imageValue ;
       
       return imageValue;
     }
