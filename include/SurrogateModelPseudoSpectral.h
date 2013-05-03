@@ -52,9 +52,11 @@ namespace AGNOS
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
       std::vector< std::vector<double> > getBasisEvaluations( ) const;
+      const std::vector< std::vector< unsigned int> > getIndexSet( ) const;
 
       void                      printIntegrationWeights( ) const;
       void                      printIntegrationPoints( ) const;
+      void                      printIndexSet( ) const;
 
     protected:
 
@@ -175,12 +177,12 @@ namespace AGNOS
       // m_integrationWeights
       // poly value
 
-      for(unsigned int point=0; point < m_nIntegrationPoints; point++)
-        pointContribution( 
-            m_integrationWeights[point], 
-            m_integrationPoints[point], 
-            polyValue 
-            );
+      /* for(unsigned int point=0; point < m_nIntegrationPoints; point++) */
+      /*   pointContribution( */ 
+      /*       m_integrationWeights[point], */ 
+      /*       m_integrationPoints[point], */ 
+      /*       polyValue */ 
+      /*       ); */
     } 
 
 /********************************************//**
@@ -189,23 +191,22 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::pointContribution(
+    T_P PseudoSpectral<T_S,T_P>::pointContribution(
         T_S& integrationPoint
         )
     {
 
-      for (unsigned int j=0; j < m_coefficients.size(); j++)
-      {
-        T_P tmpSolution;
-        m_solutionFunction.compute( integrationPoint, tmpSolution );
+      /* for (unsigned int j=0; j < m_coefficients.size(); j++) */
+      /* { */
+      /*   T_P tmpSolution; */
+      /*   this->m_solutionFunction.compute( integrationPoint, tmpSolution ); */
 
-        std::vector<double> 
-        if (m_coefficients[j].size() == 0)
-          m_coefficients[j] = tmpSolution  ;
-        else
-          m_coefficients[j] += 
+      /*   if (m_coefficients[j].size() == 0) */
+      /*     m_coefficients[j] = tmpSolution  ; */
+      /*   else */
+      /*     m_coefficients[j] += */ 
 
-      }
+      /* } */
       /* T_P solVec; */ 
 
       /* unsigned int nQuadPoints = this->m_quadRule->getNQuadPoints(); */
@@ -269,16 +270,17 @@ namespace AGNOS
     std::cout << " Integration points " << std::endl;
     std::cout << "----------------------------------------------------" <<
       std::endl;
-    std::cout << "  \\ x        " << std::endl;
-    std::cout << "   \\" ;
+    std::cout << "   \\ x        " << std::endl;
+    std::cout << "    \\" ;
     for(unsigned int dim=0; dim < this->m_dimension; dim++)
       std::cout << std::setw(12) << "x_" << dim << " " ;
     std::cout << std::endl;
-    std::cout << " id \\  " << std::endl;
+    std::cout << "  id \\  " << std::endl;
     std::cout << "----------------------------------------------------" <<
       std::endl;
     for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
     {
+      std::cout << std::setw(5) << ix << " |   ";
       for(int iy=0; iy < this->m_dimension; iy++)
       {
         std::cout << std::scientific << std::setprecision(5) << std::setw(12)
@@ -306,15 +308,64 @@ namespace AGNOS
     std::cout << "----------------------------------------------------" <<
       std::endl;
     for(int ip=0; ip < m_nIntegrationPoints; ip++){  
-      std::cout << ip << "   | ";
+      std::cout << std::setw(5) << ip << "   |   ";
       std::cout << m_integrationWeights[ip] << "  ";
       std::cout << std::endl;
       sum += m_integrationWeights[ip];
     }
+
+    std::cout << std::endl;
     std::cout << "Sum = " << sum << std::endl;
     std::cout << std::endl;
     return;
   }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    const std::vector< std::vector< unsigned int> > 
+    PseudoSpectral<T_S,T_P>::getIndexSet( ) const
+    {
+      return m_indexSet;
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    void PseudoSpectral<T_S,T_P>::printIndexSet( ) const
+    {
+      std::cout << std::endl;
+      std::cout << "====================================================" <<
+        std::endl;
+      std::cout << " Index Set" << std::endl;
+      std::cout << "----------------------------------------------------" <<
+      std::endl;
+    std::cout << "   \\ dir      " << std::endl;
+    std::cout << "    \\        " ;
+    for(unsigned int dim=0; dim < this->m_dimension; dim++)
+      std::cout << std::setw(4) << "xi_" << dim << " " ;
+    std::cout << std::endl;
+    std::cout << "  id \\  " << std::endl;
+    std::cout << "----------------------------------------------------" <<
+      std::endl;
+      for (unsigned int i=0; i< m_indexSet.size(); i++)
+      {
+      std::cout << std::setw(5) << i << "   |   ";
+        for (unsigned int j=0; j< m_indexSet[i].size(); j++)
+        {
+          std::cout << std::setw(5) << m_indexSet[i][j] << " " ;
+        }
+        std::cout << std::endl;
+      }
+
+      return ;
+    }
   
 }
 #endif // PSEUDO_SPECTRAL_H

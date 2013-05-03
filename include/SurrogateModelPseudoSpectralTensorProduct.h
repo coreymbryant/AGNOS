@@ -31,8 +31,6 @@ namespace AGNOS
           const std::vector<unsigned int>& order
           );
       void initialize( ) ;
-      void recurIndexSet( 
-          );
 
       ~TensorProductPseudoSpectral( );
 
@@ -43,6 +41,10 @@ namespace AGNOS
 
 
     protected:
+
+      void recurIndexSet(
+          const unsigned int dim, 
+          std::vector< std::vector<unsigned int> >& currentSet);
 
       QuadratureRule* m_quadRule;
 
@@ -111,15 +113,12 @@ namespace AGNOS
       }
 
       this->m_coefficients.resize( this->m_nIntegrationPoints );
-      this->m_indexSet.resize( this->m_nIntegrationPoints );
-      for (unsigned int id=0; id < this->m_indexSet.size(); id++)
-      {
-        this->m_indexSet[id].resize( this->m_dimension );
-        for (unsigned int dir=0; dir< this->m_dimension; dir++)
-          for (unsigned int ord=0; ord < this->m_order[dir]; ord++)
-            this->m_indexSet[id][dir] = 
 
-      }
+      this->m_indexSet.reserve( this->m_nIntegrationPoints );
+      /* for (unsigned int i=0; i< this-> m_nIntegrationPoints; i++) */
+      /*   this->m_indexSet[i].reserve(this->m_dimension); */
+
+      recurIndexSet( this->m_dimension, this->m_indexSet );
     }
 
 /********************************************//**
@@ -128,9 +127,40 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
-    TensorProductPseudoSpectral<T_S,T_P>::recurIndexSet( 
-        )
+    void TensorProductPseudoSpectral<T_S,T_P>::recurIndexSet( 
+          const unsigned int dim, 
+          std::vector< std::vector<unsigned int> >& currentSet  )
     {
+
+      if (dim == 1) 
+      {
+        for(unsigned int id=0; id < this->m_order[dim-1]+1; id++)
+          currentSet.push_back( std::vector<unsigned int>(1,id) );
+      }
+
+      else
+      {
+        recurIndexSet(dim-1,currentSet);
+
+        int prevSize = currentSet.size();
+        currentSet.resize( prevSize * (this->m_order[dim-1]+1 ) );
+        // keep track of how many array elements are non-zero
+        /* int prevSize = order[0]+1; */
+        /* for(unsigned int i=0; i < dim-2; i++) */
+        /*   prevSize *= order[i+1] + 1; */
+
+        for(int out=prevSize-1; out >= 0; out--)
+        {
+          for(int in=this->m_order[dim-1]; in >= 0 ; in--)
+          {
+            currentSet[(out)*(this->m_order[dim-1]+1) + in].reserve(dim);
+            currentSet[(out)*(this->m_order[dim-1]+1) + in] = currentSet[out];
+            currentSet[(out)*(this->m_order[dim-1]+1) + in].push_back(in);
+          }
+        }
+      }
+
+
     }
 
   
@@ -151,6 +181,18 @@ namespace AGNOS
  *
  * 
  ***********************************************/
+  template<class T_S, class T_P>
+    void TensorProductPseudoSpectral<T_S,T_P>::refine( )
+    {
+      /* for(unsigned int i=0; i<m_dimension; i++) */
+      /*   m_order[i]++; */
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
   template<class T_S, class T_P> 
     const QuadratureRule*
     TensorProductPseudoSpectral<T_S,T_P>::getQuadRule( )
@@ -163,17 +205,6 @@ namespace AGNOS
 
 
 
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void TensorProductPseudoSpectral<T_S,T_P>::refine( )
-    {
-      /* for(unsigned int i=0; i<m_dimension; i++) */
-      /*   m_order[i]++; */
-    }
 
   
 }
