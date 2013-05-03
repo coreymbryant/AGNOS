@@ -90,8 +90,6 @@ namespace AGNOS
     {
       case UNIFORM:
         polyValue = boost::math::legendre_p( l, x);
-
-
         break;
 
       default:

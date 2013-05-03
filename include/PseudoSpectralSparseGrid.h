@@ -7,7 +7,7 @@
 namespace AGNOS
 {
   template<class T_S, class T_P>
-    class PseudoSpectralSparseGrid : public PseudoSpectral<T_S,T_P>
+    class PseudoSpectralSparseGrid : public SurrogatePseudoSpectral<T_S,T_P>
   {
     // TODO
   }
