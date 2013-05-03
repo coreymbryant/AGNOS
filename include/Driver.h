@@ -68,14 +68,15 @@ namespace AGNOS
   void Driver::run( )
   {
 
-    unsigned int dimension = 2;
+    unsigned int dimension = 3;
 
     std::vector<Parameter*> myParameters(
         dimension, 
-        new Parameter(UNIFORM, 0.0,1.0)
+        new Parameter(UNIFORM, -1.0,1.0)
         ); 
 
     std::vector<unsigned int> myOrder(dimension,1);
+    myOrder.back() = 2;
 
     CatenaryModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
 
@@ -92,8 +93,9 @@ namespace AGNOS
     /* mySurrogate->build( ); */
 
 
-    mySurrogate->printIntegrationPoints( );
-    mySurrogate->printIntegrationWeights( );
+    /* mySurrogate->printIntegrationPoints( ); */
+    /* mySurrogate->printIntegrationWeights( ); */
+    /* mySurrogate->printIndexSet( ); */
 
     return;
   }
