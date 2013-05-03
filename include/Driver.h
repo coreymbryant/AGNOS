@@ -6,9 +6,9 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
-#include "SurrogateModelPseudoSpectralTensorProduct.h"
-#include "PhysicsModelCatenary.h"
-#include "PhysicsFunctionCombinedSolutionVector.h"
+#include "PseudoSpectralTensorProduct.h"
+#include "PhysicsCatenary.h"
+#include "PhysicsFunction.h"
 
 #include "libmesh/dense_vector.h"
 
@@ -78,13 +78,13 @@ namespace AGNOS
     std::vector<unsigned int> myOrder(dimension,1);
     myOrder.back() = 2;
 
-    CatenaryModel<T_S,T_P>* myPhysics = new CatenaryModel<T_S,T_P>( ) ;
+    PhysicsCatenary<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( ) ;
 
     PhysicsFunction<T_S,T_P>* myPhysicsFunction =
       new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ;
 
-    TensorProductPseudoSpectral<T_S,T_P>* mySurrogate = new 
-      TensorProductPseudoSpectral<T_S,T_P>(
+    PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+      PseudoSpectralTensorProduct<T_S,T_P>(
           *myPhysicsFunction, 
           myParameters, 
           myOrder  

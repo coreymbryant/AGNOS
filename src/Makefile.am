@@ -15,6 +15,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
+# AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
 # Flags we need to pass to the linker

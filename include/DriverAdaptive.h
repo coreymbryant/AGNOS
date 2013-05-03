@@ -16,21 +16,21 @@ namespace AGNOS
    * refinement function of that model class. 
    * 
    ***********************************************/
-  class AdaptiveDriver : public Driver
+  class DriverAdaptive : public Driver
   {
 
     public:
 
-      AdaptiveDriver( );           /**< Default constructor */
+      DriverAdaptive( );           /**< Default constructor */
 
-      AdaptiveDriver( 
+      DriverAdaptive( 
           PhysicsModel* physicsModel,
           SurrogateModel* surrogateModel,
           double errorTolerance,
           unsigned int maxIter
           );
 
-      ~AdaptiveDriver( );  /**< Default destructor */
+      ~DriverAdaptive( );  /**< Default destructor */
 
       void setMaxIter(unsigned int maxIter);
       unsigned int getMaxIter( ) const;
