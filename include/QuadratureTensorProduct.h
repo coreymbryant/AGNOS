@@ -1,24 +1,24 @@
 
-#ifndef TENSOR_PRODUCT_QUADRATURE_H
-#define TENSOR_PRODUCT_QUADRATURE_H
+#ifndef QUADRATURE_TENSOR_PRODUCT_H
+#define QUADRATURE_TENSOR_PRODUCT_H
 #include <assert.h>
 #include "QuadratureRule.h"
 
 // TensorProduct namespace since we may eventually have sparse grid as well
 namespace AGNOS
 {
-  class TensorProductQuadrature : public QuadratureRule
+  class QuadratureTensorProduct : public QuadratureRule
   {
 
     public:
 
-      TensorProductQuadrature( 
+      QuadratureTensorProduct( 
           const std::vector<Parameter*>& parameters,
           const std::vector<unsigned int>& order
           );
 
-      TensorProductQuadrature( );
-      ~TensorProductQuadrature( );
+      QuadratureTensorProduct( );
+      ~QuadratureTensorProduct( );
 
     protected:
 
@@ -38,7 +38,7 @@ namespace AGNOS
  * \brief Rountine to populate quadPoints and quadWeights
  * 
  ***********************************************/
-  TensorProductQuadrature::TensorProductQuadrature( 
+  QuadratureTensorProduct::QuadratureTensorProduct( 
       const std::vector<Parameter*>& parameters, 
       const std::vector<unsigned int>& order 
       )
@@ -65,7 +65,7 @@ namespace AGNOS
  * \brief recurs to produce quad rule for higher dimensions
  *
  ***********************************************/
-  void TensorProductQuadrature::recurQuad(
+  void QuadratureTensorProduct::recurQuad(
       const std::vector<Parameter*>& parameters,
       const int dim, const std::vector<unsigned int>& order, 
       double currentWeights[], double* currentPoints[] )
@@ -128,7 +128,7 @@ namespace AGNOS
  * 
  * Currently only unifrom is supported
  ***********************************************/
-    void TensorProductQuadrature::oneDimQuadRule(
+    void QuadratureTensorProduct::oneDimQuadRule(
         enum parameterType myType, const unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
@@ -150,5 +150,5 @@ namespace AGNOS
 
 }
 
-#endif // TENSOR_PRODUCT_QUADRATURE_H
+#endif // QUADRATURE_TENSOR_PRODUCT_H
 
