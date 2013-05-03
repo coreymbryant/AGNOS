@@ -14,11 +14,11 @@ AC_PROG_LIBTOOL
 #------------------------------
 AC_PROG_CC
 AC_LANG([C])
-#ACX_MPI([CC="$MPICC"], [AC_MSG_ERROR([Could not find MPI.])])
+ACX_MPI([CC="$MPICC"], [AC_MSG_ERROR([Could not find MPI.])])
 
 AC_PROG_CXX
 AC_LANG([C++])
-#ACX_MPI([CXX="$MPICXX"], [AC_MSG_ERROR([Could not find MPI.])])
+ACX_MPI([CXX="$MPICXX"], [AC_MSG_ERROR([Could not find MPI.])])
 
 #---------------------------------------------------------
 # Checks for library prerequisites for other libraries...

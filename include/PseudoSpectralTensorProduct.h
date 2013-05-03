@@ -1,7 +1,7 @@
-#ifndef TENSOR_PRODUCT_PSEUDO_SPECTRAL_H
-#define TENSOR_PRODUCT_PSEUDO_SPECTRAL_H
-#include "SurrogateModelPseudoSpectral.h"
-#include "QuadratureRuleTensorProduct.h"
+#ifndef PSEUDO_SPECTRAL_TENSOR_PRODUCT_H
+#define PSEUDO_SPECTRAL_TENSOR_PRODUCT_H
+#include "SurrogatePseudoSpectral.h"
+#include "QuadratureTensorProduct.h"
 #include <iostream>
 
 namespace AGNOS
@@ -15,24 +15,24 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    class TensorProductPseudoSpectral : public PseudoSpectral<T_S,T_P>
+    class PseudoSpectralTensorProduct : public SurrogatePseudoSpectral<T_S,T_P>
   {
 
     public:
 
-      TensorProductPseudoSpectral( 
+      PseudoSpectralTensorProduct( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
           const std::vector<Parameter*> parameters,
           const unsigned int order 
           );
-      TensorProductPseudoSpectral( 
+      PseudoSpectralTensorProduct( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
           const std::vector<Parameter*> parameters,
           const std::vector<unsigned int>& order
           );
       void initialize( ) ;
 
-      ~TensorProductPseudoSpectral( );
+      ~PseudoSpectralTensorProduct( );
 
       void refine( );
 
@@ -58,12 +58,12 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    TensorProductPseudoSpectral<T_S,T_P>::TensorProductPseudoSpectral( 
+    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : PseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
     {
       initialize();
     }
@@ -74,12 +74,12 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    TensorProductPseudoSpectral<T_S,T_P>::TensorProductPseudoSpectral( 
+    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : PseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
     {
       initialize();
     }
@@ -90,10 +90,10 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    void TensorProductPseudoSpectral<T_S,T_P>::initialize( )
+    void PseudoSpectralTensorProduct<T_S,T_P>::initialize( )
     {
       m_quadRule = 
-        new TensorProductQuadrature( this->m_parameters, this->m_order);
+        new QuadratureTensorProduct( this->m_parameters, this->m_order);
 
       this->m_nIntegrationPoints = ( m_quadRule->getNQuadPoints() );
 
@@ -127,7 +127,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
-    void TensorProductPseudoSpectral<T_S,T_P>::recurIndexSet( 
+    void PseudoSpectralTensorProduct<T_S,T_P>::recurIndexSet( 
           const unsigned int dim, 
           std::vector< std::vector<unsigned int> >& currentSet  )
     {
@@ -171,7 +171,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    TensorProductPseudoSpectral<T_S,T_P>::~TensorProductPseudoSpectral()
+    PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
     {
       delete m_quadRule;
     }
@@ -182,7 +182,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    void TensorProductPseudoSpectral<T_S,T_P>::refine( )
+    void PseudoSpectralTensorProduct<T_S,T_P>::refine( )
     {
       /* for(unsigned int i=0; i<m_dimension; i++) */
       /*   m_order[i]++; */
@@ -195,7 +195,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     const QuadratureRule*
-    TensorProductPseudoSpectral<T_S,T_P>::getQuadRule( )
+    PseudoSpectralTensorProduct<T_S,T_P>::getQuadRule( )
     const 
     {
       return this->m_quadRule ;
@@ -208,6 +208,6 @@ namespace AGNOS
 
   
 }
-#endif // TENSOR_PRODUCT_PSEUDO_SPECTRAL_H
+#endif // PSEUDO_SPECTRAL_TENSOR_PRODUCT_H
 
 

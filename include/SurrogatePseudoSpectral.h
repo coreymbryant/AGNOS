@@ -1,7 +1,7 @@
 // TODO need to change double** into some sort of array of T_P
 
-#ifndef PSEUDO_SPECTRAL_H
-#define PSEUDO_SPECTRAL_H
+#ifndef SURROGATE_PSEUDO_SPECTRAL_H
+#define SURROGATE_PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
 
 
@@ -22,23 +22,23 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    class PseudoSpectral : public SurrogateModel<T_S,T_P>
+    class SurrogatePseudoSpectral : public SurrogateModel<T_S,T_P>
   {
 
     public:
 
-      PseudoSpectral( 
+      SurrogatePseudoSpectral( 
           PhysicsFunction<T_S,T_P>&     solutionFunction,
           const std::vector<Parameter*> parameters,
           const unsigned int            order 
           );
-      PseudoSpectral( 
+      SurrogatePseudoSpectral( 
           PhysicsFunction<T_S,T_P>&         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
           );
 
-      virtual ~PseudoSpectral( );
+      virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
       T_P pointContribution( T_S& integrationPoint );
@@ -79,7 +79,7 @@ namespace AGNOS
  * \brief Constructor for isotropic order
  ***********************************************/
   template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
@@ -94,7 +94,7 @@ namespace AGNOS
  * \brief Constructor for anisotropic order
  ***********************************************/
   template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::PseudoSpectral( 
+    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
         PhysicsFunction<T_S,T_P>& solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
@@ -118,7 +118,7 @@ namespace AGNOS
  * \brief Constructor for anisotropic order
  ***********************************************/
   template<class T_S, class T_P>
-    PseudoSpectral<T_S,T_P>::~PseudoSpectral( )
+    SurrogatePseudoSpectral<T_S,T_P>::~SurrogatePseudoSpectral( )
     {
     }
 
@@ -126,7 +126,7 @@ namespace AGNOS
  * \brief Get the current expansion order
  ***********************************************/
   template<class T_S, class T_P>
-    std::vector<unsigned int> PseudoSpectral<T_S,T_P>::getExpansionOrder( )
+    std::vector<unsigned int> SurrogatePseudoSpectral<T_S,T_P>::getExpansionOrder( )
     const
   {
     return m_order;
@@ -136,7 +136,7 @@ namespace AGNOS
  * \brief Get number of integration points
  ***********************************************/
   template<class T_S, class T_P>
-    unsigned int PseudoSpectral<T_S,T_P>::getNIntegrationPoints( )
+    unsigned int SurrogatePseudoSpectral<T_S,T_P>::getNIntegrationPoints( )
     const
   {
     return m_nIntegrationPoints;
@@ -146,7 +146,7 @@ namespace AGNOS
  * \brief Get integration weights
  ***********************************************/
   template<class T_S, class T_P>
-    std::vector<double> PseudoSpectral<T_S,T_P>::getIntegrationWeights( )
+    std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::getIntegrationWeights( )
     const
   {
     return m_integrationWeights;
@@ -156,7 +156,7 @@ namespace AGNOS
  * \brief Get the current expansion order
  ***********************************************/
   template<class T_S, class T_P>
-    std::vector<T_S> PseudoSpectral<T_S,T_P>::getIntegrationPoints( )
+    std::vector<T_S> SurrogatePseudoSpectral<T_S,T_P>::getIntegrationPoints( )
     const
   {
     return m_integrationPoints;
@@ -168,7 +168,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    void PseudoSpectral<T_S,T_P>::build( )
+    void SurrogatePseudoSpectral<T_S,T_P>::build( )
     {
       // This is separated from the routine that actually computes contribution
       // so that we can group surrogate models together later and wll that needs
@@ -191,7 +191,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P PseudoSpectral<T_S,T_P>::pointContribution(
+    T_P SurrogatePseudoSpectral<T_S,T_P>::pointContribution(
         T_S& integrationPoint
         )
     {
@@ -242,7 +242,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P PseudoSpectral<T_S,T_P>::evaluate( 
+    T_P SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
@@ -262,7 +262,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S,class T_P>
-  void PseudoSpectral<T_S,T_P>::printIntegrationPoints( ) const
+  void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( ) const
   {
     std::cout << std::endl;
     std::cout << "====================================================" <<
@@ -298,7 +298,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S,class T_P>
-  void PseudoSpectral<T_S,T_P>::printIntegrationWeights( ) const
+  void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationWeights( ) const
   {
     double sum = 0.0;
     std::cout << std::endl;
@@ -327,7 +327,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     const std::vector< std::vector< unsigned int> > 
-    PseudoSpectral<T_S,T_P>::getIndexSet( ) const
+    SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
     {
       return m_indexSet;
     }
@@ -338,7 +338,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
-    void PseudoSpectral<T_S,T_P>::printIndexSet( ) const
+    void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( ) const
     {
       std::cout << std::endl;
       std::cout << "====================================================" <<
@@ -368,6 +368,6 @@ namespace AGNOS
     }
   
 }
-#endif // PSEUDO_SPECTRAL_H
+#endif // SURROGATE_PSEUDO_SPECTRAL_H
 
 

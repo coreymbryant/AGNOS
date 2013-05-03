@@ -1,6 +1,6 @@
 
-#ifndef VISCOUS_BURGERS_H
-#define VISCOUS_BURGERS_H
+#ifndef PHYSICS_VISCOUS_BURGERS_H
+#define PHYSICS_VISCOUS_BURGERS_H
 
 #include "PhysicsModel.h"
 
@@ -12,13 +12,13 @@ namespace AGNOS
    * This example is given in the Le Maitre book
    ***********************************************/
   template<T_S, T_P>
-  class ViscousBurgersPhysics : public PhysicsModel<T_S,T_P>
+  class PhysicsViscousBurgers : public PhysicsModel<T_S,T_P>
   {
     public:
-      ViscousBurgersPhysics( ) ;
-      ViscousBurgersPhysics(int xMin, int xMin) ;
+      PhysicsViscousBurgers( ) ;
+      PhysicsViscousBurgers(int xMin, int xMin) ;
       
-      ~ViscousBurgersPhysics( ) ;
+      ~PhysicsViscousBurgers( ) ;
 
     private:
       int xMin;
@@ -28,21 +28,21 @@ namespace AGNOS
 
 
   template<T_S, T_P>
-    ViscousBurgersPhysics::ViscousBurgersPhysics( )
+    PhysicsViscousBurgers::PhysicsViscousBurgers( )
       : xMin = -10, xMax = 10
     {
       return;
     }
 
   template<T_S, T_P>
-    ViscousBurgersPhysics::~ViscousBurgersPhysics( )
+    PhysicsViscousBurgers::~PhysicsViscousBurgers( )
     {
       return;
     }
 
 
   template<T_S, T_P>
-    void ViscousBurgersPhysics::solvePrimal(
+    void PhysicsViscousBurgers::solvePrimal(
         T_S& paramaterValue)
     {
       m_primalSolution = 1.0;
@@ -51,7 +51,7 @@ namespace AGNOS
 
 
   template<T_S, T_P>
-    void ViscousBurgersPhysics::solveAdjoint(
+    void PhysicsViscousBurgers::solveAdjoint(
         T_S& paramaterValue,
         T_P& primalSolution
         )
@@ -63,7 +63,7 @@ namespace AGNOS
 
 
   template<T_S, T_P>
-    double ViscousBurgersPhysics::evaluateQoi( 
+    double PhysicsViscousBurgers::evaluateQoi( 
         T_S& parameterValue,
         T_P& primalSolution    
         )
@@ -72,7 +72,7 @@ namespace AGNOS
     }
 
   template<T_S, T_P>
-    double ViscousBurgersPhysics::estimateError( 
+    double PhysicsViscousBurgers::estimateError( 
         T_S& parameterValue,  
         T_P& primalSolution,   
         T_P& adjointSolution  
@@ -83,4 +83,4 @@ namespace AGNOS
 
 }
 
-#endif // VISCOUS_BURGERS_H
+#endif // PHYSICS_VISCOUS_BURGERS_H

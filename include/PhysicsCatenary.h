@@ -1,7 +1,7 @@
 
 
-#ifndef CATENARY_MODEL_H
-#define CATENARY_MODEL_H
+#ifndef PHYSICS_CATENARY_H
+#define PHYSICS_CATENARY_H
 
 #include "PhysicsModel.h"
 
@@ -9,12 +9,12 @@ namespace AGNOS
 {
 
   template<class T_S, class T_P>
-  class CatenaryModel : public PhysicsModel<T_S,T_P>
+  class PhysicsCatenary : public PhysicsModel<T_S,T_P>
   {
 
   public:
-    CatenaryModel( );
-    ~CatenaryModel( );
+    PhysicsCatenary( );
+    ~PhysicsCatenary( );
 
     T_P solvePrimal( 
         const T_S& parameterValue  
@@ -49,7 +49,7 @@ namespace AGNOS
   // NOTE: function definitions actually depend on xMin=0 and xMax=1
   //        and only coefficients for 1dof finite element solution are returned
   template<class T_S, class T_P>
-  CatenaryModel<T_S,T_P>::CatenaryModel( )
+  PhysicsCatenary<T_S,T_P>::PhysicsCatenary( )
     :m_T(-10.0)
   {
   }
@@ -58,7 +58,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-  CatenaryModel<T_S,T_P>::~CatenaryModel( )
+  PhysicsCatenary<T_S,T_P>::~PhysicsCatenary( )
   {
   }
 
@@ -66,7 +66,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P CatenaryModel<T_S,T_P>::solvePrimal( 
+    T_P PhysicsCatenary<T_S,T_P>::solvePrimal( 
         const T_S& parameterValue  
         )
     {
@@ -81,7 +81,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P CatenaryModel<T_S,T_P>::solveAdjoint( 
+    T_P PhysicsCatenary<T_S,T_P>::solveAdjoint( 
         const T_S& parameterValue,  
         const T_P& primalSolution    
         )
@@ -99,7 +99,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P CatenaryModel<T_S,T_P>::evaluateQoi( 
+    T_P PhysicsCatenary<T_S,T_P>::evaluateQoi( 
         const T_S& parameterValue,
         const T_P& primalSolution    
         )
@@ -113,7 +113,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P CatenaryModel<T_S,T_P>::estimateError( 
+    T_P PhysicsCatenary<T_S,T_P>::estimateError( 
         const T_S& parameterValue,  
         const T_P& primalSolution,   
         const T_P& adjointSolution  
@@ -131,4 +131,4 @@ namespace AGNOS
 
 }
 
-#endif // CATENARY_MODEL_H
+#endif // PHYSICS_CATENARY_H
