@@ -86,10 +86,14 @@ namespace AGNOS
   double Parameter::evalBasisPoly( int l, double x)
   {
     double polyValue;
+    double scaledX; 
+
     switch ( m_type )
     {
       case UNIFORM:
-        polyValue = boost::math::legendre_p( l, x);
+        scaledX = ( x - (m_min + m_max ) /2.0 ) * 2.0/(m_max-m_min) ;
+        polyValue = 1.0 / ( 2.0/(2.0 * l + 1.0) )  // normalization factor
+          * boost::math::legendre_p( l, scaledX);
         break;
 
       default:

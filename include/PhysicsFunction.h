@@ -18,10 +18,7 @@ namespace AGNOS
 
     public:
 
-      PhysicsFunction(
-          PhysicsModel<T_S,T_P>& physics
-          );
-      PhysicsFunction( T_P (*myFunction)(T_S&) );
+      PhysicsFunction();
       virtual ~PhysicsFunction();
 
       virtual void compute( 
@@ -30,8 +27,6 @@ namespace AGNOS
           ) = 0;
 
     protected:
-      PhysicsModel<T_S,T_P>& m_physics;
-      T_P (*m_myFunction)(T_S&);
 
   };
 
@@ -39,31 +34,15 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S,class T_P>
-    PhysicsFunction<T_S,T_P>::PhysicsFunction( 
-        PhysicsModel<T_S,T_P>& physics
-        )
-    : m_physics(physics)
-    {
-    }
-  
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S,class T_P>
-    PhysicsFunction<T_S,T_P>::PhysicsFunction( 
-        T_P (*myFunction)(T_S&)  
-        )
-    : m_myFunction(myFunction)
-    {
-    }
+    PhysicsFunction<T_S,T_P>::PhysicsFunction( ) 
+    { }
 
 /********************************************//**
  * \brief 
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunction<T_S,T_P>::~PhysicsFunction( )
-    {
-    }
+    { }
 
 /********************************************//**
  * \brief Primal solution function
@@ -74,14 +53,17 @@ namespace AGNOS
   class PhysicsFunctionSimple : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionSimple( T_P (*myFunction)(T_S&)  ) 
-        : PhysicsFunction<T_S,T_P>( myFunction ) { };
+      PhysicsFunctionSimple( T_P (*myFunction)(const T_S&)  ) 
+        : m_myFunction(myFunction) { }
 
       void compute( const T_S& paramVector, T_P& imageVector)
       {
-        imageVector = myFunction(paramVector) ;
+        imageVector = m_myFunction(paramVector) ;
         return ;
       };
+
+    protected:
+      T_P (*m_myFunction)(const T_S&);
   };
 
 
@@ -96,6 +78,8 @@ namespace AGNOS
     public:
       PhysicsFunctionPrimal( PhysicsModel<T_S,T_P>& physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
+    protected:
+      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -105,7 +89,7 @@ namespace AGNOS
     PhysicsFunctionPrimal<T_S,T_P>::PhysicsFunctionPrimal( 
         PhysicsModel<T_S,T_P>& physics
         )
-    : PhysicsFunction<T_S,T_P>(physics)
+    : m_physics(physics)
     { }
 
 /********************************************//**
@@ -134,6 +118,8 @@ namespace AGNOS
     public:
       PhysicsFunctionAdjoint( PhysicsModel<T_S,T_P>& physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
+    protected:
+      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -143,7 +129,7 @@ namespace AGNOS
     PhysicsFunctionAdjoint<T_S,T_P>::PhysicsFunctionAdjoint( 
         PhysicsModel<T_S,T_P>& physics
         )
-    : PhysicsFunction<T_S,T_P>(physics)
+    : m_physics(physics)
     { }
 
 /********************************************//**
@@ -171,6 +157,8 @@ namespace AGNOS
     public:
       PhysicsFunctionQoi( PhysicsModel<T_S,T_P>& physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
+    protected:
+      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -180,7 +168,7 @@ namespace AGNOS
     PhysicsFunctionQoi<T_S,T_P>::PhysicsFunctionQoi( 
         PhysicsModel<T_S,T_P>& physics
         )
-    : PhysicsFunction<T_S,T_P>(physics)
+    : m_physics(physics)
     { }
 
 /********************************************//**

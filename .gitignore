@@ -20,7 +20,6 @@ install-sh
 libtool
 ltmain.sh
 missing
-src/.deps/
 src/Makefile
 src/Makefile.in
 src/agnos
@@ -29,4 +28,6 @@ stamp-h1
 test/Makefile
 test/Makefile.in
 texput.log
+*.o
+*.deps/
   
