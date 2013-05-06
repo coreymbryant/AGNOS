@@ -8,10 +8,10 @@ namespace AGNOS
 {
 
 /********************************************//**
- * \brief Tensor product Pseudo-spectral projection 
+ * \brief Tensor product SurrogatePseudoSpectral class
  *
  * Tensor product quadrature is used to comptue coefficients in a
- * Pseudo-spectral method
+ * Pseudo-spectral method. Anisotropic polynomial order is supported
  * 
  ***********************************************/
   template<class T_S, class T_P>

@@ -6,6 +6,12 @@
 # include <cmath>
 # include <ctime>
 
+/********************************************//**
+ * \brief Provides quadrature rules based on a number of different basis
+ * polynomials. Written by J. Burkhardt
+ *
+ * 
+ ***********************************************/
 namespace webbur
 {
   void binary_vector_next ( int n, int bvec[] );

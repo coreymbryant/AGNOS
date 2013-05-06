@@ -8,6 +8,13 @@
 namespace AGNOS
 {
 
+  /********************************************//**
+   * \brief Example PhysicsModel class - catenary chain
+   *
+   * A simple, single dof, system useful for testing purposes
+   *
+   * 
+   ***********************************************/
   template<class T_S, class T_P>
   class PhysicsCatenary : public PhysicsModel<T_S,T_P>
   {

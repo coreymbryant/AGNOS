@@ -7,6 +7,14 @@
 // TensorProduct namespace since we may eventually have sparse grid as well
 namespace AGNOS
 {
+  /********************************************//**
+   * \brief Tensor product QuadratureRule
+   *
+   * Constructs QuadratureRule for a tensor product of Parameters.
+   * Supports anisotropy
+   *
+   * 
+   ***********************************************/
   class QuadratureTensorProduct : public QuadratureRule
   {
 

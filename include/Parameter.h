@@ -9,7 +9,14 @@ namespace AGNOS
 {
   enum parameterType { UNIFORM = 0 };
 
-  // TODO Need template ?
+  /********************************************//**
+   * \brief Uncertain parameter class
+   *
+   * Encapsulates the definition of uncertain/random parameters includes
+   * parameter domain and type, as well as the appropriate orthogonal polynomial
+   * definiton. 
+   * 
+   ***********************************************/
   class Parameter
   {
 

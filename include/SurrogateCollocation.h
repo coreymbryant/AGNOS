@@ -6,6 +6,11 @@
 
 namespace AGNOS
 {
+  /********************************************//**
+   * \brief Placeholder for collocation SurrogateModel
+   *
+   * 
+   ***********************************************/
   template<class T_S, class T_P>
     class SurrogateCollocation : public SurrogateModel<T_S,T_P>
   {

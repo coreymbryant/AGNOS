@@ -8,12 +8,15 @@ namespace AGNOS
 {
 
   /********************************************//**
-   * \brief Driver routine for adaptive surrogate construction
+   * \brief Driver routine for basic adaptive surrogate construction
    *
    * This class handles the computation of the total, physical, and surrogate
    * error contributions based on the physics and surrogate models provided. It
    * determines which approximation to refine and calls the appropriate
    * refinement function of that model class. 
+   *
+   * Particular types of refinement can be controlled based on Surrogate and
+   * Physics Model class's refine() function
    * 
    ***********************************************/
   class DriverAdaptive : public Driver

@@ -9,17 +9,14 @@ namespace AGNOS
 {
 
 /********************************************//**
- * \brief Pseudo-spectral projection surrogate model
+ * \brief SurrogateModel based on Pseudo-spectral projection. 
  *
  * This class provides the framework for constructing surrogate models using
  * non-intrusive spectral projection methods. 
  *
- * As of now it is only Tensor product quadrature to comptue coefficients but
- * could be extended to other methods as well. Both isotropic and non-isotropic
- * polynomial orders are supported. 
- *
- * Only Uniform Random variables at the moment
- * 
+ * As of now only the derived class PseudoSpectralTensorProduct is operational
+ * but it could be extended to other methods as well. Both isotropic and
+ * non-isotropic polynomial orders are supported. 
  ***********************************************/
   template<class T_S, class T_P>
     class SurrogatePseudoSpectral : public SurrogateModel<T_S,T_P>
