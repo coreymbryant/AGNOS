@@ -30,6 +30,7 @@ ACX_MPI([CXX="$MPICXX"], [AC_MSG_ERROR([Could not find MPI.])])
 BOOST_REQUIRE([1.36])
 BOOST_MATH()
 BOOST_PROGRAM_OPTIONS()
+BOOST_TEST()
 
 dnl----------------
 dnl Libmesh Config
