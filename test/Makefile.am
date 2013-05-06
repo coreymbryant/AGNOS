@@ -2,7 +2,7 @@
 # Programs and libraries we want to build
 #----------------------------------------
 
-check_PROGRAMS = polynomialSurrogates 
+check_PROGRAMS = polynomialTest 
 
 #--------------------------------------
 #Local Directories to include for build
@@ -24,6 +24,6 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
 						 -lboost_unit_test_framework
 
-polynomialSurrogates_SOURCES =$(top_srcdir)/test/PolynomialTest.cpp
+polynomialTest_SOURCES =$(top_srcdir)/test/PolynomialTest.cpp
 
-TESTS = $(top_builddir)/test/polynomialSurrogates
+TESTS = $(top_builddir)/test/runTests.sh

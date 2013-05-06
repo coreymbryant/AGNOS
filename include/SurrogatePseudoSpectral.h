@@ -55,6 +55,7 @@ namespace AGNOS
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
+      const std::vector<T_P>    getCoefficients( ) const;
       const std::vector< std::vector< unsigned int> > 
                                 getIndexSet( ) const;
       std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
@@ -172,6 +173,18 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
+    const std::vector<T_P> 
+    SurrogatePseudoSpectral<T_S,T_P>::getCoefficients( ) const
+    {
+      return m_coefficients;
+    }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P> 
     const std::vector< std::vector< unsigned int> > 
     SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
     {
@@ -189,13 +202,13 @@ namespace AGNOS
         ) const
     {
       unsigned int nTerms = this->m_indexSet.size() ;
-      std::vector<double> basisValues( nTerms ,0.);
+      std::vector<double> basisValues( nTerms ,1.);
 
       for(unsigned int id=0; id < nTerms ; id++)
         for(unsigned int dir=0; dir < this->m_dimension; dir++)
         {
           basisValues[id] 
-            += this->m_parameters[dir]->evalBasisPoly( 
+            *= this->m_parameters[dir]->evalBasisPoly( 
                 m_indexSet[id][dir], parameterValue(dir) ) ;
         }
 
@@ -238,10 +251,10 @@ namespace AGNOS
         }
       }
       
-      for(unsigned int i=0; i < m_coefficients.size(); i++ )
-        for(unsigned int j=0; j < m_coefficients[i].size(); j++ )
-          std::cout << "coeff[" << i << "](" << j << ") = " <<
-            m_coefficients[i](j) << std::endl;
+      /* for(unsigned int i=0; i < m_coefficients.size(); i++ ) */
+      /*   for(unsigned int j=0; j < m_coefficients[i].size(); j++ ) */
+      /*     std::cout << "coeff[" << i << "](" << j << ") = " << */
+      /*       m_coefficients[i](j) << std::endl; */
       return;
     } 
 
