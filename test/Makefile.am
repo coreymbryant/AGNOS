@@ -22,7 +22,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
-						 -lboost_unit_test_framework
+						 $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) 
 
 polynomialTest_SOURCES =$(top_srcdir)/test/PolynomialTest.cpp
 
