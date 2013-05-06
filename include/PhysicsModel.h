@@ -16,7 +16,9 @@ namespace AGNOS
 {
 
   /********************************************//**
-   * \brief Abstract physics model class
+   * \brief Base physics model class
+   *
+   * Abstract framework for PhysicsModel classes. 
    ***********************************************/
   template<class T_S, class T_P>
   class PhysicsModel

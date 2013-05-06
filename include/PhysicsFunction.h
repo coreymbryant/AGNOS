@@ -10,6 +10,13 @@ namespace AGNOS
 /********************************************//**
  * \brief Base physics function class
  *
+ * This class provides a means for accessing primal and adjoint solutions from
+ * the PhysicsModel class. It also allows the definition of simple
+ * (user-defined) functions that are independent of a PhysicsModel object. 
+ *
+ * It provides a convenient, uniform, interface for a SurrogateModel object to
+ * call, namely the compute() function. 
+ * 
  * 
  ***********************************************/
   template<class T_S, class T_P>
@@ -45,9 +52,7 @@ namespace AGNOS
     { }
 
 /********************************************//**
- * \brief Primal solution function
- *
- *
+ * \brief Basic function independent of a PhysicsModel object
  ***********************************************/
   template<class T_S, class T_P>
   class PhysicsFunctionSimple : public PhysicsFunction<T_S,T_P>
@@ -68,9 +73,7 @@ namespace AGNOS
 
 
 /********************************************//**
- * \brief Primal solution function
- *
- *
+ * \brief Primal solution function based on a PhysicsModel object
  ***********************************************/
   template<class T_S, class T_P>
   class PhysicsFunctionPrimal : public PhysicsFunction<T_S,T_P>
@@ -108,9 +111,7 @@ namespace AGNOS
   
 
 /********************************************//**
- * \brief Adjoint solution function
- *
- *
+ * \brief Adjoint solution function based on a PhysicsModel object
  ***********************************************/
   template<class T_S, class T_P>
   class PhysicsFunctionAdjoint : public PhysicsFunction<T_S,T_P>
@@ -147,9 +148,7 @@ namespace AGNOS
 
 
 /********************************************//**
- * \brief QoI solution function
- *
- *
+ * \brief QoI solution function based on a PhysicsModel object
  ***********************************************/
   template<class T_S, class T_P>
   class PhysicsFunctionQoi : public PhysicsFunction<T_S,T_P>

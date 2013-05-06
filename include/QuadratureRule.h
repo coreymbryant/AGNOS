@@ -8,6 +8,9 @@
 namespace AGNOS
 {
 
+  /********************************************//**
+   * \brief Base class for Quadrature
+   ***********************************************/
   class QuadratureRule
   {
     public:
