@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+// TODO find a better way to include all necessary submodels?
 #include "PseudoSpectralTensorProduct.h"
 #include "PhysicsCatenary.h"
 #include "PhysicsFunction.h"
@@ -20,6 +21,17 @@ namespace AGNOS
   typedef libMesh::DenseVector<double> T_P ;
   typedef libMesh::DenseVector<double> T_S ;
 
+  /********************************************//**
+   * \brief Base class for driving the construction of SurrogateModel objects
+   *
+   * This Base class is designed to be a non-adaptive (i.e. single construction)
+   * method for surrogate construction.  Several different adaptive strategies
+   * can be implemented as derived classes of this routine. 
+   *
+   * 
+   *
+   * 
+   ***********************************************/
   class Driver
   { 
 

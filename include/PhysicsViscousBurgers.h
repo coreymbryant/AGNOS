@@ -7,9 +7,10 @@
 namespace AGNOS
 {
   /********************************************//**
-   * \brief Basic 1D Burger's equation
+   * \brief Basic 1D Burger's PhysicsModel class
    *
-   * This example is given in the Le Maitre book
+   * This example is given in the book
+   * "Spectral Methods for Uncertainty Quantification" by Le Maitre and Knio
    ***********************************************/
   template<T_S, T_P>
   class PhysicsViscousBurgers : public PhysicsModel<T_S,T_P>

@@ -6,10 +6,13 @@
 
 namespace AGNOS
 {
+  /********************************************//**
+   * \brief Placeholder for Monte Carlo SurrogateModel class
+   ***********************************************/
   template<class T_S, class T_P>
     class PseudoSpectralMonteCarlo : public SurrogatePseudoSpectral<T_S,T_P>
   {
-    // TODO
+    // TODO 
   }
 }
 

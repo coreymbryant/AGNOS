@@ -12,7 +12,11 @@ namespace AGNOS
 {
 
   /********************************************//**
-   * \brief Abstract definition of the surrogate model class
+   * \brief Base surrogate model class
+   *
+   * Allows for derivation of Collocation and Pseudospectral surrogate models.
+   * Function to construct SurrogateModel for must me defined by providing a
+   * PhysicsFunction object. 
    ***********************************************/
   template<class T_S, class T_P>
   class SurrogateModel
@@ -21,11 +25,6 @@ namespace AGNOS
 
     public: 
 
-      // provided physics must me defined
-      // easiest way to accomplish this is to pass a function pointer
-      // alternatively we could have made a virtual function, but we would have
-      // to derive many additional classes to group forward and adjoint solution
-      // evaluations etc. 
       SurrogateModel(
           PhysicsFunction<T_S,T_P>& solutionFunction,
           std::vector<Parameter*>   parameters
