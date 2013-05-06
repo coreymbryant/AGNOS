@@ -1,5 +1,4 @@
 doc/
-*.swp
 tags
 Makefile
 Makefile.in
@@ -28,6 +27,12 @@ stamp-h1
 test/Makefile
 test/Makefile.in
 texput.log
+test-driver
+
+test/runTests.sh.*
+test/test-suite.log
+test/polynomialTest
+
 *.o
 *.deps/
-  
+*.swp
