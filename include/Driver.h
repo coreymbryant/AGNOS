@@ -28,6 +28,9 @@ namespace AGNOS
    * method for surrogate construction.  Several different adaptive strategies
    * can be implemented as derived classes of this routine. 
    *
+   * TODO this should be defined based on user inputs. Or at the very least
+   * require a user provided derived class to be defined for the particular
+   * application.
    * 
    *
    * 
@@ -38,7 +41,6 @@ namespace AGNOS
     public:
 
       Driver( );
-      Driver(int surrogateOrder);
       virtual ~Driver( );
 
       void run( );
@@ -52,18 +54,9 @@ namespace AGNOS
  * 
  ***********************************************/
   Driver::Driver( )
-    : m_surrogateOrder(1)
   {
   }
 
-/********************************************//**
- * \brief 
- * 
- ***********************************************/
-  Driver::Driver(int surrogateOrder )
-    : m_surrogateOrder(surrogateOrder)
-  {
-  }
 
 /********************************************//**
  * \brief 
