@@ -29,7 +29,7 @@ test/Makefile.in
 texput.log
 test-driver
 
-test/runTests.sh.*
+test/*Test.sh.*
 test/test-suite.log
 test/polynomialTest
 
