@@ -1,4 +1,3 @@
-// TODO need to change double** into some sort of array of T_P
 
 #ifndef SURROGATE_PSEUDO_SPECTRAL_H
 #define SURROGATE_PSEUDO_SPECTRAL_H
@@ -68,7 +67,6 @@ namespace AGNOS
       std::vector<T_S>          m_integrationPoints ;
       std::vector<double>       m_integrationWeights ;
 
-      // TODO 
       std::vector<T_P>          m_coefficients;
       std::vector< std::vector<unsigned int> > m_indexSet;
 
@@ -285,6 +283,7 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  *
+ * TODO
  * 
  ***********************************************/
   template<class T_S, class T_P>
@@ -293,7 +292,6 @@ namespace AGNOS
         )
     {
       /* T_P currSol; */
-      /* // TODO */
       /* for(unsigned int coeff=0; coeff < m_nQuadPoints; coeff++) */
       /*   /1* currSol += coeff * Poly ; *1/ */
       /*   currSol = 0; */

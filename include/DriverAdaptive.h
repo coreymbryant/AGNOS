@@ -15,9 +15,19 @@ namespace AGNOS
    * determines which approximation to refine and calls the appropriate
    * refinement function of that model class. 
    *
-   * Particular types of refinement can be controlled based on Surrogate and
-   * Physics Model class's refine() function
+   * Particular types of refinement can be controlled based on SurrogateModel
+   * and PhysicsModel class's refine() function
    * 
+   * TODO derived classes could control type of adaptivity or leave that up to
+   * how surrogate/physics models are defined, i.e. 
+   * uniform x uniform h
+   * unifrom x adaptive h
+   * uniform x uniform p
+   * h       x uniform h
+   * p       x uniform
+   * .
+   * .
+   * .
    ***********************************************/
   class DriverAdaptive : public Driver
   {
@@ -27,38 +37,33 @@ namespace AGNOS
       DriverAdaptive( );           /**< Default constructor */
 
       DriverAdaptive( 
-          PhysicsModel* physicsModel,
+          PhysicsModel*   physicsModel,
           SurrogateModel* surrogateModel,
-          double errorTolerance,
-          unsigned int maxIter
+          double          errorTolerance,
+          unsigned int    maxIter
           );
 
       ~DriverAdaptive( );  /**< Default destructor */
 
-      void setMaxIter(unsigned int maxIter);
-      unsigned int getMaxIter( ) const;
+      void          setMaxIter(unsigned int maxIter);
+      unsigned int  getMaxIter( ) const;
 
-      void setErrorTolerance(double errorTolerance);
-      double getErrorTolerance( ) const;
+      void    setErrorTolerance(double errorTolerance);
+      double  getErrorTolerance( ) const;
 
-      void setPhysicsModel(PhysicsModel* physicsModel) ;
+      void  setPhysicsModel(PhysicsModel* physicsModel) ;
       const PhysicsModel* getPhysicsModel( ) const;
 
-      void setSurrogateModel(SurrogateModel* surrogateModel) ;
+      void  setSurrogateModel(SurrogateModel* surrogateModel) ;
       const SurrogateModel* getSurrogateModel( ) const;
 
 
-      // not sure how to define this 
-      // would it be a physicalDataType?
-      // probably
-      virtual TruthModelDataType truthModel( ) ;
-
     protected:
 
-      unsigned int m_maxIter;
-      double m_errorTolerance;
-      bool m_refinePhysical;
-      bool m_refineSurrogate;
+      unsigned int  m_maxIter;
+      double        m_errorTolerance;
+      bool          m_refinePhysical;
+      bool          m_refineSurrogate;
 
       double m_totalError;
       double m_physicalError;
@@ -66,16 +71,6 @@ namespace AGNOS
   
   }
 
-  // derived classes could control type of adaptivity or leave that up to how
-  // surrogate/physics models are defined, i.e. 
-  // uniform x uniform h
-  // unifrom x adaptive h
-  // uniform x uniform p
-  // h       x uniform h
-  // p       x uniform
-  // .
-  // .
-  // .
 
 
 

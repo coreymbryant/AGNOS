@@ -27,4 +27,4 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 polynomialTest_SOURCES =$(top_srcdir)/test/PolynomialTest.cpp
 
-TESTS = $(top_builddir)/test/runTests.sh
+TESTS = $(top_builddir)/test/polynomialTest.sh
