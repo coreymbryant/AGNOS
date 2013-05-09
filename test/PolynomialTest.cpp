@@ -51,6 +51,7 @@ using namespace AGNOS;
 
 BOOST_AUTO_TEST_SUITE(Polynomials_tensorProduct)
 
+
 BOOST_AUTO_TEST_CASE(Linear_1D)
 {
   BOOST_TEST_MESSAGE(" Testing 1D linear approximation");
