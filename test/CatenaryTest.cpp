@@ -25,6 +25,7 @@ using namespace AGNOS;
 
 BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
 
+
   unsigned int dimension = 1;
   
   std::vector<Parameter*> myParameters(

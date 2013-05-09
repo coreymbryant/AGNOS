@@ -1,2 +1,2 @@
 #!/bin/bash
-./polynomialTest --log_level=message
+./polynomialTest --log_level=test_suite
