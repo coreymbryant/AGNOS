@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
 
 }
 
-BOOST_AUTO_TEST_CASE(Catenary_N5)
+BOOST_AUTO_TEST_CASE(Catenary_N4)
 {
   BOOST_TEST_MESSAGE(" Testing Catenary with N=4");
 
