@@ -37,7 +37,7 @@ namespace AGNOS
       virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
-      std::vector<T_P> pointContribution( 
+      std::vector<T_P> computeContribution( 
           T_S& integrationPoint, 
           double& integrationWeight,
           std::vector<double>& polyValues
@@ -220,11 +220,13 @@ namespace AGNOS
     {
       // This is separated from the routine that actually computes contribution
       // so that we can group surrogate models together later and wll that needs
-      // to be defined is build routine based on pointContribution( )
+      // to be defined is build routine based on computeContribution( )
       //
       
       std::vector<double> polyValues = evaluateBasis(m_integrationPoints[0]) ;
-      m_coefficients = pointContribution( 
+      // TODO change this to just initialize to one and then add this iteration
+      // to loop of integration pts
+      m_coefficients = computeContribution( 
             m_integrationPoints[0], 
             m_integrationWeights[0], 
             polyValues
@@ -235,7 +237,7 @@ namespace AGNOS
       for(unsigned int point=1; point < m_nIntegrationPoints; point++)
       {
         polyValues = evaluateBasis(m_integrationPoints[point]) ;
-        contrib = pointContribution( 
+        contrib = computeContribution( 
             m_integrationPoints[point], 
             m_integrationWeights[point], 
             polyValues
@@ -246,26 +248,22 @@ namespace AGNOS
         }
       }
       
-      /* for(unsigned int i=0; i < m_coefficients.size(); i++ ) */
-      /*   for(unsigned int j=0; j < m_coefficients[i].size(); j++ ) */
-      /*     std::cout << "coeff[" << i << "](" << j << ") = " << */
-      /*       m_coefficients[i](j) << std::endl; */
       return;
     } 
 
 /********************************************//**
  * \brief 
- *
- * 
  ***********************************************/
   template<class T_S, class T_P>
-    std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::pointContribution(
+    std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
         T_S& integrationPoint, 
         double& integrationWeight,
         std::vector<double>& polyValues
         )
     {
-      T_P solution;
+      // TODO pass polyValues or compute locally?
+      // TODO this part can be done in parallel 
+      T_P solution( this->m_solutionFunction.getImageSize() );
       this->m_solutionFunction.compute( integrationPoint, solution );
 
       std::vector<T_P> contrib;
@@ -282,8 +280,6 @@ namespace AGNOS
 
 /********************************************//**
  * \brief 
- *
- * TODO
  * 
  ***********************************************/
   template<class T_S, class T_P>
@@ -291,13 +287,19 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      /* T_P currSol; */
-      /* for(unsigned int coeff=0; coeff < m_nQuadPoints; coeff++) */
-      /*   /1* currSol += coeff * Poly ; *1/ */
-      /*   currSol = 0; */
-      T_P dummy;
+      T_P surrogateValue = m_coefficients[0];
+      std::vector<double> polyValues = evaluateBasis(parameterValues) ;
 
-      return dummy;
+      // TODO again initialize this somehow and absorb this iteration in loop
+      // below
+      for(unsigned int comp=0; comp < surrogateValue.size(); comp++)
+        surrogateValue(comp) =  m_coefficients[0](comp) * polyValues[0];
+
+      for(unsigned int coeff=1; coeff < m_coefficients.size(); coeff++)
+        for(unsigned int comp=0; comp < surrogateValue.size(); comp++)
+          surrogateValue(comp) +=  m_coefficients[coeff](comp) * polyValues[coeff];
+
+      return surrogateValue;
     }
 
 /********************************************//**

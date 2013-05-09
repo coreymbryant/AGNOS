@@ -3,6 +3,7 @@
 #define PHYSICS_FUNCTION_H
 
 #include "PhysicsModel.h"
+#include <assert.h>
 
 namespace AGNOS
 {
@@ -33,7 +34,10 @@ namespace AGNOS
           T_P& imageVector
           ) = 0;
 
+      unsigned int getImageSize() const ;
+
     protected:
+      unsigned int m_imageSize;
 
   };
 
@@ -50,6 +54,15 @@ namespace AGNOS
   template<class T_S,class T_P>
     PhysicsFunction<T_S,T_P>::~PhysicsFunction( )
     { }
+  
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    unsigned int PhysicsFunction<T_S,T_P>::getImageSize() const 
+    {
+      return m_imageSize;
+    }
 
 /********************************************//**
  * \brief Basic function independent of a PhysicsModel object
@@ -58,11 +71,24 @@ namespace AGNOS
   class PhysicsFunctionSimple : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionSimple( T_P (*myFunction)(const T_S&)  ) 
-        : m_myFunction(myFunction) { }
+      PhysicsFunctionSimple( 
+          T_P (*myFunction)(const T_S&),
+          unsigned int imageSize 
+        )
+        : m_myFunction(myFunction)
+    {
+      this->m_imageSize(imageSize) ;
+    }
 
       void compute( const T_S& paramVector, T_P& imageVector)
       {
+        if (imageVector.size() != this->m_imageSize )
+        {
+          std::cout << "\n ERROR: returned physics vector does not match"
+            << " predefined imageVector size\n \n " ;
+        assert(0);
+        }
+
         imageVector = m_myFunction(paramVector) ;
         return ;
       };
@@ -79,7 +105,10 @@ namespace AGNOS
   class PhysicsFunctionPrimal : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionPrimal( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionPrimal( 
+          PhysicsModel<T_S,T_P>& physics,
+          unsigned int imageSize
+          );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
       PhysicsModel<T_S,T_P>& m_physics;
@@ -90,10 +119,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionPrimal<T_S,T_P>::PhysicsFunctionPrimal( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>& physics,
+        unsigned int imageSize
         )
-    : m_physics(physics)
-    { }
+        : m_physics(physics)
+    {
+      this->m_imageSize = imageSize ;
+    }
 
 /********************************************//**
  * \brief 
@@ -104,6 +136,13 @@ namespace AGNOS
         T_P& imageVector
         )
     {
+      if (imageVector.size() != this->m_imageSize )
+      {
+        std::cout << "\n ERROR: returned physics vector does not match"
+          << " predefined imageVector size\n \n " ;
+        assert(0);
+      }
+
       imageVector = this->m_physics.solvePrimal(paramVector);
       this->m_physics.setPrimalSolution(imageVector);
       return ;
@@ -117,7 +156,10 @@ namespace AGNOS
   class PhysicsFunctionAdjoint : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionAdjoint( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionAdjoint( 
+          PhysicsModel<T_S,T_P>& physics,
+          unsigned int imageSize
+          );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
       PhysicsModel<T_S,T_P>& m_physics;
@@ -128,10 +170,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionAdjoint<T_S,T_P>::PhysicsFunctionAdjoint( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>& physics,
+        unsigned int imageSize
         )
-    : m_physics(physics)
-    { }
+        : m_physics(physics)
+    {
+      this->m_imageSize = imageSize ;
+    }
 
 /********************************************//**
  * \brief 
@@ -142,6 +187,12 @@ namespace AGNOS
         T_P& imageVector
         )
     {
+      if (imageVector.size() != this->m_imageSize )
+      {
+        std::cout << "\n ERROR: returned physics vector does not match"
+          << " predefined imageVector size\n \n " ;
+        assert(0);
+      }
       imageVector = this->m_physics.solveAdjoint(paramVector);
     }
   
@@ -154,7 +205,10 @@ namespace AGNOS
   class PhysicsFunctionQoi : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionQoi( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionQoi( 
+          PhysicsModel<T_S,T_P>& physics,
+          unsigned int imageSize
+          );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
       PhysicsModel<T_S,T_P>& m_physics;
@@ -165,10 +219,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionQoi<T_S,T_P>::PhysicsFunctionQoi( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>& physics,
+        unsigned int imageSize
         )
-    : m_physics(physics)
-    { }
+        : m_physics(physics)
+    {
+      this->m_imageSize = imageSize ;
+    }
 
 /********************************************//**
  * \brief 
@@ -179,6 +236,13 @@ namespace AGNOS
         T_P& imageVector
         )
     {
+      if (imageVector.size() != this->m_imageSize )
+      {
+        std::cout << "\n ERROR: returned physics vector does not match"
+          << " predefined imageVector size\n \n " ;
+        // TODO proper way to make this fail
+        assert(0);
+      }
       imageVector = this->m_physics.evaluateQoi(paramVector);
     }
 
