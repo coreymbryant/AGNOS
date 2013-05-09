@@ -3,6 +3,7 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE Polynomials
 #include <boost/test/unit_test.hpp>
+#include <boost/test/floating_point_comparison.hpp>
 
 // local includes
 #include <iostream>
@@ -75,15 +76,15 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
   mySurrogate->build( );
   std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_REQUIRE_CLOSE( myCoeff[1](0) , 1.0, 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[1](0) , std::sqrt(1.0/3.0) , 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Linear_ND)
 {
   BOOST_TEST_MESSAGE(" Testing 7D linear approximation");
+
   unsigned int dimension = 7;
   std::vector<unsigned int> myOrder(dimension,1);
-
   std::vector<Parameter*> myParameters(
       dimension, 
       new Parameter(UNIFORM, -1.0,1.0)
@@ -102,7 +103,11 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
   mySurrogate->build( );
   std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_REQUIRE_CLOSE( myCoeff.back()(0) , 1.0, 1e-9 );
+
+  BOOST_CHECK_CLOSE( 
+      myCoeff.back()(0) , 
+      std::pow(std::sqrt(1.0/3.0),dimension),
+      1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_1D)
@@ -130,8 +135,8 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
   mySurrogate->build( );
   std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_REQUIRE_CLOSE( myCoeff[0](0) , 1.0/3.0, 1e-9 );
-  BOOST_REQUIRE_CLOSE( myCoeff[2](0) , 2.0/3.0, 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0](0) , 1.0/3.0 , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_ND)
@@ -159,8 +164,11 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
   mySurrogate->build( );
   std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_REQUIRE_CLOSE( myCoeff[0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
-  BOOST_REQUIRE_CLOSE( myCoeff.back()(0) , std::pow(2.0/3.0,dimension), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
+  BOOST_CHECK_CLOSE( 
+      myCoeff.back()(0) , 
+      std::pow( std::sqrt(1.0/5.0) * 2.0/3.0 ,dimension), 
+      1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(OrderN_1D)
@@ -201,16 +209,33 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
   /*     std::cout << "coeff[" << coeff << "](" << dim << ") = " */ 
   /*       << myCoeff[coeff](dim) << std::endl; */
 
-  // 0 0 1 0 0  = 1
-  BOOST_REQUIRE_CLOSE( myCoeff[4](0) , 1.0, 1e-9 );
+  // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
+  BOOST_CHECK_CLOSE( 
+      myCoeff[4](0) , 
+      std::sqrt(1.0/3.0),
+      1e-9 );
 
   // 1 2 0 0 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
-  BOOST_REQUIRE_CLOSE( (3.0/2.0 * myCoeff[40](0)  + 3.0/1.0 * myCoeff[24](0) )/2.0  , 1.0, 1e-9 );
+  BOOST_CHECK_CLOSE(
+      myCoeff[40](0),
+      2.0/(3.0 * std::sqrt(3.0*5.0)) ,
+      1e-9 );
+  BOOST_CHECK_CLOSE(
+      myCoeff[24](0),
+      1.0 / ( 3.0 * std::sqrt(3.0) ),
+      1e-9 );
 
   // 0 0 0 3 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
-  BOOST_REQUIRE_CLOSE( ( 5.0/2.0 * myCoeff[3](0) + 5.0/3.0 * myCoeff[1](0) )/2.0 , 1.0, 1e-9 );
+  BOOST_CHECK_CLOSE(
+      myCoeff[3](0),
+      2.0 / ( 5.0 * std::sqrt(7.0) ),
+      1e-9 );
+  BOOST_CHECK_CLOSE(
+       myCoeff[1](0),
+       3.0 / ( 5.0 * std::sqrt(3.0) ), 
+       1e-9 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
