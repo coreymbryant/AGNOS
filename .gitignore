@@ -32,6 +32,7 @@ test-driver
 test/*Test.sh.*
 test/test-suite.log
 test/polynomialTest
+test/catenaryTest
 
 *.o
 *.deps/

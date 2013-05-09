@@ -99,7 +99,8 @@ namespace AGNOS
     {
       case UNIFORM:
         scaledX = ( x - (m_min + m_max ) /2.0 ) * 2.0/(m_max-m_min) ;
-        polyValue = 1.0 / ( 2.0/(2.0 * l + 1.0) )  // normalization factor
+        // 1/sqrt( 1/( 2*l +1 ) ) is normalization factor 1/sqrt(norm^2))
+        polyValue = 1.0 / std::sqrt( 1.0/(2.0 * l + 1.0) )  
           * boost::math::legendre_p( l, scaledX);
         break;
 

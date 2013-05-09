@@ -36,7 +36,7 @@ namespace AGNOS
           double currentWeights[], double* currentPoints[] );
 
       void oneDimQuadRule(
-        enum parameterType, const unsigned int order, 
+        const Parameter& parameter, const unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] );
 
   };
@@ -79,25 +79,17 @@ namespace AGNOS
       double currentWeights[], double* currentPoints[] )
   {
     double* oneDimQuadWeights = new double[order[dim-1]+1];
-    double* oneDimQuadPoints = new double[order[dim-1]+1];
-    oneDimQuadRule( (parameters[dim-1])->type() , order[dim-1]+1, 
+    double* oneDimQuadPoints  = new double[order[dim-1]+1];
+    oneDimQuadRule( *parameters[dim-1] , order[dim-1]+1, 
         oneDimQuadPoints, oneDimQuadWeights );
-
-    double scaling = 
-      ( (parameters[dim-1])->max() - (parameters[dim-1])->min())/2.0;
-    double midpoint = 
-      ( (parameters[dim-1])->max() + (parameters[dim-1])->min() )/2.0;
 
     if (dim == 1) 
     {
+      // TODO change to assign instead of loop ?
       for(unsigned int id=0; id < order[dim-1]+1; id++)
       {
-        /* currentPoints[dim-1][id] = midpoint */ 
-        /*   + oneDimQuadPoints[id] * scaling; */
-          
-        currentWeights[id] = oneDimQuadWeights[id] * scaling;
-        currentPoints[id][0] = midpoint 
-          + oneDimQuadPoints[id] * scaling;
+        currentWeights[id] = oneDimQuadWeights[id] ;
+        currentPoints[id][0] = oneDimQuadPoints[id] ;
       }
     }
 
@@ -115,7 +107,7 @@ namespace AGNOS
         for(int inner=order[dim-1]; inner >= 0 ; inner--)
         {
           currentWeights[(outer)*(order[dim-1]+1) + inner] = 
-            currentWeights[outer] * oneDimQuadWeights[inner] * scaling;
+            currentWeights[outer] * oneDimQuadWeights[inner];
           
           for(int dir=0; dir < dim-1; dir++)
           {
@@ -124,7 +116,7 @@ namespace AGNOS
           }
 
           currentPoints[(outer)*(order[dim-1]+1) + inner][dim-1] 
-            = midpoint + oneDimQuadPoints[inner] * scaling;
+            = oneDimQuadPoints[inner];
         }
       }
     }
@@ -137,15 +129,36 @@ namespace AGNOS
  * Currently only unifrom is supported
  ***********************************************/
     void QuadratureTensorProduct::oneDimQuadRule(
-        enum parameterType myType, const unsigned int order, 
+        const Parameter& parameter, const unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
+      enum parameterType myType = parameter.type() ;
+      double min = parameter.min();
+      double max = parameter.max();
+      double scale, midpoint, scaleWeight;
+
       switch ( myType )
       {
         case UNIFORM:
           // this class assumes uniform distribution
           webbur::legendre_compute( 
               order, oneDimQuadPoints, oneDimQuadWeights);
+          
+          // scale - scales to size of parameter domain
+          scale = ( max - min)/2.0;
+          // midpoint - shifts to midpoint of parameter domain
+          midpoint = ( max + min )/2.0;
+
+          for(unsigned int i=0; i < order; i++)
+          {
+            // 1/2 is to account for uniform weighting
+            oneDimQuadWeights[i] = oneDimQuadWeights[i] * scale * 1./2.;
+            
+            // pt = midpoint + pt * scale
+            oneDimQuadPoints[i] *= scale  ; 
+            oneDimQuadPoints[i] += midpoint;
+          }
+
           break;
 
         default:

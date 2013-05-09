@@ -95,10 +95,10 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::~PhysicsModel( )
   {
-    delete [] m_primalSolution;
-    delete [] m_adjointSolution;
-    delete [] m_qoiValue;
-    delete [] m_errorIndicators;
+    /* delete [] m_primalSolution; */
+    /* delete [] m_adjointSolution; */
+    /* delete [] m_qoiValue; */
+    /* delete [] m_errorIndicators; */
   }
 
 
