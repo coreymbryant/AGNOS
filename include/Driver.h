@@ -86,7 +86,7 @@ namespace AGNOS
     PhysicsCatenary<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( ) ;
 
     PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-      new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics, 1 ) ;
+      new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ;
 
     PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
       PseudoSpectralTensorProduct<T_S,T_P>(
