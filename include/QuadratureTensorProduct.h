@@ -132,12 +132,12 @@ namespace AGNOS
         const Parameter& parameter, const unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
-      enum parameterType myType = parameter.type() ;
+      int myType = parameter.getType() ;
       double min = parameter.min();
       double max = parameter.max();
       double scale, midpoint, scaleWeight;
 
-      switch ( myType )
+      switch ( ParameterTypes(myType) )
       {
         case UNIFORM:
           // this class assumes uniform distribution

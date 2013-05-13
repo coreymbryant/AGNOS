@@ -1,0 +1,23 @@
+[driver]
+maxIter = '7'
+[]
+
+[parameters]
+dimension = '2'
+types = ' "UNIFORM" "UNIFORM" '
+mins = '0 0'
+maxs = '1 1'
+[]
+
+[physics]
+type = 'catenary'
+[]
+
+
+[surrogateModels]
+type = "PseudoSpectralTensorProduct"
+
+  [./PseudoSpectralTensorProduct]
+  order = '1 6'
+
+[]

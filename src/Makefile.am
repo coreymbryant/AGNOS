@@ -8,7 +8,8 @@ bin_PROGRAMS = agnos
 #Local Directories to include for build
 #--------------------------------------
 AM_CPPFLAGS = -I$(top_srcdir)/include \
-							-I$(top_srcdir)/contrib/sandia_rules
+							-I$(top_srcdir)/contrib/sandia_rules \
+							-I$(top_srcdir)/contrib/getpot
 
 #-------------------------------------
 # External library include directories
