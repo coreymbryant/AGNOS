@@ -152,7 +152,8 @@ namespace AGNOS
           for(unsigned int i=0; i < order; i++)
           {
             // 1/2 is to account for uniform weighting
-            oneDimQuadWeights[i] = oneDimQuadWeights[i] * scale * 1./2.;
+            // scale * 1/(max-min) = 1/2
+            oneDimQuadWeights[i] = oneDimQuadWeights[i] * 1./2.;
             
             // pt = midpoint + pt * scale
             oneDimQuadPoints[i] *= scale  ; 

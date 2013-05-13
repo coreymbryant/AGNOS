@@ -2,7 +2,7 @@
 # Programs and libraries we want to build
 #----------------------------------------
 
-check_PROGRAMS = polynomialTest catenaryTest
+check_PROGRAMS = polynomialTest catenaryTest evaluationTest
 
 #--------------------------------------
 #Local Directories to include for build
@@ -27,6 +27,8 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 polynomialTest_SOURCES 	=$(top_srcdir)/test/PolynomialTest.cpp
 catenaryTest_SOURCES 		=$(top_srcdir)/test/CatenaryTest.cpp
+evaluationTest_SOURCES 	=$(top_srcdir)/test/EvaluationTest.cpp
 
 TESTS  = $(top_builddir)/test/polynomialTest.sh
 TESTS += $(top_builddir)/test/catenaryTest.sh
+TESTS += $(top_builddir)/test/evaluationTest.sh

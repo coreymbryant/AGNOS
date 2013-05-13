@@ -40,7 +40,7 @@ namespace AGNOS
       std::vector<T_P> computeContribution( 
           T_S& integrationPoint, 
           double& integrationWeight,
-          std::vector<double>& polyValues
+          std::vector<double> polyValues
           );
       T_P evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
@@ -223,29 +223,34 @@ namespace AGNOS
       // to be defined is build routine based on computeContribution( )
       //
       
-      std::vector<double> polyValues = evaluateBasis(m_integrationPoints[0]) ;
-      // TODO change this to just initialize to one and then add this iteration
-      // to loop of integration pts
-      m_coefficients = computeContribution( 
-            m_integrationPoints[0], 
-            m_integrationWeights[0], 
-            polyValues
-            );
-      std::vector<T_P> contrib;
-
       
-      for(unsigned int point=1; point < m_nIntegrationPoints; point++)
+      // INITIAL INTEGRATION POINT TO SET SIZES 
+      
+      // TODO would be nice if we could initialize empty vector of correct size
+      // and then run all integration pts in parallel. This would require some
+      // manipulator to return physics vector size. Instead we can just make one
+      // call to computeContribution to set sizes and then run the rest of the
+      // jobs in parrael. I guess we could probably do all computations in
+      // parallel and just deal with the the size issue before combining back to
+      // one. 
+      std::vector<double> polyValues;
+      
+      for(unsigned int point=0; point < m_nIntegrationPoints; point++)
       {
         polyValues = evaluateBasis(m_integrationPoints[point]) ;
-        contrib = computeContribution( 
+        std::vector<T_P> contrib = computeContribution( 
             m_integrationPoints[point], 
             m_integrationWeights[point], 
             polyValues
             );
-        for(unsigned int coeff=0; coeff < m_coefficients.size(); coeff++)
-        {
-          m_coefficients[coeff] += contrib[coeff];
-        }
+
+        // if this is the first integration point initialize coeff to its value
+        if (point==0)
+          m_coefficients = contrib;          
+
+        else
+          for(unsigned int coeff=0; coeff < m_coefficients.size(); coeff++)
+            m_coefficients[coeff] += contrib[coeff];
       }
       
       return;
@@ -258,14 +263,22 @@ namespace AGNOS
     std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
         T_S& integrationPoint, 
         double& integrationWeight,
-        std::vector<double>& polyValues
+        std::vector<double> polyValues
         )
     {
-      // TODO pass polyValues or compute locally?
       // TODO this part can be done in parallel 
-      T_P solution( this->m_solutionFunction.getImageSize() );
+      
+      // I think its better to pass vector of polyValues than a pointer to
+      // SurrogateModel object, since in parallel their would be multiple nodes
+      // operating on same object (even though they would just be referencing
+      // not altering that object?? - yes pointer would be to object stored in
+      // master node not working node)
+
+      // get solution for this integration point
+      T_P solution ;
       this->m_solutionFunction.compute( integrationPoint, solution );
 
+      // compute contribution of current solution to overall coeff vector
       std::vector<T_P> contrib;
       contrib.resize( polyValues.size() ); // polyValues has same size as coeff
       for (unsigned int i=0; i < contrib.size(); i++)
@@ -287,11 +300,11 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      T_P surrogateValue = m_coefficients[0];
       std::vector<double> polyValues = evaluateBasis(parameterValues) ;
 
       // TODO again initialize this somehow and absorb this iteration in loop
       // below
+      T_P surrogateValue = m_coefficients[0];
       for(unsigned int comp=0; comp < surrogateValue.size(); comp++)
         surrogateValue(comp) =  m_coefficients[0](comp) * polyValues[0];
 
