@@ -33,6 +33,7 @@ test/*Test.sh.*
 test/test-suite.log
 test/polynomialTest
 test/catenaryTest
+test/evaluationTest
 
 *.o
 *.deps/
