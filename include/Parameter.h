@@ -7,7 +7,7 @@
 
 namespace AGNOS
 {
-  enum parameterType { UNIFORM = 0 };
+  enum ParameterTypes { UNIFORM = 0 };
 
   /********************************************//**
    * \brief Uncertain parameter class
@@ -23,20 +23,20 @@ namespace AGNOS
     public: 
 
       // constructor/destructor
-      Parameter( enum parameterType, double min, double max );
+      Parameter( int type, double min, double max );
 
       Parameter( );
       ~Parameter( );
 
       // Manipulators
-      enum parameterType type() const; /**< 0: Uniform */
+      int getType() const; /**< 0: Uniform */
       double min() const;
       double max() const;
       double evalBasisPoly( int l, double x);
 
     private:
 
-      enum parameterType(m_type);
+      int    m_type;
       double m_min;
       double m_max;
 
@@ -46,15 +46,15 @@ namespace AGNOS
 /********************************************//**
  * \brief Simple constructor
  ***********************************************/
-  Parameter::Parameter( enum parameterType myType, double min, double max )
-    : m_type(parameterType(myType)), m_min(min), m_max(max)
+  Parameter::Parameter( int myType, double min, double max )
+    : m_type(myType), m_min(min), m_max(max)
   { }
 
 /********************************************//**
  * \brief 
  ***********************************************/
   Parameter::Parameter( )
-    : m_type( UNIFORM ), m_min(-1.0), m_max(1.0)
+    : m_type( 0 ), m_min(-1.0), m_max(1.0)
   { }
 
 /********************************************//**
@@ -66,7 +66,7 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  enum parameterType Parameter::type( ) const
+  int Parameter::getType( ) const
   {
     return m_type;
   }
@@ -95,7 +95,7 @@ namespace AGNOS
     double polyValue;
     double scaledX; 
 
-    switch ( m_type )
+    switch ( ParameterTypes(m_type) )
     {
       case UNIFORM:
         scaledX = ( x - (m_min + m_max ) /2.0 ) * 2.0/(m_max-m_min) ;
