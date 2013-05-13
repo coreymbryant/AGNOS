@@ -43,7 +43,7 @@ namespace AGNOS
       Driver( );
       virtual ~Driver( );
 
-      void run( );
+      virtual void run( ) = 0;
 
     private:
       int m_surrogateOrder;
@@ -72,45 +72,6 @@ namespace AGNOS
  ***********************************************/
   void Driver::run( )
   {
-
-    unsigned int dimension = 1;
-
-    std::vector<Parameter*> myParameters(
-        dimension, 
-        new Parameter(UNIFORM, 1.0,3.0)
-        ); 
-
-    std::vector<unsigned int> myOrder(dimension,1);
-    myOrder.front() = 1;
-
-    PhysicsCatenary<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( ) ;
-
-    PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-      new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ;
-
-    PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-      PseudoSpectralTensorProduct<T_S,T_P>(
-          *myPhysicsFunction, 
-          myParameters, 
-          myOrder  
-          );
-
-    mySurrogate->build( );
-
-    std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
-    for(unsigned int coeff=0; coeff<myCoeff.size(); coeff++)
-        std::cout << std::setprecision(5) << std::scientific 
-          << "coeff[" << coeff << "](0) = " 
-          << myCoeff[coeff](0) << std::endl;
-
-
-    T_S paramValue(dimension);
-    paramValue(0) = 1.5;
-
-    T_P testValue = mySurrogate->evaluate( paramValue ) ;
-
-    std::cout << "testValue(0) = " << testValue(0) << std::endl;
-
     return;
   }
 

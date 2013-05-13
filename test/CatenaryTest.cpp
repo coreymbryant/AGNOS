@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
       new Parameter(UNIFORM, 1.0,3.0)
       ); 
 
-  PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( );
+  PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( -10.0 );
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
     new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ;
 
@@ -125,6 +125,34 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
       myCoeff[4](0) , 
       -4.037685060565489e-03,
       1e-9 );
+
+}
+
+BOOST_AUTO_TEST_CASE(Catenary_convergence)
+{
+  BOOST_TEST_MESSAGE(" Testing Catenary convergence");
+
+  std::vector<unsigned int> myOrder(dimension,0);
+  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
+    new PseudoSpectralTensorProduct<T_S,T_P>(
+        *myPhysicsFunction, 
+        myParameters, 
+        myOrder  
+        );
+
+  T_S paramValue(dimension);
+  paramValue(0) = 1.5;
+  T_P testValue; 
+
+  unsigned int maxIter = 25;
+  for (unsigned int iter=0; iter < maxIter-1; iter++)
+  {
+    mySurrogate->refine();
+    testValue = mySurrogate->evaluate( paramValue ) ;
+  }
+
+  // 
+  BOOST_CHECK_CLOSE(  testValue(0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
 
 }
 

@@ -97,6 +97,8 @@ namespace AGNOS
 
       this->m_nIntegrationPoints = ( m_quadRule->getNQuadPoints() );
 
+      this->m_integrationPoints.clear();
+      this->m_integrationWeights.clear();
       this->m_integrationPoints.resize(   this->m_nIntegrationPoints );
       this->m_integrationWeights.resize(  this->m_nIntegrationPoints );
 
@@ -112,8 +114,10 @@ namespace AGNOS
           this->m_integrationPoints[point](dir) = quadPoints[point][dir] ;
       }
 
+      this->m_coefficients.clear();
       this->m_coefficients.resize( this->m_nIntegrationPoints );
 
+      this->m_indexSet.clear();
       this->m_indexSet.reserve( this->m_nIntegrationPoints );
       /* for (unsigned int i=0; i< this-> m_nIntegrationPoints; i++) */
       /*   this->m_indexSet[i].reserve(this->m_dimension); */
@@ -184,8 +188,12 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PseudoSpectralTensorProduct<T_S,T_P>::refine( )
     {
-      /* for(unsigned int i=0; i<m_dimension; i++) */
-      /*   m_order[i]++; */
+      for(unsigned int i=0; i<this->m_dimension; i++)
+      {
+        this->m_order[i]++;
+      }
+      this->initialize();
+      this->build();
     }
 
 /********************************************//**
