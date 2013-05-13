@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
   BOOST_CHECK_CLOSE( 
       myCoeff.back()(0) , 
       std::pow(std::sqrt(1.0/3.0),dimension),
-      1e-9 );
+      1e-4 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_1D)
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
   BOOST_TEST_MESSAGE(" Testing 1D quadratic approximation");
 
   unsigned int dimension = 1;
-  std::vector<unsigned int> myOrder(dimension,3);
+  std::vector<unsigned int> myOrder(dimension,2);
 
   std::vector<Parameter*> myParameters(
       dimension, 
