@@ -11,6 +11,12 @@
 namespace AGNOS
 {
 
+  enum SurrogateModelType{
+    PSEUDO_SPECTRAL_TENSOR_PRODUCT=0,
+    PSEUDO_SPECTRAL_SPARSE_GRID,
+    PSEUDO_SPECTRAL_MONTE_CARLO,
+    COLLOCATION };
+
   /********************************************//**
    * \brief Base surrogate model class
    *
@@ -25,13 +31,28 @@ namespace AGNOS
 
     public: 
 
+      // single physics function constructors
       SurrogateModel(
-          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          std::vector<Parameter*>                   parameters
+          PhysicsFunction<T_S,T_P>*         solutionFunction,
+          const std::vector<Parameter*>     parameters,
+          const unsigned int                order 
           );
       SurrogateModel(
-          PhysicsFunction<T_S,T_P>* solutionFunction,
-          std::vector<Parameter*>   parameters
+          PhysicsFunction<T_S,T_P>*         solutionFunction,
+          const std::vector<Parameter*>     parameters,
+          const std::vector<unsigned int>&  order
+          );
+
+      // multiple physics function constructors
+      SurrogateModel(
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>             parameters,
+          const unsigned int                        order 
+          );
+      SurrogateModel(
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>             parameters,
+          const std::vector<unsigned int>&          order
           );
 
       SurrogateModel( );           /**< Default constructor */
@@ -48,9 +69,15 @@ namespace AGNOS
       // Manipulators
       void setParameters( std::vector<Parameter*> parameters );
       std::vector<Parameter*> getParameters( ) const;
+      const std::vector< std::vector<T_P> >   
+                                getCoefficients( ) const;
+      std::vector<unsigned int> getExpansionOrder( ) const;
 
     protected: 
       
+      std::vector<unsigned int>                 m_order;  
+      std::vector< std::vector<T_P> >           m_coefficients;
+
       std::vector< PhysicsFunction<T_S,T_P>* >  m_solutionFunction;
       std::vector<Parameter*>                   m_parameters;
       unsigned int                              m_dimension;
@@ -65,11 +92,16 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
         std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        std::vector<Parameter*> parameters
+        std::vector<Parameter*>                   parameters,
+        unsigned int                              order
         )
-      : m_solutionFunction(solutionFunction), m_parameters(parameters),
-      m_dimension( parameters.size() )
+      : 
+        m_solutionFunction(solutionFunction), 
+        m_parameters(parameters),
+        m_dimension( parameters.size() )
     {
+      m_order = std::vector<unsigned int>(m_dimension,order);
+      m_coefficients.resize( solutionFunction.size() );
     }
 
 /********************************************//*
@@ -77,12 +109,77 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-        PhysicsFunction<T_S,T_P>* solutionFunction,
-        std::vector<Parameter*> parameters
-        ) : m_parameters(parameters), m_dimension( parameters.size() )
+        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        std::vector<Parameter*>                   parameters,
+        const std::vector<unsigned int>&          order
+        )
+      : 
+        m_solutionFunction(solutionFunction), 
+        m_parameters(parameters),
+        m_dimension( parameters.size() ), 
+        m_order(order)
+    {
+      m_coefficients.resize( solutionFunction.size() );
+
+      if (m_order.size() != parameters.size() )
+      {
+        std::cout 
+          << std::endl
+          << "\tERROR:"
+          << " order vector dimension does not match number of parameters"
+          << std::endl
+          << std::endl;
+        assert(0);
+      }
+    }
+
+/********************************************//*
+ * \brief Constructor
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::SurrogateModel( 
+        PhysicsFunction<T_S,T_P>*                 solutionFunction,
+        std::vector<Parameter*>                   parameters,
+        const std::vector<unsigned int>&          order
+        ) 
+      : 
+        m_parameters(parameters), 
+        m_dimension( parameters.size() ),
+        m_order(order)
     {
       m_solutionFunction = 
         std::vector< PhysicsFunction<T_S,T_P>* >(1,solutionFunction) ;
+      m_coefficients.resize( 1 );
+
+      if (m_order.size() != parameters.size() )
+      {
+        std::cout 
+          << std::endl
+          << "\tERROR:"
+          << " order vector dimension does not match number of parameters"
+          << std::endl
+          << std::endl;
+        assert(0);
+      }
+    }
+
+/********************************************//*
+ * \brief Constructor
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::SurrogateModel( 
+        PhysicsFunction<T_S,T_P>*                 solutionFunction,
+        std::vector<Parameter*>                   parameters,
+        unsigned int                              order
+        ) 
+      : 
+        m_parameters(parameters), 
+        m_dimension( parameters.size() )
+    {
+      m_solutionFunction = 
+        std::vector< PhysicsFunction<T_S,T_P>* >(1,solutionFunction) ;
+      m_order = std::vector<unsigned int>(m_dimension,order);
+      m_coefficients.resize( 1 );
     }
 
 /********************************************//*
@@ -121,6 +218,30 @@ namespace AGNOS
     {
       return m_parameters ;
     }
+
+/********************************************//**
+ * \brief Get the current expansion order
+ ***********************************************/
+  template<class T_S, class T_P>
+    std::vector<unsigned int> SurrogateModel<T_S,T_P>::getExpansionOrder( )
+    const
+  {
+    return m_order;
+  }
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    const std::vector< std::vector<T_P> >
+    SurrogateModel<T_S,T_P>::getCoefficients( ) const
+    {
+      return m_coefficients;
+    }
+
+
 
 }
 #endif //SURROGATE_MODEL_H

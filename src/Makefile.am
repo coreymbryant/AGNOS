@@ -24,7 +24,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS)
 
-agnos_SOURCES =$(top_srcdir)/src/agnos.C
+agnos_SOURCES =$(top_srcdir)/src/run.C \
+							 $(top_srcdir)/src/agnos.C
 
 #
 # Required for AX_AM_MACROS

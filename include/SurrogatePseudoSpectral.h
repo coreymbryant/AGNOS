@@ -61,12 +61,9 @@ namespace AGNOS
           );
 
       // Manipulators
-      std::vector<unsigned int> getExpansionOrder( ) const;
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
-      const std::vector< std::vector<T_P> >   
-                                getCoefficients( ) const;
       const std::vector< std::vector< unsigned int> > 
                                 getIndexSet( ) const;
       std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
@@ -76,12 +73,10 @@ namespace AGNOS
 
     protected:
 
-      std::vector<unsigned int> m_order;  
       unsigned int              m_nIntegrationPoints;
       std::vector<T_S>          m_integrationPoints ;
       std::vector<double>       m_integrationWeights ;
 
-      std::vector< std::vector<T_P> >          m_coefficients;
       std::vector< std::vector<unsigned int> > m_indexSet;
 
 
@@ -98,10 +93,8 @@ namespace AGNOS
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters)
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order)
     {
-      m_order = std::vector<unsigned int>(this->m_dimension,order);
-      m_coefficients.resize( 1 );
     }
 
 
@@ -114,21 +107,8 @@ namespace AGNOS
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters), 
-      m_order(order)
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order) 
     {
-      m_coefficients.resize( 1 );
-
-      if (m_order.size() != parameters.size() )
-      {
-        std::cout 
-          << std::endl
-          << "\tERROR:"
-          << " order vector dimension does not match number of parameters"
-          << std::endl
-          << std::endl;
-        assert(0);
-      }
     }
 
 /********************************************//**
@@ -140,10 +120,8 @@ namespace AGNOS
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters)
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order)
     {
-      m_order = std::vector<unsigned int>(this->m_dimension,order);
-      m_coefficients.resize( solutionFunction.size() );
     }
 
 
@@ -156,21 +134,8 @@ namespace AGNOS
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters), 
-      m_order(order)
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order) 
     {
-      m_coefficients.resize( solutionFunction.size() );
-
-      if (m_order.size() != parameters.size() )
-      {
-        std::cout 
-          << std::endl
-          << "\tERROR:"
-          << " order vector dimension does not match number of parameters"
-          << std::endl
-          << std::endl;
-        assert(0);
-      }
     }
 
 /********************************************//**
@@ -180,16 +145,6 @@ namespace AGNOS
     SurrogatePseudoSpectral<T_S,T_P>::~SurrogatePseudoSpectral( )
     {
     }
-
-/********************************************//**
- * \brief Get the current expansion order
- ***********************************************/
-  template<class T_S, class T_P>
-    std::vector<unsigned int> SurrogatePseudoSpectral<T_S,T_P>::getExpansionOrder( )
-    const
-  {
-    return m_order;
-  }
 
 /********************************************//**
  * \brief Get number of integration points
@@ -220,18 +175,6 @@ namespace AGNOS
   {
     return m_integrationPoints;
   }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P> 
-    const std::vector< std::vector<T_P> >
-    SurrogatePseudoSpectral<T_S,T_P>::getCoefficients( ) const
-    {
-      return m_coefficients;
-    }
 
 /********************************************//**
  * \brief 
@@ -306,12 +249,12 @@ namespace AGNOS
 
         // if this is the first integration point initialize coeff to its value
         if (point==0)
-          m_coefficients = contrib;          
+          this->m_coefficients = contrib;          
 
         else
-          for(unsigned int nSol=0; nSol < m_coefficients.size(); nSol++)
-            for(unsigned int coeff=0; coeff < m_coefficients[nSol].size(); coeff++)
-              m_coefficients[nSol][coeff] += contrib[nSol][coeff];
+          for(unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++)
+            for(unsigned int coeff=0; coeff < this->m_coefficients[nSol].size(); coeff++)
+              this->m_coefficients[nSol][coeff] += contrib[nSol][coeff];
       }
       
       return;
@@ -374,16 +317,16 @@ namespace AGNOS
       // TODO again initialize this somehow and absorb this iteration in loop
       // below
       std::vector<T_P> surrogateValue;
-      surrogateValue.resize( m_coefficients.size() );
-      for (unsigned int nSol=0; nSol < m_coefficients.size(); nSol++)
+      surrogateValue.resize( this->m_coefficients.size() );
+      for (unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++)
       {
-        surrogateValue[nSol] = m_coefficients[nSol][0];
+        surrogateValue[nSol] = this->m_coefficients[nSol][0];
         for(unsigned int comp=0; comp < surrogateValue[nSol].size(); comp++)
-          surrogateValue[nSol](comp) =  m_coefficients[nSol][0](comp) * polyValues[0];
+          surrogateValue[nSol](comp) =  this->m_coefficients[nSol][0](comp) * polyValues[0];
 
-        for(unsigned int coeff=1; coeff < m_coefficients[nSol].size(); coeff++)
+        for(unsigned int coeff=1; coeff < this->m_coefficients[nSol].size(); coeff++)
           for(unsigned int comp=0; comp < surrogateValue[nSol].size(); comp++)
-            surrogateValue[nSol](comp) +=  m_coefficients[nSol][coeff](comp) * polyValues[coeff];
+            surrogateValue[nSol](comp) +=  this->m_coefficients[nSol][coeff](comp) * polyValues[coeff];
       }
 
       return surrogateValue;

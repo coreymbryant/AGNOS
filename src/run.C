@@ -1,0 +1,35 @@
+
+#include "DriverPhysics.h"
+#include "PhysicsCatenary.h"
+
+/********************************************//**
+ * \brief User must define a specific run function to provide physics class and
+ * initialize driver. Everthing else will be handled behind the scenes. 
+ *
+ * It is up to user how to provide physics initialization data to PhysicsModel
+ * constructor.
+ *
+ * The following is an example run( input ) routine for a simple scalar valued
+ * PhysicsModel class defined in PhysicsCatenary.
+ * 
+ ***********************************************/
+
+void run ( GetPot& input )
+{
+
+  AGNOS::PhysicsModel<T_S,T_P>* myPhysics = new AGNOS::PhysicsCatenary<T_S,T_P>( 
+      input("physics/forcing",-10.0) );
+
+
+  // this should be the same for any user 
+  // (unless DriverFunction is used)
+  AGNOS::DriverPhysics myDriver( myPhysics, input );
+
+  myDriver.run( );
+
+  delete myPhysics;
+
+  return;
+}
+
+

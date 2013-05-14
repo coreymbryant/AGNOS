@@ -1,9 +1,9 @@
 
-#include <vector>
 #include <iostream>
 #include <cstring>
 #include <GetPot>
-#include "Driver.h"
+
+void run (GetPot& input);
 
 int main(int argc, char* argv[])
 {
@@ -17,10 +17,7 @@ int main(int argc, char* argv[])
 
   GetPot input( argv[1] );
 
-
-  AGNOS::Driver agnos( input ) ;
-
-  agnos.run();
+  run( input );
 
   return 0;
 }
