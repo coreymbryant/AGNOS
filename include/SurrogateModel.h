@@ -26,7 +26,11 @@ namespace AGNOS
     public: 
 
       SurrogateModel(
-          PhysicsFunction<T_S,T_P>& solutionFunction,
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          std::vector<Parameter*>                   parameters
+          );
+      SurrogateModel(
+          PhysicsFunction<T_S,T_P>* solutionFunction,
           std::vector<Parameter*>   parameters
           );
 
@@ -35,7 +39,7 @@ namespace AGNOS
 
       // surrogate construction and evaluation
       virtual void build( ) = 0; 
-      virtual T_P evaluate( 
+      virtual std::vector<T_P> evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
           ) = 0;
       virtual void refine( ) = 0;
@@ -47,9 +51,9 @@ namespace AGNOS
 
     protected: 
       
-      PhysicsFunction<T_S,T_P>& m_solutionFunction;
-      std::vector<Parameter*>   m_parameters;
-      unsigned int              m_dimension;
+      std::vector< PhysicsFunction<T_S,T_P>* >  m_solutionFunction;
+      std::vector<Parameter*>                   m_parameters;
+      unsigned int                              m_dimension;
 
       
 
@@ -60,12 +64,25 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-        PhysicsFunction<T_S,T_P>& solutionFunction,
+        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
         std::vector<Parameter*> parameters
         )
       : m_solutionFunction(solutionFunction), m_parameters(parameters),
       m_dimension( parameters.size() )
     {
+    }
+
+/********************************************//*
+ * \brief Constructor
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogateModel<T_S,T_P>::SurrogateModel( 
+        PhysicsFunction<T_S,T_P>* solutionFunction,
+        std::vector<Parameter*> parameters
+        ) : m_parameters(parameters), m_dimension( parameters.size() )
+    {
+      m_solutionFunction = 
+        std::vector< PhysicsFunction<T_S,T_P>* >(1,solutionFunction) ;
     }
 
 /********************************************//*

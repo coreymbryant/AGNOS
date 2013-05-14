@@ -69,15 +69,15 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[1](0) , std::sqrt(1.0/3.0) , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Linear_ND)
@@ -96,17 +96,17 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
 
   BOOST_CHECK_CLOSE( 
-      myCoeff.back()(0) , 
+      myCoeff[0].back()(0) , 
       std::pow(std::sqrt(1.0/3.0),dimension),
       1e-4 );
 }
@@ -128,16 +128,16 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0](0) , 1.0/3.0 , 1e-9 );
-  BOOST_CHECK_CLOSE( myCoeff[2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , 1.0/3.0 , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_ND)
@@ -157,17 +157,17 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff.back()(0) , 
+      myCoeff[0].back()(0) , 
       std::pow( std::sqrt(1.0/5.0) * 2.0/3.0 ,dimension), 
       1e-9 );
 }
@@ -194,13 +194,13 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
   /* mySurrogate->printIntegrationWeights() ; */
   /* mySurrogate->printIntegrationPoints() ; */
@@ -212,29 +212,29 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
 
   // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
   BOOST_CHECK_CLOSE( 
-      myCoeff[4](0) , 
+      myCoeff[0][4](0) , 
       std::sqrt(1.0/3.0),
       1e-9 );
 
   // 1 2 0 0 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
   BOOST_CHECK_CLOSE(
-      myCoeff[40](0),
+      myCoeff[0][40](0),
       2.0/(3.0 * std::sqrt(3.0*5.0)) ,
       1e-9 );
   BOOST_CHECK_CLOSE(
-      myCoeff[24](0),
+      myCoeff[0][24](0),
       1.0 / ( 3.0 * std::sqrt(3.0) ),
       1e-9 );
 
   // 0 0 0 3 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
   BOOST_CHECK_CLOSE(
-      myCoeff[3](0),
+      myCoeff[0][3](0),
       2.0 / ( 5.0 * std::sqrt(7.0) ),
       1e-9 );
   BOOST_CHECK_CLOSE(
-       myCoeff[1](0),
+       myCoeff[0][1](0),
        3.0 / ( 5.0 * std::sqrt(3.0) ), 
        1e-9 );
 }

@@ -23,26 +23,40 @@ namespace AGNOS
 
     public:
 
+      // single physics function constructors
       SurrogatePseudoSpectral( 
-          PhysicsFunction<T_S,T_P>&     solutionFunction,
+          PhysicsFunction<T_S,T_P>*     solutionFunction,
           const std::vector<Parameter*> parameters,
           const unsigned int            order 
           );
       SurrogatePseudoSpectral( 
-          PhysicsFunction<T_S,T_P>&         solutionFunction,
+          PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
+          );
+
+      // multiple physics function constructors
+      SurrogatePseudoSpectral( 
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>             parameters,
+          const unsigned int                        order 
+          );
+      SurrogatePseudoSpectral( 
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>             parameters,
+          const std::vector<unsigned int>&          order
           );
 
       virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
-      std::vector<T_P> computeContribution( 
-          T_S& integrationPoint, 
-          double& integrationWeight,
-          std::vector<double> polyValues
+      std::vector< std::vector<T_P> > computeContribution( 
+          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          T_S&                                      integrationPoint, 
+          double&                                   integrationWeight,
+          std::vector<double>                       polyValues
           );
-      T_P evaluate( 
+      std::vector<T_P> evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
           );
 
@@ -51,11 +65,11 @@ namespace AGNOS
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
-      const std::vector<T_P>    getCoefficients( ) const;
+      const std::vector< std::vector<T_P> >   
+                                getCoefficients( ) const;
       const std::vector< std::vector< unsigned int> > 
                                 getIndexSet( ) const;
       std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
-
       void                      printIntegrationWeights( ) const;
       void                      printIntegrationPoints( ) const;
       void                      printIndexSet( ) const;
@@ -67,7 +81,7 @@ namespace AGNOS
       std::vector<T_S>          m_integrationPoints ;
       std::vector<double>       m_integrationWeights ;
 
-      std::vector<T_P>          m_coefficients;
+      std::vector< std::vector<T_P> >          m_coefficients;
       std::vector< std::vector<unsigned int> > m_indexSet;
 
 
@@ -80,13 +94,14 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        PhysicsFunction<T_S,T_P>& solutionFunction,
+        PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
       : SurrogateModel<T_S,T_P>(solutionFunction,parameters)
     {
       m_order = std::vector<unsigned int>(this->m_dimension,order);
+      m_coefficients.resize( 1 );
     }
 
 
@@ -95,13 +110,57 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        PhysicsFunction<T_S,T_P>& solutionFunction,
+        PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
       : SurrogateModel<T_S,T_P>(solutionFunction,parameters), 
       m_order(order)
     {
+      m_coefficients.resize( 1 );
+
+      if (m_order.size() != parameters.size() )
+      {
+        std::cout 
+          << std::endl
+          << "\tERROR:"
+          << " order vector dimension does not match number of parameters"
+          << std::endl
+          << std::endl;
+        assert(0);
+      }
+    }
+
+/********************************************//**
+ * \brief Constructor for isotropic order
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        const std::vector<Parameter*> parameters,
+        const unsigned int order
+        )
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters)
+    {
+      m_order = std::vector<unsigned int>(this->m_dimension,order);
+      m_coefficients.resize( solutionFunction.size() );
+    }
+
+
+/********************************************//**
+ * \brief Constructor for anisotropic order
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        const std::vector<Parameter*> parameters,
+        const std::vector<unsigned int>& order
+        )
+      : SurrogateModel<T_S,T_P>(solutionFunction,parameters), 
+      m_order(order)
+    {
+      m_coefficients.resize( solutionFunction.size() );
+
       if (m_order.size() != parameters.size() )
       {
         std::cout 
@@ -168,7 +227,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
-    const std::vector<T_P> 
+    const std::vector< std::vector<T_P> >
     SurrogatePseudoSpectral<T_S,T_P>::getCoefficients( ) const
     {
       return m_coefficients;
@@ -238,7 +297,8 @@ namespace AGNOS
       for(unsigned int point=0; point < m_nIntegrationPoints; point++)
       {
         polyValues = evaluateBasis(m_integrationPoints[point]) ;
-        std::vector<T_P> contrib = computeContribution( 
+        std::vector< std::vector<T_P> > contrib = computeContribution( 
+            this->m_solutionFunction,
             m_integrationPoints[point], 
             m_integrationWeights[point], 
             polyValues
@@ -249,8 +309,9 @@ namespace AGNOS
           m_coefficients = contrib;          
 
         else
-          for(unsigned int coeff=0; coeff < m_coefficients.size(); coeff++)
-            m_coefficients[coeff] += contrib[coeff];
+          for(unsigned int nSol=0; nSol < m_coefficients.size(); nSol++)
+            for(unsigned int coeff=0; coeff < m_coefficients[nSol].size(); coeff++)
+              m_coefficients[nSol][coeff] += contrib[nSol][coeff];
       }
       
       return;
@@ -260,7 +321,9 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
+    std::vector< std::vector<T_P> >
+    SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
+        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
         T_S& integrationPoint, 
         double& integrationWeight,
         std::vector<double> polyValues
@@ -275,17 +338,23 @@ namespace AGNOS
       // master node not working node)
 
       // get solution for this integration point
-      T_P solution ;
-      this->m_solutionFunction.compute( integrationPoint, solution );
+      std::vector< T_P > solution ;
+      solution.resize( solutionFunction.size() );
+      for (unsigned int nSol=0; nSol < solutionFunction.size(); nSol++)
+        solutionFunction[nSol]->compute( integrationPoint, solution[nSol] );
 
       // compute contribution of current solution to overall coeff vector
-      std::vector<T_P> contrib;
-      contrib.resize( polyValues.size() ); // polyValues has same size as coeff
-      for (unsigned int i=0; i < contrib.size(); i++)
+      std::vector< std::vector<T_P> > contrib;
+      contrib.resize( solutionFunction.size() ); // polyValues has same size as coeff
+      for (unsigned int nSol=0; nSol < contrib.size(); nSol++)
       {
-        contrib[i] = solution ;
-        for (unsigned int j=0; j < solution.size(); j++)
-          contrib[i](j) *= polyValues[i] * integrationWeight ;
+        contrib[nSol].resize( polyValues.size() ); // polyValues has same size as coeff
+        for (unsigned int i=0; i < contrib[nSol].size(); i++)
+        {
+          contrib[nSol][i] = solution[nSol] ;
+          for (unsigned int j=0; j < solution[nSol].size(); j++)
+            contrib[nSol][i](j) *= polyValues[i] * integrationWeight ;
+        }
       }
 
       return contrib;
@@ -296,7 +365,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
+    std::vector<T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
@@ -304,13 +373,18 @@ namespace AGNOS
 
       // TODO again initialize this somehow and absorb this iteration in loop
       // below
-      T_P surrogateValue = m_coefficients[0];
-      for(unsigned int comp=0; comp < surrogateValue.size(); comp++)
-        surrogateValue(comp) =  m_coefficients[0](comp) * polyValues[0];
+      std::vector<T_P> surrogateValue;
+      surrogateValue.resize( m_coefficients.size() );
+      for (unsigned int nSol=0; nSol < m_coefficients.size(); nSol++)
+      {
+        surrogateValue[nSol] = m_coefficients[nSol][0];
+        for(unsigned int comp=0; comp < surrogateValue[nSol].size(); comp++)
+          surrogateValue[nSol](comp) =  m_coefficients[nSol][0](comp) * polyValues[0];
 
-      for(unsigned int coeff=1; coeff < m_coefficients.size(); coeff++)
-        for(unsigned int comp=0; comp < surrogateValue.size(); comp++)
-          surrogateValue(comp) +=  m_coefficients[coeff](comp) * polyValues[coeff];
+        for(unsigned int coeff=1; coeff < m_coefficients[nSol].size(); coeff++)
+          for(unsigned int comp=0; comp < surrogateValue[nSol].size(); comp++)
+            surrogateValue[nSol](comp) +=  m_coefficients[nSol][coeff](comp) * polyValues[coeff];
+      }
 
       return surrogateValue;
     }
