@@ -11,18 +11,11 @@ maxs = '3.0'
 
 [physics]
 type = 'catenary'
-
-  [./catenary]
-  forcing = '-10.0'
-  [../]
-
+forcing = '-20.0'
 []
 
 
-[surrogateModels]
-type = "PseudoSpectralTensorProduct"
-
-  [./PseudoSpectralTensorProduct]
-  order = '0'
-
+[surrogateModel]
+type = 'PseudoSpectralTensorProduct'
+order = '1'
 []
