@@ -35,13 +35,7 @@ namespace AGNOS
     public:
 
       DriverAdaptive( );           /**< Default constructor */
-
-      DriverAdaptive( 
-          PhysicsModel*   physicsModel,
-          SurrogateModel* surrogateModel,
-          double          errorTolerance,
-          unsigned int    maxIter
-          );
+      DriverAdaptive( GetPot& input );
 
       ~DriverAdaptive( );  /**< Default destructor */
 

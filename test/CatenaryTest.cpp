@@ -44,15 +44,15 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0](0) , -10.0/16.0, 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , -10.0/16.0, 1e-9 );
 
 }
 
@@ -63,20 +63,20 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
   std::vector<unsigned int> myOrder(dimension,1);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
 
   // 12/11 is the sum of u(\xi_j) 
-  BOOST_CHECK_CLOSE( myCoeff[0](0) , -10.0/16.0 * (12./11.), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , -10.0/16.0 * (12./11.), 1e-9 );
   // -2 sqrt(3)/11 is correct contribution from poly evals
   BOOST_CHECK_CLOSE( 
-      myCoeff[1](0) , 
+      myCoeff[0][1](0) , 
       -10.0/16.0 * ( -2.0 * std::sqrt(3.0) / 11.0 ), 
       1e-9 );
 
@@ -89,13 +89,13 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   mySurrogate->build( );
-  std::vector<T_P> myCoeff = mySurrogate->getCoefficients( );
+  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
 
   /* mySurrogate->printIntegrationPoints(); */
   /* mySurrogate->printIntegrationWeights(); */
@@ -106,23 +106,23 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
 
   // Coefficients generated from pmpack for comparison
   BOOST_CHECK_CLOSE( 
-      myCoeff[0](0) , 
+      myCoeff[0][0](0) , 
       -6.866307761327950e-01,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[1](0) , 
+      myCoeff[0][1](0) , 
       2.134952711438086e-01,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[2](0) , 
+      myCoeff[0][2](0) , 
       -5.918708419582225e-02, 
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[3](0) , 
+      myCoeff[0][3](0) , 
       1.602406581398491e-02,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[4](0) , 
+      myCoeff[0][4](0) , 
       -4.037685060565489e-03,
       1e-9 );
 
@@ -135,14 +135,14 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        *myPhysicsFunction, 
+        myPhysicsFunction, 
         myParameters, 
         myOrder  
         );
 
   T_S paramValue(dimension);
   paramValue(0) = 1.5;
-  T_P testValue; 
+  std::vector<T_P> testValue; 
 
   unsigned int maxIter = 25;
   for (unsigned int iter=0; iter < maxIter-1; iter++)
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
   }
 
   // 
-  BOOST_CHECK_CLOSE(  testValue(0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
+  BOOST_CHECK_CLOSE(  testValue[0](0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
 
 }
 
