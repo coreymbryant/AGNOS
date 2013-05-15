@@ -106,6 +106,9 @@ namespace AGNOS
  ***********************************************/
   DriverPhysics::~DriverPhysics( )
   {
+    for (unsigned int i=0; i < physicsFunctions.size(); i++)
+      delete physicsFunctions[i];
+    delete m_surrogate;
   }
 
 /********************************************//**
