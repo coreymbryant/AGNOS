@@ -27,6 +27,7 @@ namespace AGNOS
       void run( ) ;
 
     protected:
+      std::vector< PhysicsFunction<T_S,T_P>* > m_physicsFunctions ;
 
 
   };
@@ -46,18 +47,18 @@ namespace AGNOS
     input.set_prefix("surrogateModel/");
     // Setup common to all surrogate models
     
-    std::vector< PhysicsFunction<T_S,T_P>* > physicsFunctions;
+    std::vector< PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
 
     // primal solution
-    physicsFunctions.push_back( 
+    m_physicsFunctions.push_back( 
       new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ); 
 
     // adjoint solution
-    physicsFunctions.push_back( 
+    m_physicsFunctions.push_back( 
       new PhysicsFunctionAdjoint<T_S,T_P>( *myPhysics ) ); 
 
     // qoi evaluation
-    physicsFunctions.push_back( 
+    m_physicsFunctions.push_back( 
       new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ); 
     
 
@@ -69,7 +70,7 @@ namespace AGNOS
         {
 
           m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-                physicsFunctions, 
+                m_physicsFunctions, 
                 m_parameters, 
                 m_order  );
 
@@ -106,8 +107,8 @@ namespace AGNOS
  ***********************************************/
   DriverPhysics::~DriverPhysics( )
   {
-    for (unsigned int i=0; i < physicsFunctions.size(); i++)
-      delete physicsFunctions[i];
+    for (unsigned int i=0; i < m_physicsFunctions.size(); i++)
+      delete m_physicsFunctions[i];
     delete m_surrogate;
   }
 
