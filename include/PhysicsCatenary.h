@@ -83,7 +83,6 @@ namespace AGNOS
     {
       T_P imageValue(1);
       
-
       imageValue(0) =  m_forcing / (8. *  parameterValue(0) ) ;
       return imageValue;
     }
@@ -101,7 +100,6 @@ namespace AGNOS
       T_P imageValue(1);
 
       imageValue(0) =  1.0 / (4. * parameterValue(0))  ;
-      
       return imageValue;
     }
 
