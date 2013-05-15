@@ -21,8 +21,7 @@ ltmain.sh
 missing
 src/Makefile
 src/Makefile.in
-src/agnos
-src/agnos.o
+src/run
 stamp-h1
 test/Makefile
 test/Makefile.in

@@ -11,7 +11,7 @@ maxs = '3.0'
 
 [physics]
 type = 'catenary'
-forcing = '-20.0'
+forcing = '-10.0'
 []
 
 

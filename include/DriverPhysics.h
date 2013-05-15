@@ -118,7 +118,7 @@ namespace AGNOS
  ***********************************************/
   void DriverPhysics::run( )
   {
-    //TODO
+    //TODO make this an output settings option
     std::cout << "maxIter = " << m_maxIter << std::endl;
     std::cout << "dimension = " << m_paramDim << std::endl;
     std::cout << "order = " ;
@@ -137,8 +137,25 @@ namespace AGNOS
     std::cout << std::endl;
 
 
-    m_surrogate->build();
 
+    // build initial approximation
+    m_surrogate->build();
+    // output whatever user asks for
+
+    std::vector< std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
+    std::cout << "myCoeff[0][0](0) = " << myCoeff[0][0](0) << std::endl;
+
+    // refine approximation
+    for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
+    {
+      // TODO may need to pass some info to refine
+      m_surrogate->refine();
+      // output whatever user asks for
+      myCoeff = m_surrogate->getCoefficients( );
+      std::cout << "myCoeff[0][0](0) = " << myCoeff[0][0](0) << std::endl;
+
+    }
+    
 
 
 
