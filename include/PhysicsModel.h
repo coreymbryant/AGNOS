@@ -152,8 +152,13 @@ namespace AGNOS
   {
     //TODO we could have problems if sol is for different parameter value
     if (m_primalSolution == NULL)
-      *m_primalSolution = solvePrimal( parameterValue ) ;
-    *m_adjointSolution = solveAdjoint( parameterValue, *m_primalSolution);
+    {
+      delete m_primalSolution;
+      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
+    }
+
+    delete m_adjointSolution;
+    m_adjointSolution = new T_P( solveAdjoint( parameterValue, *m_primalSolution) );
 
     return *m_adjointSolution;
   }
@@ -165,10 +170,15 @@ namespace AGNOS
   const T_P PhysicsModel<T_S,T_P>::evaluateQoi( 
       const T_S& parameterValue )
   {
-    if (m_primalSolution == NULL)
-      *m_primalSolution = solvePrimal( parameterValue ) ;
 
-    *m_qoiValue = evaluateQoi( parameterValue, *m_primalSolution );
+    if (m_primalSolution == NULL)
+    {
+      delete m_primalSolution;
+      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
+    }
+
+    delete m_qoiValue;
+    m_qoiValue = new T_P( evaluateQoi( parameterValue, *m_primalSolution ) );
 
 
     return *m_qoiValue;

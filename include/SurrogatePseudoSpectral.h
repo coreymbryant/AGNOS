@@ -252,7 +252,7 @@ namespace AGNOS
           this->m_coefficients = contrib;          
 
         else
-          for(unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++)
+          for(unsigned int nSol=0; nSol < this->m_solutionFunction.size(); nSol++)
             for(unsigned int coeff=0; coeff < this->m_coefficients[nSol].size(); coeff++)
               this->m_coefficients[nSol][coeff] += contrib[nSol][coeff];
       }
@@ -288,7 +288,8 @@ namespace AGNOS
 
       // compute contribution of current solution to overall coeff vector
       std::vector< std::vector<T_P> > contrib;
-      contrib.resize( solutionFunction.size() ); // polyValues has same size as coeff
+      contrib.resize( solutionFunction.size() ); 
+
       for (unsigned int nSol=0; nSol < contrib.size(); nSol++)
       {
         contrib[nSol].resize( polyValues.size() ); // polyValues has same size as coeff
