@@ -126,6 +126,8 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
+    for (unsigned int i=0; i < m_paramDim; i++)
+      delete m_parameters[i];
   }
 
 

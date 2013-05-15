@@ -121,6 +121,18 @@ namespace AGNOS
       initialize();
     }
 
+
+/********************************************//**
+ * \brief 
+ *
+ * 
+ ***********************************************/
+  template<class T_S, class T_P>
+    PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
+    {
+      delete m_quadRule;
+    }
+
 /********************************************//**
  * \brief 
  *
@@ -209,17 +221,6 @@ namespace AGNOS
     }
 
   
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
-    {
-      delete m_quadRule;
-    }
 
 /********************************************//**
  * \brief 
