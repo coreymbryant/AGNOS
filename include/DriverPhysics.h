@@ -153,7 +153,8 @@ namespace AGNOS
     // output whatever user asks for
 
     std::map< std::string, std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
-    std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl;
+    /* std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl; */
+    m_surrogate->printCoefficients( "primal", std::cout ) ;
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
@@ -162,7 +163,8 @@ namespace AGNOS
       m_surrogate->refine();
       // output whatever user asks for
       myCoeff = m_surrogate->getCoefficients( );
-    std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl;
+    /* std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl; */
+      m_surrogate->printCoefficients( "primal", std::cout ) ;
 
     }
     

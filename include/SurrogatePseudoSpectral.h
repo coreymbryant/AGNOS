@@ -70,6 +70,7 @@ namespace AGNOS
       const std::vector< std::vector< unsigned int> > 
                                 getIndexSet( ) const;
       std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
+      // TODO change these to 'pretty print' or something
       void                      printIntegrationWeights( ) const;
       void                      printIntegrationPoints( ) const;
       void                      printIndexSet( ) const;
