@@ -45,14 +45,14 @@ namespace AGNOS
 
       // multiple physics function constructors
       SurrogateModel(
-          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>             parameters,
-          const unsigned int                        order 
+          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>                       parameters,
+          const unsigned int                                  order 
           );
       SurrogateModel(
-          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>             parameters,
-          const std::vector<unsigned int>&          order
+          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>                       parameters,
+          const std::vector<unsigned int>&                    order
           );
 
       SurrogateModel( );           /**< Default constructor */
@@ -60,7 +60,7 @@ namespace AGNOS
 
       // surrogate construction and evaluation
       virtual void build( ) = 0; 
-      virtual std::vector<T_P> evaluate( 
+      virtual std::map<std::string, T_P> evaluate( 
           T_S& parameterValues /**< parameter values to evaluate*/
           ) = 0;
       virtual void refine( ) = 0;
@@ -69,18 +69,18 @@ namespace AGNOS
       // Manipulators
       void setParameters( std::vector<Parameter*> parameters );
       std::vector<Parameter*> getParameters( ) const;
-      const std::vector< std::vector<T_P> >   
+      const std::map< std::string, std::vector<T_P> >   
                                 getCoefficients( ) const;
       std::vector<unsigned int> getExpansionOrder( ) const;
 
     protected: 
       
-      std::vector<unsigned int>                 m_order;  
-      std::vector< std::vector<T_P> >           m_coefficients;
+      std::vector<unsigned int>                           m_order;  
+      std::map< std::string, std::vector<T_P> >           m_coefficients;
 
-      std::vector< PhysicsFunction<T_S,T_P>* >  m_solutionFunction;
-      std::vector<Parameter*>                   m_parameters;
-      unsigned int                              m_dimension;
+      std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_solutionFunction;
+      std::vector<Parameter*>                             m_parameters;
+      unsigned int                                        m_dimension;
 
       
 
@@ -91,9 +91,9 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        std::vector<Parameter*>                   parameters,
-        unsigned int                              order
+        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        std::vector<Parameter*>                             parameters,
+        unsigned int                                        order
         )
       : 
         m_solutionFunction(solutionFunction), 
@@ -101,7 +101,8 @@ namespace AGNOS
         m_dimension( parameters.size() )
     {
       m_order = std::vector<unsigned int>(m_dimension,order);
-      m_coefficients.resize( solutionFunction.size() );
+      // TODO how to do this
+      /* m_coefficients.resize( solutionFunction.size() ); */
     }
 
 /********************************************//*
@@ -109,7 +110,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         std::vector<Parameter*>                   parameters,
         const std::vector<unsigned int>&          order
         )
@@ -119,7 +120,7 @@ namespace AGNOS
         m_dimension( parameters.size() ), 
         m_order(order)
     {
-      m_coefficients.resize( solutionFunction.size() );
+      /* m_coefficients.resize( solutionFunction.size() ); */
 
       if (m_order.size() != parameters.size() )
       {
@@ -147,9 +148,11 @@ namespace AGNOS
         m_dimension( parameters.size() ),
         m_order(order)
     {
-      m_solutionFunction = 
-        std::vector< PhysicsFunction<T_S,T_P>* >(1,solutionFunction) ;
-      m_coefficients.resize( 1 );
+      m_solutionFunction = std::map< std::string, PhysicsFunction<T_S,T_P>* > ( 
+          std::map<std::string, PhysicsFunction<T_S,T_P>* >(
+            solutionFunction->name(),solutionFunction) );
+
+      /* m_coefficients.resize( 1 ); */
 
       if (m_order.size() != parameters.size() )
       {
@@ -176,10 +179,12 @@ namespace AGNOS
         m_parameters(parameters), 
         m_dimension( parameters.size() )
     {
-      m_solutionFunction = 
-        std::vector< PhysicsFunction<T_S,T_P>* >(1,solutionFunction) ;
+      m_solutionFunction = std::map< std::string, PhysicsFunction<T_S,T_P>* > ( 
+          std::map<std::string, PhysicsFunction<T_S,T_P>* >(
+            solutionFunction->name(),solutionFunction) );
+
       m_order = std::vector<unsigned int>(m_dimension,order);
-      m_coefficients.resize( 1 );
+      /* m_coefficients.resize( 1 ); */
     }
 
 /********************************************//*
@@ -235,7 +240,7 @@ namespace AGNOS
  * 
  ***********************************************/
   template<class T_S, class T_P> 
-    const std::vector< std::vector<T_P> >
+    const std::map< std::string, std::vector<T_P> >
     SurrogateModel<T_S,T_P>::getCoefficients( ) const
     {
       return m_coefficients;
