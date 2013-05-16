@@ -7,6 +7,7 @@
 #include "Parameter.h"
 #include "PhysicsFunction.h"
 #include <iostream>
+#include <iomanip>
 
 namespace AGNOS
 {
@@ -78,9 +79,16 @@ namespace AGNOS
 
       // Manipulators
       void setParameters( std::vector<Parameter*> parameters );
-      std::vector<Parameter*> getParameters( ) const;
+      std::vector<Parameter*>   getParameters( ) const;
+
+      void printCoefficients( 
+        std::vector<std::string> solutionNames,
+        std::ostream& out ) ;
+      void printCoefficients( std::string solutionName, std::ostream& out ) ;
+      void printCoefficients( std::ostream& out ) ;
       const std::map< std::string, std::vector<T_P> >   
                                 getCoefficients( ) const;
+
       std::vector<unsigned int> getExpansionOrder( ) const;
 
     protected: 
@@ -245,9 +253,7 @@ namespace AGNOS
   }
 
 /********************************************//**
- * \brief 
- *
- * 
+ * \brief return coefficient values
  ***********************************************/
   template<class T_S, class T_P> 
     const std::map< std::string, std::vector<T_P> >
@@ -256,9 +262,65 @@ namespace AGNOS
       return m_coefficients;
     }
 
+/********************************************//**
+ * \brief print coefficient values
+ ***********************************************/
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::printCoefficients( 
+        std::vector<std::string> solutionNames,
+        std::ostream& out ) 
+    {
+      out << "#" << std::string(75,'=') << std::endl;
+
+      for (unsigned int i=0; i < solutionNames.size(); i++)
+      {
+        std::string id = solutionNames[i];
+
+        out << "#" << std::string(75,'-') << std::endl;
+        out << "#" << "\t Solution: " << id << std::endl;
+        out << "#" << std::string(75,'-') << std::endl;
+
+        for(unsigned int coeff=0; coeff< (m_coefficients[id]).size(); coeff++)
+        {
+          for(unsigned int comp=0; comp < (m_coefficients[id])[coeff].size(); comp++)
+            out << std::setprecision(5) << std::scientific 
+              << (m_coefficients[id])[coeff](comp) << " " ;
+          out << std::endl;
+        }
+      }
+    }
 
 /********************************************//**
- * \brief 
+ * \brief print coefficient values
+ ***********************************************/
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::printCoefficients( 
+        std::string solutionName,
+        std::ostream& out ) 
+    {
+      std::vector<std::string> solutionsToPrint(1,solutionName);
+      printCoefficients(solutionsToPrint, out);
+    }
+
+/********************************************//**
+ * \brief print coefficient values
+ ***********************************************/
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::printCoefficients( 
+        std::ostream& out ) 
+    {
+      std::vector< std::string > solutionsToPrint ;
+      
+      typename std::map< std::string, std::vector<T_P> >::iterator id;
+      for (id=m_coefficients.begin(); id!=m_coefficients.end(); id++)
+        solutionsToPrint.push_back( id->first ) ;
+      printCoefficients(solutionsToPrint, out);
+    }
+
+
+/********************************************//**
+ * \brief basic evaluation routine, based on more general (virtual) evaluate
+ * routine
  ***********************************************/
   template<class T_S, class T_P> 
     T_P SurrogateModel<T_S,T_P>::evaluate( 
@@ -274,7 +336,8 @@ namespace AGNOS
     }
 
 /********************************************//**
- * \brief 
+ * \brief basic evaluation routine, based on more general (virtual) evaluate
+ * routine
  ***********************************************/
   template<class T_S, class T_P> 
     std::map<std::string, T_P> SurrogateModel<T_S,T_P>::evaluate( 
@@ -288,7 +351,7 @@ namespace AGNOS
         solutionsToGet.push_back( id->first ) ;
 
       return evaluate( solutionsToGet, parameterValues ) ;    }
-
+  
 
 }
 #endif //SURROGATE_MODEL_H
