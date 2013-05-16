@@ -27,7 +27,7 @@ namespace AGNOS
       void run( ) ;
 
     protected:
-      std::vector< PhysicsFunction<T_S,T_P>* > m_physicsFunctions ;
+      std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions ;
 
 
   };
@@ -47,19 +47,28 @@ namespace AGNOS
     input.set_prefix("surrogateModel/");
     // Setup common to all surrogate models
     
-    std::vector< PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
+    std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
 
     // primal solution
-    m_physicsFunctions.push_back( 
-      new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ); 
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "primal", 
+          new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ) 
+        );
 
     // adjoint solution
-    m_physicsFunctions.push_back( 
-      new PhysicsFunctionAdjoint<T_S,T_P>( *myPhysics ) ); 
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "adjoint", 
+          new PhysicsFunctionAdjoint<T_S,T_P>( *myPhysics ) ) 
+        ); 
 
     // qoi evaluation
-    m_physicsFunctions.push_back( 
-      new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ); 
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "qoi", 
+          new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ) 
+        ); 
     
 
 
@@ -107,8 +116,9 @@ namespace AGNOS
  ***********************************************/
   DriverPhysics::~DriverPhysics( )
   {
-    for (unsigned int i=0; i < m_physicsFunctions.size(); i++)
-      delete m_physicsFunctions[i];
+    std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+    for (id=m_physicsFunctions.begin(); id !=m_physicsFunctions.end(); id++)
+      delete id->second;
     delete m_surrogate;
   }
 
@@ -142,8 +152,8 @@ namespace AGNOS
     m_surrogate->build();
     // output whatever user asks for
 
-    std::vector< std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
-    std::cout << "myCoeff[0][0](0) = " << myCoeff[0][0](0) << std::endl;
+    std::map< std::string, std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
+    std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl;
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
@@ -152,7 +162,7 @@ namespace AGNOS
       m_surrogate->refine();
       // output whatever user asks for
       myCoeff = m_surrogate->getCoefficients( );
-      std::cout << "myCoeff[0][0](0) = " << myCoeff[0][0](0) << std::endl;
+    std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl;
 
     }
     
