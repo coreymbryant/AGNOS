@@ -2,6 +2,8 @@
 #ifndef PHYSICS_FUNCTION_H
 #define PHYSICS_FUNCTION_H
 
+#include <map>
+
 #include "PhysicsModel.h"
 
 namespace AGNOS
@@ -33,9 +35,14 @@ namespace AGNOS
           T_P& imageVector
           ) = 0;
 
+      std::string name( ) const;
+
     protected:
+      std::string m_name;
 
   };
+
+
 
 /********************************************//**
  * \brief 
@@ -52,14 +59,29 @@ namespace AGNOS
     { }
 
 /********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    std::string PhysicsFunction<T_S,T_P>::name( ) const
+    {
+      return m_name;
+    }
+  
+
+
+
+/********************************************//**
  * \brief Basic function independent of a PhysicsModel object
  ***********************************************/
   template<class T_S, class T_P>
   class PhysicsFunctionSimple : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionSimple( T_P (*myFunction)(const T_S&)  ) 
-        : m_myFunction(myFunction) { }
+      PhysicsFunctionSimple( 
+          std::string functionName,
+          T_P (*myFunction)(const T_S&)  
+          ) : m_myFunction(myFunction) 
+      { this->m_name = functionName; }
 
       void compute( const T_S& paramVector, T_P& imageVector)
       {
@@ -70,6 +92,9 @@ namespace AGNOS
     protected:
       T_P (*m_myFunction)(const T_S&);
   };
+
+
+
 
 
 /********************************************//**
@@ -93,7 +118,7 @@ namespace AGNOS
         PhysicsModel<T_S,T_P>& physics
         )
     : m_physics(physics)
-    { }
+    { this->m_name = "primal"; }
 
 /********************************************//**
  * \brief 
@@ -131,7 +156,7 @@ namespace AGNOS
         PhysicsModel<T_S,T_P>& physics
         )
     : m_physics(physics)
-    { }
+    { this->m_name = "adjoint"; }
 
 /********************************************//**
  * \brief 
@@ -168,7 +193,7 @@ namespace AGNOS
         PhysicsModel<T_S,T_P>& physics
         )
     : m_physics(physics)
-    { }
+    { this->m_name = "qoi"; }
 
 /********************************************//**
  * \brief 

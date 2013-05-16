@@ -32,14 +32,14 @@ namespace AGNOS
           );
 
       PseudoSpectralTensorProduct( 
-          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>             parameters,
-          const unsigned int                        order 
+          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>                       parameters,
+          const unsigned int                                  order 
           );
       PseudoSpectralTensorProduct( 
-          std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>             parameters,
-          const std::vector<unsigned int>&          order
+          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+          const std::vector<Parameter*>                       parameters,
+          const std::vector<unsigned int>&                    order
           );
       void initialize( ) ;
 
@@ -96,9 +96,9 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*> parameters,
-        const unsigned int order
+        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        const std::vector<Parameter*>                       parameters,
+        const unsigned int                                  order
         )
       : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
     {
@@ -112,9 +112,9 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        std::vector< PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*> parameters,
-        const std::vector<unsigned int>& order
+        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
+        const std::vector<Parameter*>                       parameters,
+        const std::vector<unsigned int>&                    order
         )
       : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
     {
@@ -163,11 +163,11 @@ namespace AGNOS
           this->m_integrationPoints[point](dir) = quadPoints[point][dir] ;
       }
 
-      for (unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++)
-      {
-        this->m_coefficients[nSol].clear();
-        this->m_coefficients[nSol].resize( this->m_nIntegrationPoints );
-      }
+      /* for (unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++) */
+      /* { */
+      /*   this->m_coefficients[nSol].clear(); */
+      /*   this->m_coefficients[nSol].resize( this->m_nIntegrationPoints ); */
+      /* } */
 
 
       this->m_indexSet.clear();
