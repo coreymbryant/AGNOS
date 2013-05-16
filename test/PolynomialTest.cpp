@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &linearFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "linear", &linearFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -75,9 +75,10 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["linear"][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Linear_ND)
@@ -92,7 +93,7 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &linearFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "linear", &linearFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -102,11 +103,12 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
 
   BOOST_CHECK_CLOSE( 
-      myCoeff[0].back()(0) , 
+      myCoeff["linear"].back()(0) , 
       std::pow(std::sqrt(1.0/3.0),dimension),
       1e-4 );
 }
@@ -124,7 +126,7 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &quadFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "quad", &quadFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -134,10 +136,11 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , 1.0/3.0 , 1e-9 );
-  BOOST_CHECK_CLOSE( myCoeff[0][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , 1.0/3.0 , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["quad"][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_ND)
@@ -153,7 +156,7 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &quadFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "quad", &quadFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -163,11 +166,12 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[0].back()(0) , 
+      myCoeff["quad"].back()(0) , 
       std::pow( std::sqrt(1.0/5.0) * 2.0/3.0 ,dimension), 
       1e-9 );
 }
@@ -190,7 +194,7 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &mixedFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "mixed", &mixedFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -200,7 +204,8 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
   /* mySurrogate->printIntegrationWeights() ; */
   /* mySurrogate->printIntegrationPoints() ; */
@@ -212,29 +217,29 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
 
   // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][4](0) , 
+      myCoeff["mixed"][4](0) , 
       std::sqrt(1.0/3.0),
       1e-9 );
 
   // 1 2 0 0 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
   BOOST_CHECK_CLOSE(
-      myCoeff[0][40](0),
+      myCoeff["mixed"][40](0),
       2.0/(3.0 * std::sqrt(3.0*5.0)) ,
       1e-9 );
   BOOST_CHECK_CLOSE(
-      myCoeff[0][24](0),
+      myCoeff["mixed"][24](0),
       1.0 / ( 3.0 * std::sqrt(3.0) ),
       1e-9 );
 
   // 0 0 0 3 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
   BOOST_CHECK_CLOSE(
-      myCoeff[0][3](0),
+      myCoeff["mixed"][3](0),
       2.0 / ( 5.0 * std::sqrt(7.0) ),
       1e-9 );
   BOOST_CHECK_CLOSE(
-       myCoeff[0][1](0),
+       myCoeff["mixed"][1](0),
        3.0 / ( 5.0 * std::sqrt(3.0) ), 
        1e-9 );
 }
