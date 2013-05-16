@@ -60,9 +60,19 @@ namespace AGNOS
 
       // surrogate construction and evaluation
       virtual void build( ) = 0; 
+
       virtual std::map<std::string, T_P> evaluate( 
+          std::vector<std::string> solutionNames,  ///< solution to return
           T_S& parameterValues /**< parameter values to evaluate*/
           ) = 0;
+      T_P evaluate( 
+          std::string solutionName,  ///< solution to return
+          T_S& parameterValues     ///< parameter values to evaluate*/
+          ) ;
+      std::map<std::string, T_P> evaluate( 
+          T_S& parameterValues     ///< parameter values to evaluate*/
+          ) ;
+
       virtual void refine( ) = 0;
 
 
@@ -148,8 +158,8 @@ namespace AGNOS
         m_dimension( parameters.size() ),
         m_order(order)
     {
-      m_solutionFunction = std::map< std::string, PhysicsFunction<T_S,T_P>* > ( 
-          std::map<std::string, PhysicsFunction<T_S,T_P>* >(
+      m_solutionFunction.insert( 
+          std::pair<std::string, PhysicsFunction<T_S,T_P>* >(
             solutionFunction->name(),solutionFunction) );
 
       /* m_coefficients.resize( 1 ); */
@@ -246,6 +256,38 @@ namespace AGNOS
       return m_coefficients;
     }
 
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    T_P SurrogateModel<T_S,T_P>::evaluate( 
+        std::string solutionName,  ///< solution to return
+        T_S& parameterValues     ///< parameter values to evaluate*/
+        ) 
+    {
+      std::vector< std::string > solutionsToGet(1,solutionName);
+      std::map< std::string, T_P > solutionVectors
+        = this->evaluate( solutionsToGet, parameterValues ) ;
+
+      return solutionVectors[solutionName];
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    std::map<std::string, T_P> SurrogateModel<T_S,T_P>::evaluate( 
+        T_S& parameterValues     ///< parameter values to evaluate*/
+        ) 
+    {
+      std::vector< std::string > solutionsToGet ;
+      
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id!=m_solutionFunction.end(); id++)
+        solutionsToGet.push_back( id->first ) ;
+
+      return evaluate( solutionsToGet, parameterValues ) ;    }
 
 
 }

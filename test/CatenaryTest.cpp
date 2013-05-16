@@ -50,9 +50,10 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , -10.0/16.0, 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , -10.0/16.0, 1e-9 );
 
 }
 
@@ -69,14 +70,15 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
 
   // 12/11 is the sum of u(\xi_j) 
-  BOOST_CHECK_CLOSE( myCoeff[0][0](0) , -10.0/16.0 * (12./11.), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , -10.0/16.0 * (12./11.), 1e-9 );
   // -2 sqrt(3)/11 is correct contribution from poly evals
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][1](0) , 
+      myCoeff["primal"][1](0) , 
       -10.0/16.0 * ( -2.0 * std::sqrt(3.0) / 11.0 ), 
       1e-9 );
 
@@ -95,7 +97,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
         );
 
   mySurrogate->build( );
-  std::vector< std::vector<T_P> > myCoeff = mySurrogate->getCoefficients( );
+  std::map< std::string, std::vector<T_P> > myCoeff 
+    = mySurrogate->getCoefficients( );
 
   /* mySurrogate->printIntegrationPoints(); */
   /* mySurrogate->printIntegrationWeights(); */
@@ -106,23 +109,23 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
 
   // Coefficients generated from pmpack for comparison
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][0](0) , 
+      myCoeff["primal"][0](0) , 
       -6.866307761327950e-01,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][1](0) , 
+      myCoeff["primal"][1](0) , 
       2.134952711438086e-01,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][2](0) , 
+      myCoeff["primal"][2](0) , 
       -5.918708419582225e-02, 
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][3](0) , 
+      myCoeff["primal"][3](0) , 
       1.602406581398491e-02,
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff[0][4](0) , 
+      myCoeff["primal"][4](0) , 
       -4.037685060565489e-03,
       1e-9 );
 
@@ -142,17 +145,17 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
 
   T_S paramValue(dimension);
   paramValue(0) = 1.5;
-  std::vector<T_P> testValue; 
+  T_P testValue; 
 
   unsigned int maxIter = 25;
   for (unsigned int iter=0; iter < maxIter-1; iter++)
   {
     mySurrogate->refine();
-    testValue = mySurrogate->evaluate( paramValue ) ;
+    testValue = mySurrogate->evaluate( "primal", paramValue ) ;
   }
 
   // 
-  BOOST_CHECK_CLOSE(  testValue[0](0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
+  BOOST_CHECK_CLOSE(  testValue(0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
 
 }
 

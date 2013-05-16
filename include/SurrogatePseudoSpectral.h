@@ -56,8 +56,11 @@ namespace AGNOS
           double&                                             integrationWeight,
           std::vector<double>                                 polyValues
           );
+
+      using SurrogateModel<T_S,T_P>::evaluate; 
       std::map<std::string, T_P> evaluate( 
-          T_S& parameterValues /**< parameter values to evaluate*/
+          std::vector< std::string >  solutionNames,
+          T_S&                        parameterValues 
           );
 
       // Manipulators
@@ -325,6 +328,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
+        std::vector< std::string > solutionNames,
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
@@ -334,20 +338,20 @@ namespace AGNOS
       // below
       std::map< std::string, T_P> surrogateValue;
 
-      typename std::map< std::string, std::vector<T_P> >::iterator id;
-      for (id=this->m_coefficients.begin(); id!=this->m_coefficients.end(); id++)
+      for (unsigned int i=0; i < solutionNames.size(); i++)
       {
+        std::string id = solutionNames[i];
         surrogateValue.insert( 
-            std::pair< std::string, T_P>( id->first, (id->second)[0] ) 
+            std::pair< std::string, T_P>( id, (this->m_coefficients[id])[0] ) 
             );
-        for(unsigned int comp=0; comp < (surrogateValue.end()->second).size(); comp++)
-          (surrogateValue.end()->second)(comp) 
-            = (id->second)[0](comp) * polyValues[0];
+        for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++)
+          (surrogateValue[id])(comp) 
+            = (this->m_coefficients[id])[0](comp) * polyValues[0];
 
-        for(unsigned int coeff=1; coeff < (id->second).size(); coeff++)
-          for(unsigned int comp=0; comp < (surrogateValue.end()->second).size(); comp++)
-            (surrogateValue.end()->second)(comp) 
-              +=  (id->second)[coeff](comp) * polyValues[coeff];
+        for(unsigned int coeff=1; coeff < (this->m_coefficients[id]).size(); coeff++)
+          for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++)
+            (surrogateValue[id])(comp) 
+              +=  (this->m_coefficients[id])[coeff](comp) * polyValues[coeff];
       }
 
       return surrogateValue;
