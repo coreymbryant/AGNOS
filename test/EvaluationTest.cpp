@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(mixedPoly)
       ); 
 
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( &myFunction ) ;
+    new PhysicsFunctionSimple<T_S,T_P>( "myFunction", &myFunction ) ;
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
@@ -71,11 +71,11 @@ BOOST_AUTO_TEST_CASE(mixedPoly)
   testValue(3) = 0.45;
   testValue(4) = 0.55;
 
-  std::vector<T_P> surrogateValue = mySurrogate->evaluate(testValue);
+  T_P surrogateValue = mySurrogate->evaluate( "myFunction", testValue);
 
   T_P trueValue = myFunction(testValue);
 
-  BOOST_CHECK_CLOSE( surrogateValue[0](0), trueValue(0) , 1e-9 );
+  BOOST_CHECK_CLOSE( surrogateValue(0), trueValue(0) , 1e-9 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
