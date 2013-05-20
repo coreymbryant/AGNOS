@@ -89,6 +89,13 @@ namespace AGNOS
       const std::map< std::string, std::vector<T_P> >   
                                 getCoefficients( ) const;
 
+      virtual void printIntegrationWeights( std::ostream& out ) const = 0;
+      virtual void printIntegrationPoints( std::ostream& out ) const = 0;
+      virtual void printIndexSet( std::ostream& out ) const = 0;
+      virtual void prettyPrintIntegrationWeights( ) const = 0;
+      virtual void prettyPrintIntegrationPoints( ) const = 0;
+      virtual void prettyPrintIndexSet( ) const = 0;
+
       std::vector<unsigned int> getExpansionOrder( ) const;
 
     protected: 
