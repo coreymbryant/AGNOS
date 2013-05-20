@@ -4,6 +4,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <assert.h>
 #include <cstring>
@@ -42,6 +43,12 @@ namespace AGNOS
 
       virtual void run( ) = 0 ;
 
+      void printSolution( std::ostream& out ) ;
+      void printSurrogateSettings( std::ostream& out ) ;
+      void printParameterSettings( std::ostream& out ) ;
+      void printDriverSettings( std::ostream& out  ) ;
+      void printOutput( ) ;
+
     protected:
       GetPot m_input;
       void initializeSurrogateModel( int surrogateType, GetPot& input );
@@ -62,6 +69,13 @@ namespace AGNOS
       SurrogateModel<T_S,T_P>*  m_surrogate;
 
       // OUTPUT VARIABLES
+      std::string               m_outputFilename; 
+      std::vector<std::string>  m_solutionsToPrint ;
+      bool                      m_outputIterations  ;
+      bool                      m_outputCoefficients  ;
+      bool                      m_outputWeights       ;
+      bool                      m_outputPoints        ;
+      bool                      m_outputIndexSet      ;
   };
 
 
@@ -116,7 +130,19 @@ namespace AGNOS
     
 
     // OUTPUT DATA SETTINGS
-    // TODO much later
+    m_input.set_prefix("output/");
+    m_outputFilename      = m_input("filename","cout");
+
+    m_solutionsToPrint.resize( m_input.vector_variable_size("solutions") );
+    for (unsigned int i=0; i < m_solutionsToPrint.size(); i++)
+      m_solutionsToPrint[i] = m_input("solutions", " ",i);
+
+    m_outputIterations    = m_input("iterations",false);
+
+    m_outputCoefficients  = m_input("coefficients",true);
+    m_outputWeights       = m_input("weights",true);
+    m_outputPoints        = m_input("points",true);
+    m_outputIndexSet      = m_input("index_set",true);
 
   }
 
@@ -130,10 +156,109 @@ namespace AGNOS
       delete m_parameters[i];
   }
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printDriverSettings( std::ostream& out  ) 
+  {
+    //TODO header
+    out << "#maxIter = " << m_maxIter << std::endl;
+
+    out << std::endl;
+    return;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printParameterSettings( std::ostream& out ) 
+  {
+    //TODO header
+    out << "#dimension = " << m_paramDim << std::endl;
+    out << "#order = " ;
+    for(unsigned int i=0; i < m_paramDim; i++)
+      out << m_order[i] << " " ;
+    out << std::endl;
+
+    out << "#mins = " ;
+    for (unsigned int i=0; i < m_paramDim; i++)
+      out << "m_parameters[i]->min() << " ;
+    out << std::endl;
+
+    out << "#maxs = " ;
+    for (unsigned int i=0; i < m_paramDim; i++)
+      out << m_parameters[i]->max() << " " ;
+    out << std::endl;
+
+    out << std::endl;
+    return;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printSurrogateSettings( std::ostream& out ) 
+  {
+    out << std::endl;
+    return;
+  }
+
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printSolution( std::ostream& out ) 
+  {
+      if (m_outputCoefficients)
+        m_surrogate->printCoefficients( m_solutionsToPrint, out );
+      if (m_outputWeights)
+        m_surrogate->printIntegrationWeights( out );
+      if (m_outputPoints)
+        m_surrogate->printIntegrationPoints( out );
+      if (m_outputIndexSet)
+        m_surrogate->printIndexSet( out );
+
+    out << std::endl;
+    return;
+  }
 
 
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printOutput( ) 
+  {
+
+    // set output steam
+    if (m_outputFilename == "cout" )
+    {
+      printDriverSettings( std::cout  ) ;
+      printParameterSettings( std::cout ) ;
+      printSurrogateSettings( std::cout ) ;
+      printSolution( std::cout ) ;
+    }
+    else
+    {
+      std::ofstream out;
+      out.open( m_outputFilename.c_str() );
+
+      printDriverSettings( out  ) ;
+      printParameterSettings( out ) ;
+      printSurrogateSettings( out ) ;
+      printSolution( out ) ;
+
+      out.close( );
+    }
+
+    return;
+  }
+
+    
 }
+
+
+
 
 
 #endif // DRIVER_H

@@ -128,51 +128,25 @@ namespace AGNOS
  ***********************************************/
   void DriverPhysics::run( )
   {
-    //TODO make this an output settings option
-    std::cout << "maxIter = " << m_maxIter << std::endl;
-    std::cout << "dimension = " << m_paramDim << std::endl;
-    std::cout << "order = " ;
-    for(unsigned int i=0; i < m_paramDim; i++)
-      std::cout << m_order[i] << " " ;
-    std::cout << std::endl;
 
-    std::cout << "mins " ;
-    for (unsigned int i=0; i < m_paramDim; i++)
-      std::cout << m_parameters[i]->min() << " " ;
-    std::cout << std::endl;
-
-    std::cout << "maxs " ;
-    for (unsigned int i=0; i < m_paramDim; i++)
-      std::cout << m_parameters[i]->max() << " " ;
-    std::cout << std::endl;
-
-
-
+    // TODO add some cout statmenents for progress 
+    
     // build initial approximation
     m_surrogate->build();
+    
     // output whatever user asks for
-
-    std::map< std::string, std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
-    /* std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl; */
-    m_surrogate->printCoefficients( "primal", std::cout ) ;
-
-    m_surrogate->printIntegrationWeights(  std::cout ) ;
-    m_surrogate->printIntegrationPoints(  std::cout ) ;
-    m_surrogate->printIndexSet(  std::cout ) ;
-    /* m_surrogate->prettyPrintIntegrationWeights(   ) ; */
-    /* m_surrogate->prettyPrintIntegrationPoints(   ) ; */
-    /* m_surrogate->prettyPrintIndexSet(  ) ; */
+    printOutput();
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
     {
       // TODO may need to pass some info to refine
       m_surrogate->refine();
-      // output whatever user asks for
-      myCoeff = m_surrogate->getCoefficients( );
-    /* std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl; */
-      m_surrogate->printCoefficients( "primal", std::cout ) ;
 
+      if (this->m_outputIterations)
+      {
+        printOutput();
+      }
     }
     
 
