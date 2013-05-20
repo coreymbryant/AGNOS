@@ -100,12 +100,6 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
 
-  /* mySurrogate->printIntegrationPoints(); */
-  /* mySurrogate->printIntegrationWeights(); */
-  /* for(unsigned int coeff=0; coeff<myCoeff.size(); coeff++) */
-  /*     std::cout << std::setprecision(5) << std::scientific */ 
-  /*       << "coeff[" << coeff << "](0) = " */ 
-  /*       << myCoeff[coeff](0) << std::endl; */
 
   // Coefficients generated from pmpack for comparison
   BOOST_CHECK_CLOSE( 
