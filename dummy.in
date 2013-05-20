@@ -19,3 +19,12 @@ forcing = '-10.0'
 type = 'PseudoSpectralTensorProduct'
 order = '1'
 []
+
+[output]
+filename = './testFile.dat'
+solutions = 'primal adjoint qoi'
+coefficients  = 1
+points        = 1
+weights       = 1
+index_set     = 1
+[]
