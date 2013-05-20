@@ -367,22 +367,22 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
       std::ostream& out ) const
   {
-    std::cout << std::endl;
-    std::cout << "#====================================================" <<
+    out << std::endl;
+    out << "#====================================================" <<
       std::endl;
-    std::cout << "# Integration points " << std::endl;
-    std::cout << "#----------------------------------------------------" <<
+    out << "# Integration points " << std::endl;
+    out << "#----------------------------------------------------" <<
       std::endl;
     for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
     {
       for(int iy=0; iy < this->m_dimension; iy++)
       {
-        std::cout << std::scientific << std::setprecision(5) << std::setw(12)
+        out << std::scientific << std::setprecision(5) << std::setw(12)
           << m_integrationPoints[ix](iy) << "  ";
       }
-      std::cout << std::endl;
+      out << std::endl;
     }
-    std::cout << "#----------------------------------------------------" <<
+    out << "#----------------------------------------------------" <<
       std::endl;
     return;
   }
