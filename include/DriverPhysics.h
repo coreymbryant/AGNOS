@@ -78,7 +78,7 @@ namespace AGNOS
       case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
         {
 
-          m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
+          this->m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
                 m_physicsFunctions, 
                 m_parameters, 
                 m_order  );
@@ -155,6 +155,13 @@ namespace AGNOS
     std::map< std::string, std::vector<T_P> > myCoeff = m_surrogate->getCoefficients( );
     /* std::cout << "myCoeff[primal][0](0) = " << myCoeff["primal"][0](0) << std::endl; */
     m_surrogate->printCoefficients( "primal", std::cout ) ;
+
+    m_surrogate->printIntegrationWeights(  std::cout ) ;
+    m_surrogate->printIntegrationPoints(  std::cout ) ;
+    m_surrogate->printIndexSet(  std::cout ) ;
+    /* m_surrogate->prettyPrintIntegrationWeights(   ) ; */
+    /* m_surrogate->prettyPrintIntegrationPoints(   ) ; */
+    /* m_surrogate->prettyPrintIndexSet(  ) ; */
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
