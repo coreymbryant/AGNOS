@@ -19,6 +19,7 @@ namespace AGNOS
 
       // either physics model or physics function must be defined
       DriverPhysics( 
+          const Communicator&       comm,
           PhysicsModel<T_S,T_P>*    myPhysics,          
           GetPot&                   input );
 
@@ -38,9 +39,10 @@ namespace AGNOS
  * 
  ***********************************************/
   DriverPhysics::DriverPhysics( 
+      const Communicator& comm,
       PhysicsModel<T_S,T_P>*    myPhysics,          
       GetPot&                   input 
-      ) : Driver( input )
+      ) : Driver( comm, input )
   {
     
     // TODO multiple surrogate models for each sol (primal,adjoint,qoi,etc)
@@ -79,9 +81,10 @@ namespace AGNOS
         {
 
           this->m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-                m_physicsFunctions, 
-                m_parameters, 
-                m_order  );
+              this->m_comm,
+              m_physicsFunctions, 
+              m_parameters, 
+              m_order  );
 
           break;
         }

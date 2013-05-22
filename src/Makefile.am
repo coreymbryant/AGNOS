@@ -9,7 +9,8 @@ bin_PROGRAMS = run
 #--------------------------------------
 AM_CPPFLAGS = -I$(top_srcdir)/include \
 							-I$(top_srcdir)/contrib/sandia_rules \
-							-I$(top_srcdir)/contrib/getpot
+							-I$(top_srcdir)/contrib/getpot \
+							-I$(LIBMESH_CPPFLAGS)
 
 #-------------------------------------
 # External library include directories
@@ -22,7 +23,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 # Flags we need to pass to the linker
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
-						 $(BOOST_PROGRAM_OPTIONS_LIBS)
+						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
+						 $(LIBMESH_LDFLAGS)
 
 run_SOURCES =$(top_srcdir)/src/run.C \
 							 $(top_srcdir)/src/agnos.C

@@ -1,9 +1,7 @@
 
-#include <iostream>
-#include <cstring>
-#include <GetPot>
+#include "agnosDefines.h"
 
-void run (GetPot& input);
+void run ( const libMesh::Parallel::Communicator& comm, GetPot& input);
 
 int main(int argc, char* argv[])
 {
@@ -14,11 +12,15 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
+  MPI_Init(&argc,&argv);
+  
+  const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
 
   GetPot input( argv[1] );
 
-  run( input );
+  run( comm,  input );
 
+  MPI_Finalize();
   return 0;
 }
 

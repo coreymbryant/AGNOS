@@ -1,5 +1,7 @@
 
+#include "agnosDefines.h"
 #include "DriverPhysics.h"
+
 #include "PhysicsCatenary.h"
 
 /********************************************//**
@@ -14,7 +16,7 @@
  * 
  ***********************************************/
 
-void run ( GetPot& input )
+void run ( const Communicator& comm, GetPot& input )
 {
 
   AGNOS::PhysicsModel<T_S,T_P>* myPhysics = new AGNOS::PhysicsCatenary<T_S,T_P>( 
@@ -23,7 +25,7 @@ void run ( GetPot& input )
 
   // this should be the same for any user 
   // (unless DriverFunction is used)
-  AGNOS::DriverPhysics myDriver( myPhysics, input );
+  AGNOS::DriverPhysics myDriver( comm, myPhysics, input );
 
   myDriver.run( );
 
