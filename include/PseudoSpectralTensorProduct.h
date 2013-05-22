@@ -21,22 +21,26 @@ namespace AGNOS
     public:
 
       PseudoSpectralTensorProduct( 
-        PhysicsFunction<T_S,T_P>*           solutionFunction,
+          const Communicator*               comm,
+          PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const unsigned int                order 
           );
       PseudoSpectralTensorProduct( 
+          const Communicator*               comm,
           PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
           );
 
       PseudoSpectralTensorProduct( 
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const unsigned int                                  order 
           );
       PseudoSpectralTensorProduct( 
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const std::vector<unsigned int>&                    order
@@ -68,11 +72,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
     {
       initialize();
     }
@@ -82,11 +87,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
     {
       initialize();
     }
@@ -96,11 +102,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         const std::vector<Parameter*>                       parameters,
         const unsigned int                                  order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
     {
       initialize();
     }
@@ -112,11 +119,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         const std::vector<Parameter*>                       parameters,
         const std::vector<unsigned int>&                    order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
     {
       initialize();
     }

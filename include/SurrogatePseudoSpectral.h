@@ -25,11 +25,13 @@ namespace AGNOS
 
       // single physics function constructors
       SurrogatePseudoSpectral( 
+          const Communicator*               comm,
           PhysicsFunction<T_S,T_P>*     solutionFunction,
           const std::vector<Parameter*> parameters,
           const unsigned int            order 
           );
       SurrogatePseudoSpectral( 
+          const Communicator*               comm,
           PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
@@ -37,11 +39,13 @@ namespace AGNOS
 
       // multiple physics function constructors
       SurrogatePseudoSpectral( 
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const unsigned int                                  order 
           );
       SurrogatePseudoSpectral( 
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const std::vector<unsigned int>&                    order
@@ -69,7 +73,9 @@ namespace AGNOS
       std::vector<double>       getIntegrationWeights( ) const;
       const std::vector< std::vector< unsigned int> > 
                                 getIndexSet( ) const;
-      std::vector<double>       evaluateBasis( T_S& parameterValues ) const;
+      std::vector<double>       evaluateBasis( 
+          std::vector< std::vector<unsigned int> > indexSet,
+          T_S& parameterValues ) const;
 
       void                      printIntegrationWeights( std::ostream& out ) const;
       void                      printIntegrationPoints( std::ostream& out ) const;
@@ -96,11 +102,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
     {
     }
 
@@ -110,11 +117,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>* solutionFunction,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order) 
+      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
     {
     }
 
@@ -123,11 +131,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         const std::vector<Parameter*>                       parameters,
         const unsigned int                                  order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order)
+      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
     {
     }
 
@@ -137,11 +146,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         const std::vector<Parameter*>                       parameters,
         const std::vector<unsigned int>&                    order
         )
-      : SurrogateModel<T_S,T_P>(solutionFunction,parameters,order) 
+      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
     {
     }
 
@@ -202,10 +212,11 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::evaluateBasis( 
+        std::vector< std::vector< unsigned int > > indexSet,
         T_S& parameterValue 
         ) const
     {
-      unsigned int nTerms = this->m_indexSet.size() ;
+      unsigned int nTerms = indexSet.size() ;
       std::vector<double> basisValues( nTerms ,1.);
 
       for(unsigned int id=0; id < nTerms ; id++)
@@ -213,7 +224,7 @@ namespace AGNOS
         {
           basisValues[id] 
             *= this->m_parameters[dir]->evalBasisPoly( 
-                m_indexSet[id][dir], parameterValue(dir) ) ;
+                indexSet[id][dir], parameterValue(dir) ) ;
         }
 
       return basisValues;
@@ -242,12 +253,43 @@ namespace AGNOS
       // jobs in parrael. I guess we could probably do all computations in
       // parallel and just deal with the the size issue before combining back to
       // one. 
+      //
+      // TODO this function should control the distribution of work amongst
+      // available processors. Individual nodes should only need to know:
+      //  - what integration point(s) to solve at and corresponding weights
+      //  - which coefficients to compute/store 
+      //    . requires index_set(s) for these coefficients
+      //    . requires solutions from all other nodes 
+      
       std::vector<double> polyValues;
       typename std::map< std::string, std::vector<T_P> >::iterator id;
+
+      // TODO for scaling we should compute partial sums for each coeff and pass
+      // to appropriate compute node
+      // 1. Solve for my integration points intPt(s) 
+      //    - weight by integration weight = wUj )
+      // 2. compute contribution for my_index_set
+      //    - Evaluate my_index_set for my intPt(s)
+      //    - form product with weightedSol ( wUjk = wU(j) * \psi_k(j))
+      //    - store partial sum as coeffK ( coeffK = sum_j wUjk )
+      // 3. For each other node i
+      //    - Evaluate index_set(i) for my intPt(s)
+      //    - form product with weightedSol ( wUjk = wU(j) * \psi_k(j))
+      //    > pass partial sum to node i ( contribK = sum_j wUjk )
+      //    < receive node i's contribution to my coeff ( i_contribK )
+      // 
+      
+      unsigned int nPoints 
+        = m_nIntegrationPoints / this->m_comm->size() 
+        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
+      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
+      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
+      std::cout << "myTasks = " << this->nPoints << std::endl;
+
       
       for(unsigned int point=0; point < m_nIntegrationPoints; point++)
       {
-        polyValues = evaluateBasis(m_integrationPoints[point]) ;
+        polyValues = evaluateBasis(this->m_indexSet, m_integrationPoints[point]) ;
         std::map< std::string, std::vector<T_P> > contrib = computeContribution( 
             this->m_solutionFunction,
             m_integrationPoints[point], 
@@ -335,7 +377,11 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      std::vector<double> polyValues = evaluateBasis(parameterValues) ;
+      std::vector<double> polyValues = evaluateBasis(this->m_indexSet,parameterValues) ;
+
+      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
+      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
+      std::cout << "myTasks = " << this->nPoints << std::endl;
 
       // TODO again initialize this somehow and absorb this iteration in loop
       // below
