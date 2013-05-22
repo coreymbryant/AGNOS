@@ -9,12 +9,11 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+
+#include "agnosDefines.h"
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
-#include "PhysicsCatenary.h"
-#include "PhysicsFunction.h"
 
-#include "libmesh/dense_vector.h"
 using namespace AGNOS;
 
 //________________________________________________________________//
@@ -51,9 +50,12 @@ using namespace AGNOS;
 
 BOOST_AUTO_TEST_SUITE(Polynomials_tensorProduct)
 
+  const Communicator comm( MPI_COMM_NULL );
 
 BOOST_AUTO_TEST_CASE(Linear_1D)
 {
+
+
   BOOST_TEST_MESSAGE(" Testing 1D linear approximation");
 
   unsigned int dimension = 1;
@@ -69,6 +71,7 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -97,6 +100,7 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -130,6 +134,7 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -160,6 +165,7 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -198,6 +204,7 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  

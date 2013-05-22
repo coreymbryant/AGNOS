@@ -9,18 +9,17 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+
+#include "agnosDefines.h"
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
-#include "PhysicsCatenary.h"
-#include "PhysicsFunction.h"
+#include "Parameter.h"
 
-#include "libmesh/dense_vector.h"
+#include "PhysicsCatenary.h"
 using namespace AGNOS;
 
 //________________________________________________________________//
 
-  typedef libMesh::DenseVector<double> T_P ;
-  typedef libMesh::DenseVector<double> T_S ;
   // linear test function
 
   // mixed-order 5 dimensional exammple
@@ -34,6 +33,7 @@ using namespace AGNOS;
 
 BOOST_AUTO_TEST_SUITE(Evaluation_tensorProduct)
 
+  const Communicator comm( MPI_COMM_NULL );
 
 BOOST_AUTO_TEST_CASE(mixedPoly)
 {
@@ -57,6 +57,7 @@ BOOST_AUTO_TEST_CASE(mixedPoly)
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  

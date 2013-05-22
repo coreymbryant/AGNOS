@@ -9,12 +9,14 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+
+#include "agnosDefines.h"
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
-#include "PhysicsCatenary.h"
-#include "PhysicsFunction.h"
+#include "Parameter.h"
 
-#include "libmesh/dense_vector.h"
+#include "PhysicsCatenary.h"
+
 using namespace AGNOS;
 
 //________________________________________________________________//
@@ -25,6 +27,7 @@ using namespace AGNOS;
 
 BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
 
+  const Communicator comm( MPI_COMM_NULL );
 
   unsigned int dimension = 1;
   
@@ -44,6 +47,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -64,6 +68,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
   std::vector<unsigned int> myOrder(dimension,1);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -91,6 +96,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
@@ -132,6 +138,7 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
         myPhysicsFunction, 
         myParameters, 
         myOrder  
