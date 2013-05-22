@@ -2,26 +2,12 @@
 #ifndef DRIVER_H
 #define DRIVER_H
 
-
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
-#include <assert.h>
-#include <cstring>
-#include <GetPot>
-
-
-// TODO find a better way to include all necessary submodels?
-#include "Parameter.h"
+#include "agnosDefines.h"
 #include "PseudoSpectralTensorProduct.h"
-/* #include "PseudoSpectralSparseGrid.h" */
 /* #include "PseudoSpectralMonteCarlo.h" */
-/* #include "SurrogateCollocation.h" */
+/* #include "PseudoSpectralSparseGrid.h" */
 
-#include "libmesh/dense_vector.h"
-// move these into same file as above includes ??
-typedef libMesh::DenseVector<double> T_P ;
-typedef libMesh::DenseVector<double> T_S ;
+
 
 
 namespace AGNOS
@@ -36,13 +22,14 @@ namespace AGNOS
     public:
 
       // TODO default inputs settings
-      Driver(  );
-      Driver( GetPot& input );
+      Driver( );
+      Driver( const Communicator& comm, GetPot& input );
 
       virtual ~Driver( );
 
       virtual void run( ) = 0 ;
 
+      // TODO clean up output headings
       void printSolution( std::ostream& out ) ;
       void printSurrogateSettings( std::ostream& out ) ;
       void printParameterSettings( std::ostream& out ) ;
@@ -50,8 +37,8 @@ namespace AGNOS
       void printOutput( ) ;
 
     protected:
+      const Communicator* m_comm;
       GetPot m_input;
-      void initializeSurrogateModel( int surrogateType, GetPot& input );
 
 
       // DRIVER VARIABLES
@@ -71,6 +58,7 @@ namespace AGNOS
       // OUTPUT VARIABLES
       std::string               m_outputFilename; 
       std::vector<std::string>  m_solutionsToPrint ;
+      // TODO some sort of update output used for each iteration
       bool                      m_outputIterations  ;
       bool                      m_outputCoefficients  ;
       bool                      m_outputWeights       ;
@@ -83,7 +71,10 @@ namespace AGNOS
  * \brief 
  * 
  ***********************************************/
-  Driver::Driver( GetPot& input ) : m_input(input)
+  Driver::Driver( 
+      const Communicator& comm, 
+      GetPot& input ) 
+    : m_comm(&comm), m_input(input)
   {
     
     // DRIVER SETTINGS
@@ -182,7 +173,7 @@ namespace AGNOS
 
     out << "#mins = " ;
     for (unsigned int i=0; i < m_paramDim; i++)
-      out << "m_parameters[i]->min() << " ;
+      out << m_parameters[i]->min() << " " ;
     out << std::endl;
 
     out << "#maxs = " ;

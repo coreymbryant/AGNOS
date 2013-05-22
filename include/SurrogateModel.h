@@ -4,10 +4,10 @@
 
 #ifndef SURROGATE_MODEL_H 
 #define SURROGATE_MODEL_H 
+
+#include "agnosDefines.h"
 #include "Parameter.h"
 #include "PhysicsFunction.h"
-#include <iostream>
-#include <iomanip>
 
 namespace AGNOS
 {
@@ -34,11 +34,13 @@ namespace AGNOS
 
       // single physics function constructors
       SurrogateModel(
+          const Communicator*               comm,
           PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const unsigned int                order 
           );
       SurrogateModel(
+          const Communicator*               comm,
           PhysicsFunction<T_S,T_P>*         solutionFunction,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
@@ -46,11 +48,13 @@ namespace AGNOS
 
       // multiple physics function constructors
       SurrogateModel(
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const unsigned int                                  order 
           );
       SurrogateModel(
+          const Communicator*               comm,
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           const std::vector<Parameter*>                       parameters,
           const std::vector<unsigned int>&                    order
@@ -99,6 +103,7 @@ namespace AGNOS
       std::vector<unsigned int> getExpansionOrder( ) const;
 
     protected: 
+      const Communicator* m_comm;
       
       std::vector<unsigned int>                           m_order;  
       std::map< std::string, std::vector<T_P> >           m_coefficients;
@@ -116,11 +121,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         std::vector<Parameter*>                             parameters,
         unsigned int                                        order
         )
       : 
+        m_comm(comm),
         m_solutionFunction(solutionFunction), 
         m_parameters(parameters),
         m_dimension( parameters.size() )
@@ -135,11 +142,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
+        const Communicator*               comm,
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         std::vector<Parameter*>                   parameters,
         const std::vector<unsigned int>&          order
         )
       : 
+        m_comm(comm),
         m_solutionFunction(solutionFunction), 
         m_parameters(parameters),
         m_dimension( parameters.size() ), 
@@ -164,11 +173,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>*                 solutionFunction,
         std::vector<Parameter*>                   parameters,
         const std::vector<unsigned int>&          order
         ) 
       : 
+        m_comm(comm),
         m_parameters(parameters), 
         m_dimension( parameters.size() ),
         m_order(order)
@@ -196,11 +207,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
+        const Communicator*               comm,
         PhysicsFunction<T_S,T_P>*                 solutionFunction,
         std::vector<Parameter*>                   parameters,
         unsigned int                              order
         ) 
       : 
+        m_comm(comm),
         m_parameters(parameters), 
         m_dimension( parameters.size() )
     {

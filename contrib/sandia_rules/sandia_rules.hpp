@@ -1,3 +1,7 @@
+
+#ifndef SANDIA_RULES_H
+#define SANDIA_RULES_H
+
 # include <fstream>
 # include <string>
 # include <cstdlib>
@@ -26095,3 +26099,4 @@ void vec_colex_next3 ( int dim_num, int base[], int a[], bool *more )
 } void vec_colex_next3 ( int dim_num, int base[], int a[], bool *more );
 }
 
+#endif // SANDIA_RULES_H
