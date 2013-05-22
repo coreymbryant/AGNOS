@@ -279,12 +279,12 @@ namespace AGNOS
       //    < receive node i's contribution to my coeff ( i_contribK )
       // 
       
-      unsigned int nPoints 
-        = m_nIntegrationPoints / this->m_comm->size() 
-        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
-      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
-      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
-      std::cout << "myTasks = " << this->nPoints << std::endl;
+      /* unsigned int nPoints */ 
+      /*   = m_nIntegrationPoints / this->m_comm->size() */ 
+      /*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; */
+      /* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; */
+      /* std::cout << "myRank = " << this->m_comm->rank() << std::endl; */
+      /* std::cout << "myTasks = " << nPoints << std::endl; */
 
       
       for(unsigned int point=0; point < m_nIntegrationPoints; point++)
@@ -379,9 +379,12 @@ namespace AGNOS
     {
       std::vector<double> polyValues = evaluateBasis(this->m_indexSet,parameterValues) ;
 
-      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
-      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
-      std::cout << "myTasks = " << this->nPoints << std::endl;
+      /* unsigned int nPoints */ 
+      /*   = m_nIntegrationPoints / this->m_comm->size() */ 
+      /*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; */
+      /* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; */
+      /* std::cout << "myRank = " << this->m_comm->rank() << std::endl; */
+      /* std::cout << "myTasks = " << nPoints << std::endl; */
 
       // TODO again initialize this somehow and absorb this iteration in loop
       // below
