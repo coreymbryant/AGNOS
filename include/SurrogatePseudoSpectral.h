@@ -279,12 +279,33 @@ namespace AGNOS
       //    < receive node i's contribution to my coeff ( i_contribK )
       // 
       
-      /* unsigned int nPoints */ 
-      /*   = m_nIntegrationPoints / this->m_comm->size() */ 
-      /*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; */
-      /* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; */
-      /* std::cout << "myRank = " << this->m_comm->rank() << std::endl; */
-      /* std::cout << "myTasks = " << nPoints << std::endl; */
+      // TODO separate coeff and integraton pts, i.e. allow for higher order
+      // integration rules for set order of approximation
+      unsigned int intPtsStart 
+        =   this->m_comm->rank() *  (m_nIntegrationPoints / this->m_comm->size()  
+        + ( this->m_comm->rank() <= (m_nIntegrationPoints % this->m_comm->size() ) ) ) 
+        + ( this->m_comm->rank() >  (m_nIntegrationPoints % this->m_comm->size() ) ) 
+            * (m_nIntegrationPoints % this->m_comm->size() );
+      unsigned int nPts  
+        =  m_nIntegrationPoints / this->m_comm->size()  
+        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
+      unsigned int intPtsStop = intPtsStart + nPts - 1;
+      std::cout << "-------------------------------" << std::endl;
+      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
+      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
+      std::cout << "startTask = " << intPtsStart << std::endl;
+      std::cout << "nPts = " << nPts << std::endl;
+      std::cout << "endTask = " << intPtsStop << std::endl;
+      std::cout << "-------------------------------" << std::endl;
+      unsigned int intPtsStart 
+        =   this->m_comm->rank() *  (m_nIntegrationPoints / this->m_comm->size()  
+        + ( this->m_comm->rank() <= (m_nIntegrationPoints % this->m_comm->size() ) ) ) 
+        + ( this->m_comm->rank() >  (m_nIntegrationPoints % this->m_comm->size() ) ) 
+            * (m_nIntegrationPoints % this->m_comm->size() );
+      unsigned int nPts  
+        =  m_nIntegrationPoints / this->m_comm->size()  
+        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
+      unsigned int intPtsStop = intPtsStart + nPts - 1;
 
       
       for(unsigned int point=0; point < m_nIntegrationPoints; point++)
