@@ -133,8 +133,6 @@ namespace AGNOS
         m_dimension( parameters.size() )
     {
       m_order = std::vector<unsigned int>(m_dimension,order);
-      // TODO how to do this
-      /* m_coefficients.resize( solutionFunction.size() ); */
     }
 
 /********************************************//*
@@ -154,7 +152,6 @@ namespace AGNOS
         m_dimension( parameters.size() ), 
         m_order(order)
     {
-      /* m_coefficients.resize( solutionFunction.size() ); */
 
       if (m_order.size() != parameters.size() )
       {
@@ -188,7 +185,6 @@ namespace AGNOS
           std::pair<std::string, PhysicsFunction<T_S,T_P>* >(
             solutionFunction->name(),solutionFunction) );
 
-      /* m_coefficients.resize( 1 ); */
 
       if (m_order.size() != parameters.size() )
       {
@@ -222,7 +218,6 @@ namespace AGNOS
             solutionFunction->name(),solutionFunction) );
 
       m_order = std::vector<unsigned int>(m_dimension,order);
-      /* m_coefficients.resize( 1 ); */
     }
 
 /********************************************//*
