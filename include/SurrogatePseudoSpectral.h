@@ -54,11 +54,10 @@ namespace AGNOS
       virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
-      std::map< std::string, std::vector<T_P> > computeContribution( 
+      std::map< std::string, T_P > computeContribution( 
           std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
           T_S&                                                integrationPoint, 
-          double&                                             integrationWeight,
-          std::vector<double>                                 polyValues
+          double&                                             integrationWeight
           );
 
       using SurrogateModel<T_S,T_P>::evaluate; 
@@ -261,8 +260,10 @@ namespace AGNOS
       //    . requires index_set(s) for these coefficients
       //    . requires solutions from all other nodes 
       
-      std::vector<double> polyValues;
-      typename std::map< std::string, std::vector<T_P> >::iterator id;
+      unsigned int totalNCoeff = this->m_indexSet.size();
+      std::vector< std::vector<double> > polyValues;
+      polyValues.reserve(totalNCoeff);
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
 
       // TODO for scaling we should compute partial sums for each coeff and pass
       // to appropriate compute node
@@ -279,24 +280,9 @@ namespace AGNOS
       //    < receive node i's contribution to my coeff ( i_contribK )
       // 
       
-      // TODO separate coeff and integraton pts, i.e. allow for higher order
-      // integration rules for set order of approximation
-      unsigned int intPtsStart 
-        =   this->m_comm->rank() *  (m_nIntegrationPoints / this->m_comm->size()  
-        + ( this->m_comm->rank() <= (m_nIntegrationPoints % this->m_comm->size() ) ) ) 
-        + ( this->m_comm->rank() >  (m_nIntegrationPoints % this->m_comm->size() ) ) 
-            * (m_nIntegrationPoints % this->m_comm->size() );
-      unsigned int nPts  
-        =  m_nIntegrationPoints / this->m_comm->size()  
-        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
-      unsigned int intPtsStop = intPtsStart + nPts - 1;
-      std::cout << "-------------------------------" << std::endl;
-      std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl;
-      std::cout << "myRank = " << this->m_comm->rank() << std::endl;
-      std::cout << "startTask = " << intPtsStart << std::endl;
-      std::cout << "nPts = " << nPts << std::endl;
-      std::cout << "endTask = " << intPtsStop << std::endl;
-      std::cout << "-------------------------------" << std::endl;
+      // Int points and coeff are currently separated in case we want to
+      // implememnt higher order integration rule in the future
+      // assign the appropriate int points to each processor
       unsigned int intPtsStart 
         =   this->m_comm->rank() *  (m_nIntegrationPoints / this->m_comm->size()  
         + ( this->m_comm->rank() <= (m_nIntegrationPoints % this->m_comm->size() ) ) ) 
@@ -307,27 +293,92 @@ namespace AGNOS
         + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
       unsigned int intPtsStop = intPtsStart + nPts - 1;
 
-      
-      for(unsigned int point=0; point < m_nIntegrationPoints; point++)
+      // assign the appropriate coeff to each processor
+      unsigned int coeffStart 
+        =   this->m_comm->rank() *  (totalNCoeff / this->m_comm->size()  
+        + ( this->m_comm->rank() <= (totalNCoeff % this->m_comm->size() ) ) ) 
+        + ( this->m_comm->rank() >  (totalNCoeff % this->m_comm->size() ) ) 
+            * (totalNCoeff % this->m_comm->size() );
+      unsigned int nCoeffs  
+        =  totalNCoeff / this->m_comm->size()  
+        + ( this->m_comm->rank() < (totalNCoeff % this->m_comm->size() ) ) ;
+      unsigned int coeffStop = coeffStart + nCoeffs - 1;
+
+
+
+      // initiaize contribution vector
+      std::vector< std::map< std::string, T_P > > myContribs;
+      myContribs.reserve(nPts);
+
+      // solve for my integration points
+      for(unsigned int point=intPtsStart; point <= intPtsStop; point++)
       {
-        polyValues = evaluateBasis(this->m_indexSet, m_integrationPoints[point]) ;
-        std::map< std::string, std::vector<T_P> > contrib = computeContribution( 
+        myContribs.push_back( computeContribution( 
             this->m_solutionFunction,
             m_integrationPoints[point], 
-            m_integrationWeights[point], 
-            polyValues
+            m_integrationWeights[point]
+            ) );
+        polyValues.push_back(
+            evaluateBasis( this->m_indexSet, m_integrationPoints[point]) 
             );
-
-        // if this is the first integration point initialize coeff to its value
-        if (point==0)
-          this->m_coefficients = contrib;          
-
-        else
-          for(id=this->m_coefficients.begin(); id!=this->m_coefficients.end(); id++)
-            for(unsigned int coeff=0; coeff < (id->second).size(); coeff++)
-              (id->second)[coeff] += (contrib[id->first])[coeff];
       }
+
+
+
+      // WAIT FOR ALL PROCESSES TO CATCH UP
+      /* this->m_comm->barrier(); */
+
+      unsigned int gatherRank, gatherCoeffStart, gatherNCoeff, gatherCoeffStop;
       
+      for (unsigned int r=0; r < this->m_comm->size(); r++)
+      {
+        gatherRank = r;
+
+        std::cout << "gatherRank " << gatherRank << std::endl;
+
+        // assign the appropriate coeff and int pts to each processor
+        gatherCoeffStart
+          =   gatherRank *  (totalNCoeff / this->m_comm->size()  
+          + ( gatherRank <= (totalNCoeff % this->m_comm->size() ) ) ) 
+          + ( gatherRank >  (totalNCoeff % this->m_comm->size() ) ) 
+              * (totalNCoeff % this->m_comm->size() );
+        gatherNCoeff
+          =  totalNCoeff / this->m_comm->size()  
+          + ( gatherRank < (totalNCoeff % this->m_comm->size() ) ) ;
+        gatherCoeffStop = gatherCoeffStart + gatherNCoeff - 1 ;
+
+        //-- get contribution from gather ranks
+        for (id=this->m_solutionFunction.begin();
+            id!=this->m_solutionFunction.end(); id++)
+        {
+          std::vector<T_P> solCoefficientVectors;
+          for(unsigned int coeff=gatherCoeffStart; coeff <= gatherCoeffStop; coeff++)
+          {
+            // temp vector to hold contributions
+            std::vector<double> gatherContrib(myContribs[0][id->first].size(),0.);
+            // compute current rank's contribution
+            for(unsigned int j=0; j < nPts; j++)
+              for(unsigned int i=0; i <  myContribs[0][id->first].size(); i++)
+                gatherContrib[i] += myContribs[j][id->first](i) *
+                  polyValues[j][coeff];
+
+            // gather all contributions
+            this->m_comm->gather( gatherRank, gatherContrib );
+
+            solCoefficientVectors.push_back( T_P(gatherContrib) );
+            for(unsigned int i=0; i<gatherContrib.size(); i++)
+              solCoefficientVectors[coeff-gatherCoeffStart](i) = gatherContrib[i];
+
+          }
+
+          this->m_coefficients.insert(
+              std::pair< std::string, std::vector<T_P> >(id->first,
+                solCoefficientVectors) ) ;
+        }
+
+
+      }
+
       return;
     } 
 
@@ -335,23 +386,16 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    std::map< std::string, std::vector<T_P> >
+    std::map< std::string, T_P >
     SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
         std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
         T_S&                                                integrationPoint, 
-        double&                                             integrationWeight,
-        std::vector<double>                                 polyValues
+        double&                                             integrationWeight
         )
     {
-      // TODO this part can be done in parallel 
       
-      // I think its better to pass vector of polyValues than a pointer to
-      // SurrogateModel object, since in parallel their would be multiple nodes
-      // operating on same object (even though they would just be referencing
-      // not altering that object?? - yes pointer would be to object stored in
-      // master node not working node)
 
-      std::map< std::string, std::vector<T_P> > contrib;
+      std::map< std::string, T_P > contrib;
       T_P solution ;
 
       
@@ -361,27 +405,12 @@ namespace AGNOS
         
         // get solution for this integration point
         id->second->compute( integrationPoint, solution );
+        solution.scale( integrationWeight );
+        contrib.insert( std::pair< std::string, T_P >(
+              id->first, solution  ) ); 
 
-        // compute contribution of current solution to overall coeff vector
-        std::vector<T_P> dummyVec(polyValues.size(), solution);
-        contrib.insert( std::pair< std::string, std::vector<T_P> >(
-              id->first, dummyVec  ) ); 
-              /* id->first, std::vector<T_P>(polyValues.size(),solution)  ) ); */ 
-
-        for (unsigned int i=0; i < contrib[id->first].size(); i++)
-          for (unsigned int j=0; j < contrib[id->first][i].size(); j++)
-          {
-            contrib[id->first][i](j) *= polyValues[i] * integrationWeight ;
-          }
-
-        /* contrib[nSol].resize( polyValues.size() ); // polyValues has same size as coeff */
-        /* for (unsigned int i=0; i < contrib[nSol].size(); i++) */
-        /* { */
-        /*   contrib[nSol][i] = solution[nSol] ; */
-        /*   for (unsigned int j=0; j < solution[nSol].size(); j++) */
-        /*     contrib[nSol][i](j) *= polyValues[i] * integrationWeight ; */
-        /* } */
       }
+
 
 
 
@@ -398,36 +427,36 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      std::vector<double> polyValues = evaluateBasis(this->m_indexSet,parameterValues) ;
+      /* std::vector<double> polyValues = evaluateBasis(this->m_indexSet,parameterValues) ; */
 
-      /* unsigned int nPoints */ 
-      /*   = m_nIntegrationPoints / this->m_comm->size() */ 
-      /*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; */
-      /* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; */
-      /* std::cout << "myRank = " << this->m_comm->rank() << std::endl; */
-      /* std::cout << "myTasks = " << nPoints << std::endl; */
+      /* /1* unsigned int nPoints *1/ */ 
+      /* /1*   = m_nIntegrationPoints / this->m_comm->size() *1/ */ 
+      /* /1*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; *1/ */
+      /* /1* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; *1/ */
+      /* /1* std::cout << "myRank = " << this->m_comm->rank() << std::endl; *1/ */
+      /* /1* std::cout << "myTasks = " << nPoints << std::endl; *1/ */
 
-      // TODO again initialize this somehow and absorb this iteration in loop
-      // below
-      std::map< std::string, T_P> surrogateValue;
+      /* // TODO again initialize this somehow and absorb this iteration in loop */
+      /* // below */
+      /* std::map< std::string, T_P> surrogateValue; */
 
-      for (unsigned int i=0; i < solutionNames.size(); i++)
-      {
-        std::string id = solutionNames[i];
-        surrogateValue.insert( 
-            std::pair< std::string, T_P>( id, (this->m_coefficients[id])[0] ) 
-            );
-        for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++)
-          (surrogateValue[id])(comp) 
-            = (this->m_coefficients[id])[0](comp) * polyValues[0];
+      /* for (unsigned int i=0; i < solutionNames.size(); i++) */
+      /* { */
+      /*   std::string id = solutionNames[i]; */
+      /*   surrogateValue.insert( */ 
+      /*       std::pair< std::string, T_P>( id, (this->m_coefficients[id])[0] ) */ 
+      /*       ); */
+      /*   for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++) */
+      /*     (surrogateValue[id])(comp) */ 
+      /*       = (this->m_coefficients[id])[0](comp) * polyValues[0]; */
 
-        for(unsigned int coeff=1; coeff < (this->m_coefficients[id]).size(); coeff++)
-          for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++)
-            (surrogateValue[id])(comp) 
-              +=  (this->m_coefficients[id])[coeff](comp) * polyValues[coeff];
-      }
+      /*   for(unsigned int coeff=1; coeff < (this->m_coefficients[id]).size(); coeff++) */
+      /*     for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++) */
+      /*       (surrogateValue[id])(comp) */ 
+      /*         +=  (this->m_coefficients[id])[coeff](comp) * polyValues[coeff]; */
+      /* } */
 
-      return surrogateValue;
+      /* return surrogateValue; */
     }
 
 /********************************************//**

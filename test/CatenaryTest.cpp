@@ -155,7 +155,6 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
     testValue = mySurrogate->evaluate( "primal", paramValue ) ;
   }
 
-  // 
   BOOST_CHECK_CLOSE(  testValue(0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
 
 }
