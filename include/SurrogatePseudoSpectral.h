@@ -241,143 +241,106 @@ namespace AGNOS
       // so that we can group surrogate models together later and wll that needs
       // to be defined is build routine based on computeContribution( )
       //
-      
-      
-      // INITIAL INTEGRATION POINT TO SET SIZES 
-      
-      // TODO would be nice if we could initialize empty vector of correct size
-      // and then run all integration pts in parallel. This would require some
-      // manipulator to return physics vector size. Instead we can just make one
-      // call to computeContribution to set sizes and then run the rest of the
-      // jobs in parrael. I guess we could probably do all computations in
-      // parallel and just deal with the the size issue before combining back to
-      // one. 
-      //
-      // TODO this function should control the distribution of work amongst
-      // available processors. Individual nodes should only need to know:
-      //  - what integration point(s) to solve at and corresponding weights
-      //  - which coefficients to compute/store 
-      //    . requires index_set(s) for these coefficients
-      //    . requires solutions from all other nodes 
-      
-      unsigned int totalNCoeff = this->m_indexSet.size();
+      unsigned int totalNCoeff = this->m_totalNCoeff;
       std::vector< std::vector<double> > polyValues;
       polyValues.reserve(totalNCoeff);
       typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
-
-      // TODO for scaling we should compute partial sums for each coeff and pass
-      // to appropriate compute node
-      // 1. Solve for my integration points intPt(s) 
-      //    - weight by integration weight = wUj )
-      // 2. compute contribution for my_index_set
-      //    - Evaluate my_index_set for my intPt(s)
-      //    - form product with weightedSol ( wUjk = wU(j) * \psi_k(j))
-      //    - store partial sum as coeffK ( coeffK = sum_j wUjk )
-      // 3. For each other node i
-      //    - Evaluate index_set(i) for my intPt(s)
-      //    - form product with weightedSol ( wUjk = wU(j) * \psi_k(j))
-      //    > pass partial sum to node i ( contribK = sum_j wUjk )
-      //    < receive node i's contribution to my coeff ( i_contribK )
-      // 
+      
       
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
-      unsigned int intPtsStart 
-        =   this->m_comm->rank() *  (m_nIntegrationPoints / this->m_comm->size()  
-        + ( this->m_comm->rank() <= (m_nIntegrationPoints % this->m_comm->size() ) ) ) 
-        + ( this->m_comm->rank() >  (m_nIntegrationPoints % this->m_comm->size() ) ) 
-            * (m_nIntegrationPoints % this->m_comm->size() );
       unsigned int nPts  
         =  m_nIntegrationPoints / this->m_comm->size()  
         + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
-      unsigned int intPtsStop = intPtsStart + nPts - 1;
+      unsigned int intPtsStart = min(this->m_comm->rank(), m_nIntegrationPoints-1);
+
 
       // assign the appropriate coeff to each processor
-      unsigned int coeffStart 
-        =   this->m_comm->rank() *  (totalNCoeff / this->m_comm->size()  
-        + ( this->m_comm->rank() <= (totalNCoeff % this->m_comm->size() ) ) ) 
-        + ( this->m_comm->rank() >  (totalNCoeff % this->m_comm->size() ) ) 
-            * (totalNCoeff % this->m_comm->size() );
       unsigned int nCoeffs  
         =  totalNCoeff / this->m_comm->size()  
         + ( this->m_comm->rank() < (totalNCoeff % this->m_comm->size() ) ) ;
-      unsigned int coeffStop = coeffStart + nCoeffs - 1;
-
+      unsigned int coeffStart = min(this->m_comm->rank(), totalNCoeff-1);
 
 
       // initiaize contribution vector
       std::vector< std::map< std::string, T_P > > myContribs;
       myContribs.reserve(nPts);
+      
 
       // solve for my integration points
-      for(unsigned int point=intPtsStart; point <= intPtsStop; point++)
+      for(unsigned int pt=0; pt < nPts; pt++)
       {
         myContribs.push_back( computeContribution( 
             this->m_solutionFunction,
-            m_integrationPoints[point], 
-            m_integrationWeights[point]
+            m_integrationPoints[intPtsStart + pt*this->m_comm->size() ], 
+            m_integrationWeights[intPtsStart + pt*this->m_comm->size() ]
             ) );
         polyValues.push_back(
-            evaluateBasis( this->m_indexSet, m_integrationPoints[point]) 
+            evaluateBasis( this->m_indexSet, m_integrationPoints[intPtsStart +
+              pt*this->m_comm->size()]) 
             );
+      }
+
+      // need to know size of solution vector on all processes (in case some
+      // don't have any work but will still be called in reduce operation)
+      unsigned int tempSize;
+      for (id=this->m_solutionFunction.begin();
+          id!=this->m_solutionFunction.end(); id++)
+      {
+        if (this->m_comm->rank() == 0)
+          tempSize = myContribs[0][id->first].size();
+
+        this->m_comm->broadcast(tempSize);
+        this->m_solSize.insert( std::pair<std::string,unsigned int>(
+              id->first,tempSize ) );
       }
 
 
 
       // WAIT FOR ALL PROCESSES TO CATCH UP
-      /* this->m_comm->barrier(); */
+      this->m_comm->barrier();
 
-      unsigned int gatherRank, gatherCoeffStart, gatherNCoeff, gatherCoeffStop;
+
+      // --------------
+      // compute my contribution to each coefficient
+      // sum all processes contributions
+      // save if its one of my coefficients
+      // --------------
       
-      for (unsigned int r=0; r < this->m_comm->size(); r++)
+      //-- loop through sols
+      for (id=this->m_solutionFunction.begin();
+          id!=this->m_solutionFunction.end(); id++)
       {
-        gatherRank = r;
+        // temporary storage for my coefficients for this sol
+        std::vector<T_P> solCoefficientVectors;
+        solCoefficientVectors.reserve(nCoeffs);
 
-        std::cout << "gatherRank " << gatherRank << std::endl;
-
-        // assign the appropriate coeff and int pts to each processor
-        gatherCoeffStart
-          =   gatherRank *  (totalNCoeff / this->m_comm->size()  
-          + ( gatherRank <= (totalNCoeff % this->m_comm->size() ) ) ) 
-          + ( gatherRank >  (totalNCoeff % this->m_comm->size() ) ) 
-              * (totalNCoeff % this->m_comm->size() );
-        gatherNCoeff
-          =  totalNCoeff / this->m_comm->size()  
-          + ( gatherRank < (totalNCoeff % this->m_comm->size() ) ) ;
-        gatherCoeffStop = gatherCoeffStart + gatherNCoeff - 1 ;
-
-        //-- get contribution from gather ranks
-        for (id=this->m_solutionFunction.begin();
-            id!=this->m_solutionFunction.end(); id++)
+        for (unsigned int c=0; c < totalNCoeff; c++)
         {
-          std::vector<T_P> solCoefficientVectors;
-          for(unsigned int coeff=gatherCoeffStart; coeff <= gatherCoeffStop; coeff++)
-          {
-            // temp vector to hold contributions
-            std::vector<double> gatherContrib(myContribs[0][id->first].size(),0.);
-            // compute current rank's contribution
-            for(unsigned int j=0; j < nPts; j++)
-              for(unsigned int i=0; i <  myContribs[0][id->first].size(); i++)
-                gatherContrib[i] += myContribs[j][id->first](i) *
-                  polyValues[j][coeff];
+          std::vector<double> sumContrib(this->m_solSize[id->first],0.);
+          
+          // compute current rank's contribution
+          for(unsigned int pt=0; pt < nPts; pt++)
+            for(unsigned int i=0; i <  sumContrib.size(); i++)
+              sumContrib[i] += myContribs[pt][id->first](i) *
+                polyValues[pt][c];
 
-            // gather all contributions
-            this->m_comm->gather( gatherRank, gatherContrib );
+          // sum all contributions
+          this->m_comm->sum( sumContrib );
 
-            solCoefficientVectors.push_back( T_P(gatherContrib) );
-            for(unsigned int i=0; i<gatherContrib.size(); i++)
-              solCoefficientVectors[coeff-gatherCoeffStart](i) = gatherContrib[i];
+          // store if its one of mine
+          if ( (c % this->m_comm->size()) == this->m_comm->rank() )
+            solCoefficientVectors.push_back( T_P(sumContrib) ) ;
 
-          }
+        } // c
 
+        if (solCoefficientVectors.size() > 0)
           this->m_coefficients.insert(
               std::pair< std::string, std::vector<T_P> >(id->first,
                 solCoefficientVectors) ) ;
-        }
 
-
-      }
+      } // id
 
       return;
     } 
@@ -427,36 +390,42 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      /* std::vector<double> polyValues = evaluateBasis(this->m_indexSet,parameterValues) ; */
+      unsigned int totalNCoeff = this->m_totalNCoeff;
+      std::map< std::string, T_P> surrogateValue;
 
-      /* /1* unsigned int nPoints *1/ */ 
-      /* /1*   = m_nIntegrationPoints / this->m_comm->size() *1/ */ 
-      /* /1*   + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ; *1/ */
-      /* /1* std::cout << "totalTasks = " << m_nIntegrationPoints << std::endl; *1/ */
-      /* /1* std::cout << "myRank = " << this->m_comm->rank() << std::endl; *1/ */
-      /* /1* std::cout << "myTasks = " << nPoints << std::endl; *1/ */
+      // get polyValues
+      std::vector<double> polyValues =
+        evaluateBasis(this->m_indexSet,parameterValues) ;
 
-      /* // TODO again initialize this somehow and absorb this iteration in loop */
-      /* // below */
-      /* std::map< std::string, T_P> surrogateValue; */
+      // get starting coeff for current rank
+      unsigned int coeffStart = min(this->m_comm->rank(), totalNCoeff-1);
 
-      /* for (unsigned int i=0; i < solutionNames.size(); i++) */
-      /* { */
-      /*   std::string id = solutionNames[i]; */
-      /*   surrogateValue.insert( */ 
-      /*       std::pair< std::string, T_P>( id, (this->m_coefficients[id])[0] ) */ 
-      /*       ); */
-      /*   for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++) */
-      /*     (surrogateValue[id])(comp) */ 
-      /*       = (this->m_coefficients[id])[0](comp) * polyValues[0]; */
+      // loop over all solutions requested
+      for (unsigned int n=0; n < solutionNames.size(); n++)
+      {
+        std::string id = solutionNames[n];
 
-      /*   for(unsigned int coeff=1; coeff < (this->m_coefficients[id]).size(); coeff++) */
-      /*     for(unsigned int comp=0; comp < (surrogateValue[id]).size(); comp++) */
-      /*       (surrogateValue[id])(comp) */ 
-      /*         +=  (this->m_coefficients[id])[coeff](comp) * polyValues[coeff]; */
-      /* } */
+        std::vector<double> sumContrib(this->m_solSize[id],0.);
 
-      /* return surrogateValue; */
+        for(unsigned int c=0; c < this->m_coefficients[id].size(); c++)
+        {
+          // compute current rank's contribution
+          for(unsigned int i=0; i < this->m_coefficients[id][c].size(); i++)
+            sumContrib[i] += this->m_coefficients[id][c](i) *
+              polyValues[coeffStart + c*(this->m_comm->size())];
+
+        } // coefficients
+
+        // sum all contributions
+        this->m_comm->sum( sumContrib );
+
+        surrogateValue.insert(
+            std::pair< std::string, T_P >(id, T_P(sumContrib) ) 
+            ) ;
+
+      } // solNames
+
+      return surrogateValue;
     }
 
 /********************************************//**

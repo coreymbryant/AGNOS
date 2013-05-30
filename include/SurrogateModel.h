@@ -90,8 +90,7 @@ namespace AGNOS
         std::ostream& out ) ;
       void printCoefficients( std::string solutionName, std::ostream& out ) ;
       void printCoefficients( std::ostream& out ) ;
-      const std::map< std::string, std::vector<T_P> >   
-                                getCoefficients( ) const;
+      const std::map< std::string, std::vector<T_P> >   getCoefficients() const;
 
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
       virtual void printIntegrationPoints( std::ostream& out ) const = 0;
@@ -107,6 +106,9 @@ namespace AGNOS
       
       std::vector<unsigned int>                           m_order;  
       std::map< std::string, std::vector<T_P> >           m_coefficients;
+      unsigned int                                        m_totalNCoeff;
+
+      std::map< std::string, unsigned int>                m_solSize;
 
       std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_solutionFunction;
       std::vector<Parameter*>                             m_parameters;

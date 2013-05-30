@@ -17,7 +17,7 @@ forcing = '-10.0'
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '20'
+order = '2'
 []
 
 [output]

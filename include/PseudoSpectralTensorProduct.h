@@ -171,19 +171,13 @@ namespace AGNOS
           this->m_integrationPoints[point](dir) = quadPoints[point][dir] ;
       }
 
-      /* for (unsigned int nSol=0; nSol < this->m_coefficients.size(); nSol++) */
-      /* { */
-      /*   this->m_coefficients[nSol].clear(); */
-      /*   this->m_coefficients[nSol].resize( this->m_nIntegrationPoints ); */
-      /* } */
-
-
       this->m_indexSet.clear();
       this->m_indexSet.reserve( this->m_nIntegrationPoints );
-      /* for (unsigned int i=0; i< this-> m_nIntegrationPoints; i++) */
-      /*   this->m_indexSet[i].reserve(this->m_dimension); */
 
       recurIndexSet( this->m_dimension, this->m_indexSet );
+
+      this->m_totalNCoeff = this->m_indexSet.size();
+      this->m_coefficients.clear();
     }
 
 /********************************************//**
