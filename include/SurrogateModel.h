@@ -287,24 +287,65 @@ namespace AGNOS
         std::vector<std::string> solutionNames,
         std::ostream& out ) 
     {
-      out << "#" << std::string(75,'=') << std::endl;
+      unsigned int myRank = m_comm->rank();
+      unsigned int commSize = m_comm->size();
+      unsigned int coeffStart = min(m_comm->rank(), m_totalNCoeff-1);
+
+      if ( myRank == 0)
+        out << "#" << std::string(75,'=') << std::endl;
 
       for (unsigned int i=0; i < solutionNames.size(); i++)
       {
         std::string id = solutionNames[i];
 
-        out << "#" << std::string(75,'-') << std::endl;
-        out << "#" << "\t Solution: " << id << std::endl;
-        out << "#" << std::string(75,'-') << std::endl;
-
-        for(unsigned int coeff=0; coeff< (m_coefficients[id]).size(); coeff++)
+        if (myRank == 0)
         {
-          for(unsigned int comp=0; comp < (m_coefficients[id])[coeff].size(); comp++)
-            out << std::setprecision(5) << std::scientific 
-              << (m_coefficients[id])[coeff](comp) << " " ;
-          out << std::endl;
+          out << "#" << std::string(75,'-') << std::endl;
+          out << "#" << "\t Solution: " << id << std::endl;
+          out << "#" << std::string(75,'-') << std::endl;
+        }
+
+        for(unsigned int c=0; c<this->m_totalNCoeff; c++)
+        {
+          unsigned int myC = (c-coeffStart)/commSize;
+          std::vector<double> myCoeff(m_solSize[id],0.);
+          libMesh::Parallel::MessageTag tag(c);
+          libMesh::Parallel::Status stat;
+
+          if (c%commSize == myRank)
+          {
+            if (myRank == 0)
+            {
+              for(unsigned int comp=0; comp < (m_coefficients[id])[myC].size(); comp++)
+                out << std::setprecision(5) << std::scientific 
+                  << (m_coefficients[id])[myC](comp) << " " ;
+              out << std::endl;
+            }
+            else
+            {
+              for(unsigned int comp=0; comp<myCoeff.size(); comp++)
+                myCoeff[comp]= m_coefficients[id][myC](comp) ; 
+              m_comm->send(0,myCoeff,tag);
+
+            }
+          }
+          else
+          {
+            if (myRank == 0)
+            {
+              stat=m_comm->receive( c%commSize, myCoeff, tag);
+              for(unsigned int comp=0; comp < myCoeff.size(); comp++)
+                out << std::setprecision(5) << std::scientific 
+                  << myCoeff[comp] << " " ;
+              out << std::endl;
+            }
+          }
+
+
         }
       }
+
+
     }
 
 /********************************************//**
