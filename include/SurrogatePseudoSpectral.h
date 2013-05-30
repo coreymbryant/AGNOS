@@ -435,23 +435,27 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
       std::ostream& out ) const
   {
-    out << std::endl;
-    out << "#====================================================" <<
-      std::endl;
-    out << "# Integration points " << std::endl;
-    out << "#----------------------------------------------------" <<
-      std::endl;
-    for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
+    if (this->m_comm->rank() == 0)
     {
-      for(int iy=0; iy < this->m_dimension; iy++)
-      {
-        out << std::scientific << std::setprecision(5) << std::setw(12)
-          << m_integrationPoints[ix](iy) << "  ";
-      }
       out << std::endl;
+      out << "#====================================================" <<
+        std::endl;
+      out << "# Integration points " << std::endl;
+      out << "#----------------------------------------------------" <<
+        std::endl;
+      for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
+      {
+        for(int iy=0; iy < this->m_dimension; iy++)
+        {
+          out << std::scientific << std::setprecision(5) << std::setw(12)
+            << m_integrationPoints[ix](iy) << "  ";
+        }
+        out << std::endl;
+      }
+      out << "#----------------------------------------------------" <<
+        std::endl;
     }
-    out << "#----------------------------------------------------" <<
-      std::endl;
+
     return;
   }
 
@@ -461,31 +465,34 @@ namespace AGNOS
   template<class T_S,class T_P>
   void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationPoints( ) const
   {
-    std::cout << std::endl;
-    std::cout << "====================================================" <<
-      std::endl;
-    std::cout << " Integration points " << std::endl;
-    std::cout << "----------------------------------------------------" <<
-      std::endl;
-    std::cout << "   \\ x        " << std::endl;
-    std::cout << "    \\" ;
-    for(unsigned int dim=0; dim < this->m_dimension; dim++)
-      std::cout << std::setw(12) << "x_" << dim << " " ;
-    std::cout << std::endl;
-    std::cout << "  id \\  " << std::endl;
-    std::cout << "----------------------------------------------------" <<
-      std::endl;
-    for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
+    if (this->m_comm->rank() == 0)
     {
-      std::cout << std::setw(5) << ix << " |   ";
-      for(int iy=0; iy < this->m_dimension; iy++)
+      std::cout << std::endl;
+      std::cout << "====================================================" <<
+        std::endl;
+      std::cout << " Integration points " << std::endl;
+      std::cout << "----------------------------------------------------" <<
+        std::endl;
+      std::cout << "   \\ x        " << std::endl;
+      std::cout << "    \\" ;
+      for(unsigned int dim=0; dim < this->m_dimension; dim++)
+        std::cout << std::setw(12) << "x_" << dim << " " ;
+      std::cout << std::endl;
+      std::cout << "  id \\  " << std::endl;
+      std::cout << "----------------------------------------------------" <<
+        std::endl;
+      for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
       {
-        std::cout << std::scientific << std::setprecision(5) << std::setw(12)
-          << m_integrationPoints[ix](iy) << "  ";
+        std::cout << std::setw(5) << ix << " |   ";
+        for(int iy=0; iy < this->m_dimension; iy++)
+        {
+          std::cout << std::scientific << std::setprecision(5) << std::setw(12)
+            << m_integrationPoints[ix](iy) << "  ";
+        }
+        std::cout << std::endl;
       }
       std::cout << std::endl;
     }
-    std::cout << std::endl;
     return;
   }
 
@@ -498,78 +505,87 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationWeights( 
       std::ostream& out ) const
   {
-    double sum = 0.0;
-    out << std::endl;
-    out << "#====================================================" <<
-      std::endl;
-    out << "# Integration weights " << std::endl;
-    out << "#----------------------------------------------------" <<
-      std::endl;
-    for(int ip=0; ip < m_nIntegrationPoints; ip++){  
-      out << m_integrationWeights[ip] << "  ";
-      out << std::endl;
-      sum += m_integrationWeights[ip];
-    }
-
-    out << std::endl;
-    out << "#Sum = " << sum << std::endl;
-    out << "#----------------------------------------------------" <<
-      std::endl;
-    return;
-  }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S,class T_P>
-  void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationWeights( ) const
-  {
-    double sum = 0.0;
-    std::cout << std::endl;
-    std::cout << "====================================================" <<
-      std::endl;
-    std::cout << " Integration weights " << std::endl;
-    std::cout << "----------------------------------------------------" <<
-      std::endl;
-    for(int ip=0; ip < m_nIntegrationPoints; ip++){  
-      std::cout << std::setw(5) << ip << "   |   ";
-      std::cout << m_integrationWeights[ip] << "  ";
-      std::cout << std::endl;
-      sum += m_integrationWeights[ip];
-    }
-
-    std::cout << std::endl;
-    std::cout << "Sum = " << sum << std::endl;
-    std::cout << std::endl;
-    return;
-  }
-
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P> 
-    void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
+    if (this->m_comm->rank() == 0)
     {
+      double sum = 0.0;
       out << std::endl;
       out << "#====================================================" <<
         std::endl;
-      out << "# Index Set" << std::endl;
-      out << "#----------------------------------------------------" <<
-      std::endl;
-
-      for (unsigned int i=0; i< m_indexSet.size(); i++)
-      {
-        for (unsigned int j=0; j< m_indexSet[i].size(); j++)
-        {
-          out << std::setw(5) << m_indexSet[i][j] << " " ;
-        }
-        out << std::endl;
-      }
+      out << "# Integration weights " << std::endl;
       out << "#----------------------------------------------------" <<
         std::endl;
+      for(int ip=0; ip < m_nIntegrationPoints; ip++){  
+        out << m_integrationWeights[ip] << "  ";
+        out << std::endl;
+        sum += m_integrationWeights[ip];
+      }
+
+      out << std::endl;
+      out << "#Sum = " << sum << std::endl;
+      out << "#----------------------------------------------------" <<
+        std::endl;
+    }
+    return;
+  }
+
+  /********************************************//**
+   * \brief 
+   *
+   * 
+   ***********************************************/
+    template<class T_S,class T_P>
+    void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationWeights( ) const
+    {
+      if (this->m_comm->rank() == 0)
+      {
+        double sum = 0.0;
+        std::cout << std::endl;
+        std::cout << "====================================================" <<
+          std::endl;
+        std::cout << " Integration weights " << std::endl;
+        std::cout << "----------------------------------------------------" <<
+          std::endl;
+        for(int ip=0; ip < m_nIntegrationPoints; ip++){  
+          std::cout << std::setw(5) << ip << "   |   ";
+          std::cout << m_integrationWeights[ip] << "  ";
+          std::cout << std::endl;
+          sum += m_integrationWeights[ip];
+        }
+
+        std::cout << std::endl;
+        std::cout << "Sum = " << sum << std::endl;
+        std::cout << std::endl;
+      }
+      return;
+    }
+
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+    template<class T_S, class T_P> 
+      void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
+      {
+        if (this->m_comm->rank() == 0)
+        {
+          out << std::endl;
+          out << "#====================================================" <<
+            std::endl;
+          out << "# Index Set" << std::endl;
+          out << "#----------------------------------------------------" <<
+          std::endl;
+
+          for (unsigned int i=0; i< m_indexSet.size(); i++)
+          {
+            for (unsigned int j=0; j< m_indexSet[i].size(); j++)
+            {
+              out << std::setw(5) << m_indexSet[i][j] << " " ;
+            }
+            out << std::endl;
+          }
+          out << "#----------------------------------------------------" <<
+            std::endl;
+        }
 
       return ;
     }
@@ -580,30 +596,33 @@ namespace AGNOS
   template<class T_S, class T_P> 
     void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIndexSet( ) const
     {
-      std::cout << std::endl;
-      std::cout << "====================================================" <<
-        std::endl;
-      std::cout << " Index Set" << std::endl;
-      std::cout << "----------------------------------------------------" <<
-      std::endl;
-    std::cout << "   \\ dir      " << std::endl;
-    std::cout << "    \\        " ;
-    for(unsigned int dim=0; dim < this->m_dimension; dim++)
-      std::cout << std::setw(4) << "xi_" << dim << " " ;
-    std::cout << std::endl;
-    std::cout << "  id \\  " << std::endl;
-    std::cout << "----------------------------------------------------" <<
-      std::endl;
-      for (unsigned int i=0; i< m_indexSet.size(); i++)
+      if (this->m_comm->rank() == 0)
       {
-      std::cout << std::setw(5) << i << "   |   ";
-        for (unsigned int j=0; j< m_indexSet[i].size(); j++)
-        {
-          std::cout << std::setw(5) << m_indexSet[i][j] << " " ;
-        }
         std::cout << std::endl;
-      }
+        std::cout << "====================================================" <<
+          std::endl;
+        std::cout << " Index Set" << std::endl;
+        std::cout << "----------------------------------------------------" <<
+        std::endl;
+      std::cout << "   \\ dir      " << std::endl;
+      std::cout << "    \\        " ;
+      for(unsigned int dim=0; dim < this->m_dimension; dim++)
+        std::cout << std::setw(4) << "xi_" << dim << " " ;
+      std::cout << std::endl;
+      std::cout << "  id \\  " << std::endl;
+      std::cout << "----------------------------------------------------" <<
+        std::endl;
+        for (unsigned int i=0; i< m_indexSet.size(); i++)
+        {
+        std::cout << std::setw(5) << i << "   |   ";
+          for (unsigned int j=0; j< m_indexSet[i].size(); j++)
+          {
+            std::cout << std::setw(5) << m_indexSet[i][j] << " " ;
+          }
+          std::cout << std::endl;
+        }
 
+      }
       return ;
     }
   
