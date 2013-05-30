@@ -28,25 +28,19 @@ echo Build user.................... : $USER
 echo Build host.................... : $BUILD_HOST
 echo Configure date................ : $BUILD_DATE
 echo Build architecture............ : $BUILD_ARCH
-echo SVN revision number........... : $BUILD_VERSION
+echo GIT revision.................. : $BUILD_VERSION
 echo
 echo Library Dependencies:
-echo QUESO......................... : $QUESO_PREFIX
-echo Trilinos...................... : $TRILINOS_PREFIX
-echo GRVY.......................... : $GRVY_PREFIX
-echo HDF5...........................: $HDF5_PREFIX
-echo GSL........................... : $GSL_PREFIX
-echo GLPK.......................... : $GLPK_PREFIX
+echo libMesh....................... : $LIBMESH_PREFIX
+echo libMesh CXXFLAGS.............. : $LIBMESH_CXXFLAGS
+echo libMesh INCLUDE............... : $LIBMESH_INCLUDE
 echo Boost......................... : $BOOST_ROOT
-echo ANN........................... : $ANN_PREFIX
-
-#echo Optional Features:
-# if test $LINK_PETSC -eq 0; then
-#   echo '   'Link with PETSc............ : no
-# else
-#   echo '   'Link with PETSc............ : yes
-#   echo '   'PETSC DIR.................. : $PETSC_DIR
-# fi
+echo GRINS......................... : $GRINS_PREFIX
+#echo QUESO......................... : $QUESO_PREFIX
+#echo Trilinos...................... : $TRILINOS_PREFIX
+#echo HDF5.......................... : $HDF5_PREFIX
+#echo GSL........................... : $GSL_PREFIX
+#echo GLPK.......................... : $GLPK_PREFIX
 
 echo
 echo '-------------------------------------------------------------------------------'
