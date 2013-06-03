@@ -80,6 +80,7 @@ namespace AGNOS
     // DRIVER SETTINGS
     m_input.set_prefix("driver/");
     m_maxIter = m_input("maxIter",1);
+    
     // TODO adaptive settings
     
     
@@ -152,8 +153,11 @@ namespace AGNOS
  ***********************************************/
   void Driver::printDriverSettings( std::ostream& out  ) 
   {
-    //TODO header
-    out << "#maxIter = " << m_maxIter << std::endl;
+    out << std::endl;
+    out << "#====================================================" <<
+      std::endl;
+    out << "# Driver settings: " << std::endl;
+    out << "#    maxIter = " << m_maxIter << std::endl;
 
     out << std::endl;
     return;
@@ -164,9 +168,12 @@ namespace AGNOS
  ***********************************************/
   void Driver::printParameterSettings( std::ostream& out ) 
   {
-    //TODO header
-    out << "#dimension = " << m_paramDim << std::endl;
-    out << "#order = " ;
+    out << std::endl;
+    out << "#====================================================" <<
+      std::endl;
+    out << "# Parameter settings: " << std::endl;
+    out << "#     dimension = " << m_paramDim << std::endl;
+    out << "#     order = " ;
     for(unsigned int i=0; i < m_paramDim; i++)
       out << m_order[i] << " " ;
     out << std::endl;

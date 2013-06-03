@@ -246,6 +246,21 @@ namespace AGNOS
       polyValues.reserve(totalNCoeff);
       typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
       
+      // output progress
+      if( this->m_comm->rank() == 0)
+      {
+        std::cout << std::endl;
+        std::cout << " Starting build of surrogate model for: { " ;
+        for (id=this->m_solutionFunction.begin();
+            id!=this->m_solutionFunction.end(); id++)
+        {
+          if (id!=this->m_solutionFunction.begin())
+            std::cout << " , " ;
+          std::cout << id->first;
+        }
+        std::cout << " }" << std::endl;
+      }
+
       
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
@@ -267,6 +282,10 @@ namespace AGNOS
       std::vector< std::map< std::string, T_P > > myContribs;
       myContribs.reserve(nPts);
       
+
+      if( this->m_comm->rank() == 0)
+        std::cout << "     --> Solving at " << m_nIntegrationPoints 
+          << " integration points " << std::endl;
 
       // solve for my integration points
       for(unsigned int pt=0; pt < nPts; pt++)
@@ -300,6 +319,9 @@ namespace AGNOS
 
       // WAIT FOR ALL PROCESSES TO CATCH UP
       this->m_comm->barrier();
+      if( this->m_comm->rank() == 0)
+        std::cout << "     --> Computing " << totalNCoeff << " coefficients" <<
+          std::endl;
 
 
       // --------------
