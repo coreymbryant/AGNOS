@@ -45,7 +45,10 @@ namespace AGNOS
       ) : Driver( comm, input )
   {
     
-    // TODO multiple surrogate models for each sol (primal,adjoint,qoi,etc)
+    // TODO add surrogate model for error
+    //  - input file info (order etc)
+    //  - construction 
+    
     input.set_prefix("surrogateModel/");
     // Setup common to all surrogate models
     
@@ -137,21 +140,32 @@ namespace AGNOS
     // build initial approximation
     m_surrogate->build();
     
-    // output whatever user asks for
-    printOutput();
+    // build error surrogate
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
     {
+      std::cout << "\n-------------  ITER "
+        << iter << "  -------------\n " ;
       // TODO may need to pass some info to refine
       m_surrogate->refine();
 
       if (this->m_outputIterations)
       {
+        std::cout << "\n writing results to: " << this->m_outputFilename
+          << " (iter = " << iter << " )"
+          << std::endl;
+        std::cout << std::endl;
         printOutput();
       }
     }
     
+    // output whatever user asks for
+    std::cout << "\n writing final results to: " << this->m_outputFilename
+      << std::endl;
+    std::cout << std::endl;
+    printOutput();
+
 
 
 

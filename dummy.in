@@ -1,11 +1,11 @@
 [driver]
-maxIter = '1'
+maxIter = '2'
 []
 
 [parameters]
 dimension = '1'
 types ='UNIFORM'
-mins = '1,0'
+mins = '1.0'
 maxs = '3.0'
 []
 
@@ -17,7 +17,7 @@ forcing = '-10.0'
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '2'
+order = '1 1 1 1 1 1 1 1 1 1'
 []
 
 [output]
