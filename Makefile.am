@@ -3,7 +3,7 @@ include $(top_srcdir)/doxygen/aminclude.am
 AUTOMAKE_OPTIONS = foreign
 #ACLOCAL_AMFLAGS  = 
 
-SUBDIRS          = src test doxygen 
+SUBDIRS          = src test examples doxygen 
 #SUBDIRS 				+= contrib
 #EXTRA_DIST       =
 
@@ -21,6 +21,7 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
                        Makefile.in                              \
                        src/Makefile.in                          \
 											 test/Makefile.in 												\
+											 examples/Makefile.in 												\
 											 doxygen/Makefile.in
 
 
