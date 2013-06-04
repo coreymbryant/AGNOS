@@ -1,8 +1,4 @@
-#----------------------------------------
-# Programs and libraries we want to build
-#----------------------------------------
-
-# bin_PROGRAMS = agnos 
+## Process this file with automake to produce Makefile.in
 
 #--------------------------------------
 #Local Directories to include for build
@@ -26,10 +22,13 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-# run_SOURCES =$(top_srcdir)/src/run.C \
-# 							 $(top_srcdir)/src/agnos.C
-# agnos_SOURCES = $(top_srcdir)/src/agnos.C
 
-#
-# Required for AX_AM_MACROS
-##@INC_AMINCLUDE@
+
+
+noinst_PROGRAMS = catenary
+
+catenary_SOURCES = \
+									 runCatenary.C \
+									 $(top_srcdir)/src/agnos.C
+
+MAINTAINERCLEANFILES = Makefile.in testFile.dat

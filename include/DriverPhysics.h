@@ -46,6 +46,7 @@ namespace AGNOS
   {
     
     // TODO add surrogate model for error
+    //  - need a libmesh hook before we can refine physics model
     //  - input file info (order etc)
     //  - construction 
     
@@ -135,7 +136,6 @@ namespace AGNOS
   void DriverPhysics::run( )
   {
 
-    // TODO add some cout statmenents for progress 
     
     // build initial approximation
     m_surrogate->build();
