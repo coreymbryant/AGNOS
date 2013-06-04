@@ -77,7 +77,13 @@ DX_INIT_DOXYGEN(AGNOS, doxygen/agnos.dox, doc/doxygen)
 dnl-----------------------------------------------
 dnl Generate Makefiles
 dnl-----------------------------------------------
-AC_CONFIG_FILES([Makefile src/Makefile test/Makefile doxygen/Makefile])
+AC_CONFIG_FILES([
+                 Makefile 
+                 src/Makefile 
+                 test/Makefile 
+                 examples/Makefile 
+                 examples/catenary/Makefile
+                 doxygen/Makefile])
 
 
 #-------------------
