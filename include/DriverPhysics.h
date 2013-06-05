@@ -136,11 +136,24 @@ namespace AGNOS
   void DriverPhysics::run( )
   {
 
+    // print out settings
+    printSettings();
     
     // build initial approximation
     m_surrogate->build();
     
     // build error surrogate
+    // TODO
+    
+    // print out first iteration if requested
+      if (this->m_outputIterations)
+      {
+        std::cout << "\n writing results to: " << this->m_outputFilename
+          << " (iter = " << 1 << " )"
+          << std::endl;
+        std::cout << std::endl;
+        printSolution(1);
+      }
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
@@ -156,7 +169,7 @@ namespace AGNOS
           << " (iter = " << iter << " )"
           << std::endl;
         std::cout << std::endl;
-        printOutput();
+        printSolution(iter);
       }
     }
     
@@ -164,7 +177,7 @@ namespace AGNOS
     std::cout << "\n writing final results to: " << this->m_outputFilename
       << std::endl;
     std::cout << std::endl;
-    printOutput();
+    printSolution(m_maxIter);
 
 
 
