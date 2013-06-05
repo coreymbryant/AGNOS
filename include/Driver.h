@@ -30,11 +30,12 @@ namespace AGNOS
       virtual void run( ) = 0 ;
 
       // TODO clean up output headings
-      void printSolution( std::ostream& out ) ;
+      void printSolutionData( std::ostream& out ) ;
       void printSurrogateSettings( std::ostream& out ) ;
       void printParameterSettings( std::ostream& out ) ;
       void printDriverSettings( std::ostream& out  ) ;
-      void printOutput( ) ;
+      void printSettings( ) ;
+      void printSolution( unsigned int iteration=1 ) ;
 
     protected:
       const Communicator* m_comm;
@@ -178,12 +179,12 @@ namespace AGNOS
       out << m_order[i] << " " ;
     out << std::endl;
 
-    out << "#mins = " ;
+    out << "#     mins = " ;
     for (unsigned int i=0; i < m_paramDim; i++)
       out << m_parameters[i]->min() << " " ;
     out << std::endl;
 
-    out << "#maxs = " ;
+    out << "#     maxs = " ;
     for (unsigned int i=0; i < m_paramDim; i++)
       out << m_parameters[i]->max() << " " ;
     out << std::endl;
@@ -205,7 +206,7 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printSolution( std::ostream& out ) 
+  void Driver::printSolutionData( std::ostream& out ) 
   {
       if (m_outputCoefficients)
         m_surrogate->printCoefficients( m_solutionsToPrint, out );
@@ -225,7 +226,7 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printOutput( ) 
+  void Driver::printSettings( ) 
   {
 
     // set output steam
@@ -234,7 +235,6 @@ namespace AGNOS
       printDriverSettings( std::cout  ) ;
       printParameterSettings( std::cout ) ;
       printSurrogateSettings( std::cout ) ;
-      printSolution( std::cout ) ;
     }
     else
     {
@@ -244,11 +244,38 @@ namespace AGNOS
       printDriverSettings( out  ) ;
       printParameterSettings( out ) ;
       printSurrogateSettings( out ) ;
-      printSolution( out ) ;
 
       out.close( );
     }
 
+    return;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printSolution( unsigned int iteration ) 
+  {
+    // set output steam
+    if (m_outputFilename == "cout" )
+    {
+      std::cout << std::endl;
+      std::cout << "#====================================================\n" 
+         << "#      Solution data for ITER " << iteration << std::endl;
+      printSolutionData( std::cout ) ;
+    }
+    else
+    {
+      std::ofstream out;
+      out.open( m_outputFilename.c_str(), std::ofstream::out | std::ofstream::app );
+
+      out << std::endl;
+      out << "#====================================================\n" 
+         << "#       Solution data for ITER " << iteration << std::endl;
+      printSolutionData( out ) ;
+
+      out.close( );
+    }
     return;
   }
 
