@@ -1,2 +1,2 @@
 #!/bin/bash
-./catenaryTest --log_level=test_suite
+./catenaryTest --log_level=message

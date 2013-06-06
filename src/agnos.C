@@ -8,19 +8,23 @@ int main(int argc, char* argv[])
 
   if( argc < 2 )
   {
-    std::cerr << "\n\t ERROR: must specify input file.\n" << std::endl;
+    std::cerr << "\n\t ERROR: must specify AGNOS input file.\n" << std::endl;
     exit(1);
   }
 
-  MPI_Init(&argc,&argv);
+
+  /* MPI_Init(&argc,&argv); */
+  /* const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD); */
+
+  GetPot inputfile( argv[1] );
+
+  LibMeshInit libmesh_init(argc, argv);
+
+  run( libMesh::Parallel::Communicator_World,  inputfile );
   
-  const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
 
-  GetPot input( argv[1] );
 
-  run( comm,  input );
-
-  MPI_Finalize();
+  /* MPI_Finalize(); */
   return 0;
 }
 
