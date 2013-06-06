@@ -1,0 +1,34 @@
+[driver]
+maxIter = '1'
+[]
+
+[parameters]
+dimension = '1'
+types ='UNIFORM'
+mins = '1.0'
+maxs = '3.0'
+[]
+
+[physics]
+type = 'catenary'
+min = '0.0'
+max = '1.0'
+forcing = '-10.0'
+n = '2'
+maxRefineSteps ='1'
+[]
+
+
+[surrogateModel]
+type = 'PseudoSpectralTensorProduct'
+order = '10'
+[]
+
+[output]
+filename = './testFile.dat'
+solutions = 'primal adjoint qoi'
+coefficients  = 1
+points        = 1
+weights       = 1
+index_set     = 1
+[]
