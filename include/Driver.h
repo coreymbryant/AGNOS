@@ -23,7 +23,7 @@ namespace AGNOS
 
       // TODO default inputs settings
       Driver( );
-      Driver( const Communicator& comm, GetPot& input );
+      Driver( const Communicator& comm, const GetPot& input );
 
       virtual ~Driver( );
 
@@ -39,7 +39,6 @@ namespace AGNOS
 
     protected:
       const Communicator* m_comm;
-      GetPot m_input;
 
 
       // DRIVER VARIABLES
@@ -74,36 +73,33 @@ namespace AGNOS
  ***********************************************/
   Driver::Driver( 
       const Communicator& comm, 
-      GetPot& input ) 
-    : m_comm(&comm), m_input(input)
+      const GetPot& input ) 
+    : m_comm(&comm)
   {
     
     // DRIVER SETTINGS
-    m_input.set_prefix("driver/");
-    m_maxIter = m_input("maxIter",1);
+    m_maxIter = input("driver/maxIter",1);
     
     // TODO adaptive settings
     
     
     // PARAMETER SETTINGS
-    m_input.set_prefix("parameters/");
-    m_paramDim = m_input("dimension", 1);
+    m_paramDim = input("parameters/dimension", 1);
 
     m_parameters.resize(m_paramDim);
     for (unsigned int i=0; i < m_paramDim; i++)
       m_parameters[i] = new Parameter( 
-          m_input("types",0,i),
-          m_input("mins",-1.0,i),
-          m_input("maxs", 1.0,i)
+          input("parameters/types",0,i),
+          input("parameters/mins",-1.0,i),
+          input("parameters/maxs", 1.0,i)
           );
 
     // SURROGATE MODEL SETTINGS
-    m_input.set_prefix("surrogateModel/");
     for (unsigned int i=0; i < m_paramDim; i++)
-      m_order.push_back( m_input("order", 0, i) ) ;
+      m_order.push_back( input("surrogateModel/order", 0, i) ) ;
 
     std::string surrType  = 
-      m_input("type","PseudoSpectralTensorProduct");
+      input("surrogateModel/type","PseudoSpectralTensorProduct");
 
     if (surrType == "PseudoSpectralTensorProduct")
       m_surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
@@ -123,19 +119,18 @@ namespace AGNOS
     
 
     // OUTPUT DATA SETTINGS
-    m_input.set_prefix("output/");
-    m_outputFilename      = m_input("filename","cout");
+    m_outputFilename      = input("output/filename","cout");
 
-    m_solutionsToPrint.resize( m_input.vector_variable_size("solutions") );
+    m_solutionsToPrint.resize( input.vector_variable_size("solutions") );
     for (unsigned int i=0; i < m_solutionsToPrint.size(); i++)
-      m_solutionsToPrint[i] = m_input("solutions", " ",i);
+      m_solutionsToPrint[i] = input("output/solutions", " ",i);
 
-    m_outputIterations    = m_input("iterations",false);
+    m_outputIterations    = input("output/iterations",false);
 
-    m_outputCoefficients  = m_input("coefficients",true);
-    m_outputWeights       = m_input("weights",true);
-    m_outputPoints        = m_input("points",true);
-    m_outputIndexSet      = m_input("index_set",true);
+    m_outputCoefficients  = input("output/coefficients",true);
+    m_outputWeights       = input("output/weights",true);
+    m_outputPoints        = input("output/points",true);
+    m_outputIndexSet      = input("output/index_set",true);
 
   }
 
