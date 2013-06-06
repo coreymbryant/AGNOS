@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
 
 BOOST_AUTO_TEST_CASE(Catenary_N0)
 {
-  BOOST_TEST_MESSAGE(" Testing Catenary with N=0");
+  BOOST_TEST_MESSAGE("\n--------------------------\n Testing Catenary with N=0");
 
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
 
 BOOST_AUTO_TEST_CASE(Catenary_N1)
 {
-  BOOST_TEST_MESSAGE(" Testing Catenary with N=1");
+  BOOST_TEST_MESSAGE("\n--------------------------\n Testing Catenary with N=1");
 
   std::vector<unsigned int> myOrder(dimension,1);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
 
 BOOST_AUTO_TEST_CASE(Catenary_N4)
 {
-  BOOST_TEST_MESSAGE(" Testing Catenary with N=4");
+  BOOST_TEST_MESSAGE("\n--------------------------\n Testing Catenary with N=4");
 
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
 
 BOOST_AUTO_TEST_CASE(Catenary_convergence)
 {
-  BOOST_TEST_MESSAGE(" Testing Catenary convergence");
+  BOOST_TEST_MESSAGE("\n--------------------------\n Testing Catenary convergence");
 
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
     testValue = mySurrogate->evaluate( "primal", paramValue ) ;
   }
 
-  std::cout << "eval = " << testValue(0) << std::endl;
+  /* std::cout << "eval = " << testValue(0) << std::endl; */
   BOOST_CHECK_CLOSE(  testValue(0) , -10.0/(8.0 * paramValue(0) ), 1e-9 );
 
 }
