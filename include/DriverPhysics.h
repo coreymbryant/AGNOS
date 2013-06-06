@@ -21,7 +21,7 @@ namespace AGNOS
       DriverPhysics( 
           const Communicator&       comm,
           PhysicsModel<T_S,T_P>*    myPhysics,          
-          GetPot&                   input );
+          const GetPot&             input );
 
       virtual ~DriverPhysics( );
 
@@ -41,7 +41,7 @@ namespace AGNOS
   DriverPhysics::DriverPhysics( 
       const Communicator& comm,
       PhysicsModel<T_S,T_P>*    myPhysics,          
-      GetPot&                   input 
+      const GetPot&                   input 
       ) : Driver( comm, input )
   {
     
@@ -50,7 +50,6 @@ namespace AGNOS
     //  - input file info (order etc)
     //  - construction 
     
-    input.set_prefix("surrogateModel/");
     // Setup common to all surrogate models
     
     std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
@@ -179,6 +178,12 @@ namespace AGNOS
     std::cout << std::endl;
     printSolution(m_maxIter);
 
+
+    // evaluate QoI
+    T_S evalPoint(1);
+    evalPoint(0) = 1.5;
+    T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint );
+    std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
 
 
 

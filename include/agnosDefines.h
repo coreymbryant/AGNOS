@@ -7,8 +7,10 @@
 #include <stdio.h>
 #include <assert.h>
 #include <cstring>
-#include <GetPot>
+/* #include <GetPot> */
 
+#include "libmesh/getpot.h"
+#include "libmesh/libmesh.h"
 #include "libmesh/parallel.h"
 #include "libmesh/dense_vector.h"
 typedef libMesh::DenseVector<double> T_P ;

@@ -268,14 +268,14 @@ namespace AGNOS
       unsigned int nPts  
         =  m_nIntegrationPoints / this->m_comm->size()  
         + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
-      unsigned int intPtsStart = min(this->m_comm->rank(), m_nIntegrationPoints-1);
+      unsigned int intPtsStart = std::min(this->m_comm->rank(), m_nIntegrationPoints-1);
 
 
       // assign the appropriate coeff to each processor
       unsigned int nCoeffs  
         =  totalNCoeff / this->m_comm->size()  
         + ( this->m_comm->rank() < (totalNCoeff % this->m_comm->size() ) ) ;
-      unsigned int coeffStart = min(this->m_comm->rank(), totalNCoeff-1);
+      unsigned int coeffStart = std::min(this->m_comm->rank(), totalNCoeff-1);
 
 
       // initiaize contribution vector
@@ -420,7 +420,7 @@ namespace AGNOS
         evaluateBasis(this->m_indexSet,parameterValues) ;
 
       // get starting coeff for current rank
-      unsigned int coeffStart = min(this->m_comm->rank(), totalNCoeff-1);
+      unsigned int coeffStart = std::min(this->m_comm->rank(), totalNCoeff-1);
 
       // loop over all solutions requested
       for (unsigned int n=0; n < solutionNames.size(); n++)

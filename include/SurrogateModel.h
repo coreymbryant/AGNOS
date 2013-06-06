@@ -289,7 +289,7 @@ namespace AGNOS
     {
       unsigned int myRank = m_comm->rank();
       unsigned int commSize = m_comm->size();
-      unsigned int coeffStart = min(m_comm->rank(), m_totalNCoeff-1);
+      unsigned int coeffStart = std::min(m_comm->rank(), m_totalNCoeff-1);
 
       if ( myRank == 0)
         out << "#" << std::string(75,'=') << std::endl;

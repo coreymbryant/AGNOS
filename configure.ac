@@ -3,11 +3,43 @@
 
 AC_PREREQ(2.61)
 AC_INIT(agnos, 0.1.0, cbryant@ices.utexas.edu)
-AC_CONFIG_HEADER(config.h)
-#AC_CONFIG_AUX_DIR([build-aux])
-AM_INIT_AUTOMAKE(agnos,0.1.0)
+AC_CONFIG_MACRO_DIR([m4])
 
-AC_PROG_LIBTOOL
+AC_CONFIG_HEADER(config.h)
+
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CANONICAL_TARGET()
+AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+AM_SILENT_RULES(yes)  # use silent rules where available - automake 1.11
+
+LT_INIT
+
+dnl Release versioning
+AX_SPLIT_VERSION
+GENERIC_MAJOR_VERSION=$AX_MAJOR_VERSION
+GENERIC_MINOR_VERSION=$AX_MINOR_VERSION
+GENERIC_MICRO_VERSION=$AX_POINT_VERSION
+GENERIC_LIBRARY_NAME=grins
+
+dnl shared library versioning
+
+PACKAGE=$GENERIC_LIBRARY_NAME
+GENERIC_VERSION=$GENERIC_MAJOR_VERSION.$GENERIC_MINOR_VERSION.$GENERIC_MICRO_VERSION
+GENERIC_RELEASE=$GENERIC_MAJOR_VERSION.$GENERIC_MINOR_VERSION
+
+dnl AC_SUBST(GENERIC_LIBRARY_VERSION)
+dnl AC_SUBST(GENERIC_LIBRARY_NAME)
+
+AC_SUBST(GENERIC_VERSION)
+AC_SUBST(GENERIC_RELEASE)
+AC_SUBST(GENERIC_MAJOR_VERSION)
+AC_SUBST(GENERIC_MINOR_VERSION)
+AC_SUBST(GENERIC_MICRO_VERSION)
+
+AC_DEFINE_UNQUOTED([MAJOR_VERSION],$GENERIC_MAJOR_VERSION,[Major version])
+AC_DEFINE_UNQUOTED([MINOR_VERSION],$GENERIC_MINOR_VERSION,[Minor version])
+AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
+
 
 #------------------------------
 # Checks for compilers and MPI
@@ -83,6 +115,7 @@ AC_CONFIG_FILES([
                  test/Makefile 
                  examples/Makefile 
                  examples/catenary/Makefile
+                 examples/catenaryLibmesh/Makefile
                  doxygen/Makefile])
 
 

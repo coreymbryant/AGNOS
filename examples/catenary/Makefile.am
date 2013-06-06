@@ -5,7 +5,6 @@
 #--------------------------------------
 AM_CPPFLAGS = -I$(top_srcdir)/include \
 							-I$(top_srcdir)/contrib/sandia_rules \
-							-I$(top_srcdir)/contrib/getpot \
 							-I$(LIBMESH_CPPFLAGS)
 
 #-------------------------------------
