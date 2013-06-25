@@ -271,6 +271,7 @@ namespace AGNOS
       unsigned int intPtsStart = std::min(this->m_comm->rank(), m_nIntegrationPoints-1);
 
 
+
       // assign the appropriate coeff to each processor
       unsigned int nCoeffs  
         =  totalNCoeff / this->m_comm->size()  
