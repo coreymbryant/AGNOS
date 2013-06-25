@@ -145,7 +145,7 @@ namespace AGNOS
     // TODO
     
     // print out first iteration if requested
-      if (this->m_outputIterations)
+      if (this->m_outputIterations && (this->m_comm->rank() == 0) )
       {
         std::cout << "\n writing results to: " << this->m_outputFilename
           << " (iter = " << 1 << " )"
@@ -173,17 +173,23 @@ namespace AGNOS
     }
     
     // output whatever user asks for
-    std::cout << "\n writing final results to: " << this->m_outputFilename
-      << std::endl;
-    std::cout << std::endl;
-    printSolution(m_maxIter);
+    if (this->m_comm->rank() == 0)
+    {
+      std::cout << "\n writing final results to: " << this->m_outputFilename
+        << std::endl;
+      std::cout << std::endl;
+      printSolution(m_maxIter);
+    }
 
 
     // evaluate QoI
-    T_S evalPoint(1);
-    evalPoint(0) = 1.5;
-    T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint );
-    std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
+      T_S evalPoint(1);
+      evalPoint(0) = 1.5;
+      T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint );
+    if (this->m_comm->rank() == 0)
+    {
+      std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
+    }
 
 
 
