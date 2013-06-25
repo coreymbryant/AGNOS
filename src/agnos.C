@@ -13,14 +13,20 @@ int main(int argc, char* argv[])
   }
 
 
-  /* MPI_Init(&argc,&argv); */
-  /* const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD); */
+  MPI_Init(&argc,&argv);
+  const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
+
 
   GetPot inputfile( argv[1] );
 
-  LibMeshInit libmesh_init(argc, argv);
+  MPI_Comm myComm;
+  int mpiSplit =  
+    MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm);
 
-  run( libMesh::Parallel::Communicator_World,  inputfile );
+  LibMeshInit libmesh_init(argc, argv, myComm);
+  
+
+  run( comm,  inputfile );
   
 
 
