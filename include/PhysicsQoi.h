@@ -87,11 +87,13 @@ namespace AGNOS
       // declare matrices
       /* libMesh::DenseMatrix<libMesh::Number> Ke; */
       /* libMesh::DenseVector<libMesh::Number> Fe; */
-      libMesh::DenseVector<libMesh::Number> Qe;
       std::vector<libMesh::Number> &Q = system.qoi;
+      Q[0]=0;
       std::vector<libMesh::dof_id_type> dof_indices;
+      libMesh::Number qoiValue;
       
-      Q[0]=1.0;
+      libMesh::Point evalPoint(0.5);
+      Q[0] = system.point_value( 0, evalPoint);
 
       return;
     }
