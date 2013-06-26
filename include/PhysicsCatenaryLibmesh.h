@@ -136,7 +136,6 @@ namespace AGNOS
     m_system->attach_QOI_object( *m_qoi );
 
     // pointer to qoi derivative assembly
-    // TODO
     m_system->qoi.resize(1);
     m_qoiDerivative = new PhysicsQoiDerivative<T_S>(
         *m_equation_systems, "1D");
@@ -211,31 +210,25 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      // TODO need to set solution as well
-      
       // reference to system 
       libMesh::LinearImplicitSystem& system =
         m_equation_systems->get_system<LinearImplicitSystem>("1D");
 
+      // set solution to provided value
+      for (unsigned int i=0; i<system.solution->size(); i++)
+        system.solution->set(i, primalSolution(i) );
+      system.solution->close();
 
-      libMesh::QoISet qois;
-      std::vector<unsigned int> qoi_indices;
-      qoi_indices.push_back(0);
-      qois.add_indices(qoi_indices);
-
-      system.adjoint_solve( qois );
-      libMesh::NumericVector<libMesh::Number> &Q = system.get_adjoint_rhs();
-      for (unsigned int i=0; i < Q.size(); i++)
-        std::cout << "Q(" << i << ") = " << Q(i) << std::endl;
+      // solve adjoint
+      system.adjoint_solve( );
       
       // convert solution to T_P
-      libMesh::NumericVector<double>& libmeshSol = system.get_adjoint_solution( ) ;
+      libMesh::NumericVector<double>& libmeshSol 
+        = system.get_adjoint_solution( ) ;
 
       T_P imageValue( libmeshSol.size() );
       for (unsigned int i=0; i< libmeshSol.size(); i++)
-      {
         imageValue(i) = libmeshSol(i);
-      }
 
       return imageValue;
     }
@@ -249,13 +242,33 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      libMesh::Point evalPoint(0.5);
-      libMesh::Number qoiValue = m_system->point_value(
-          0, evalPoint);
+      // reference to system 
+      libMesh::LinearImplicitSystem& system =
+        m_equation_systems->get_system<LinearImplicitSystem>("1D");
       
-      T_P returnVec;
-      returnVec.resize(1);
-      returnVec(0) = qoiValue;
+      // set solution to provided value
+      for (unsigned int i=0; i<system.solution->size(); i++)
+        system.solution->set(i, primalSolution(i) );
+      system.solution->close();
+
+      // evaluate QoI and get value
+      system.assemble_qoi();
+      std::vector< libMesh::Number > qoiValue = system.qoi;
+
+      // covert to output format
+      T_P returnVec( qoiValue.size() );
+      for (unsigned int i=0; i<qoiValue.size(); i++)
+        returnVec(i) = qoiValue[i];
+
+      std::cout << "qoi = " << returnVec(0) << std::endl;
+
+      /* libMesh::Point evalPoint(0.5); */
+      /* libMesh::Number qoiValue = m_system->point_value( */
+      /*     0, evalPoint); */
+      
+      /* T_P returnVec; */
+      /* returnVec.resize(1); */
+      /* returnVec(0) = qoiValue; */
       return returnVec;
     }
 
