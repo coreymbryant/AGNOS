@@ -121,7 +121,7 @@ namespace AGNOS
     // OUTPUT DATA SETTINGS
     m_outputFilename      = input("output/filename","cout");
 
-    m_solutionsToPrint.resize( input.vector_variable_size("solutions") );
+    m_solutionsToPrint.resize( input.vector_variable_size("output/solutions") );
     for (unsigned int i=0; i < m_solutionsToPrint.size(); i++)
       m_solutionsToPrint[i] = input("output/solutions", " ",i);
 
