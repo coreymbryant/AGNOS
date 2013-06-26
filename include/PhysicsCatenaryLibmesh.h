@@ -6,8 +6,11 @@
 #include "agnosDefines.h"
 #include "PhysicsModel.h"
 #include "PhysicsAssembly.h"
+#include "PhysicsQoi.h"
+#include "PhysicsQoiDerivative.h"
 
 // libmesh includes
+#include "libmesh/petsc_vector.h"
 #include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/edge_edge2.h"
@@ -74,6 +77,8 @@ namespace AGNOS
       libMesh::MeshRefinement*        m_mesh_refinement;
 
       PhysicsAssembly<T_S>*           m_physicsAssembly;
+      PhysicsQoi<T_S>*                m_qoi;
+      PhysicsQoiDerivative<T_S>*      m_qoiDerivative;
 
   };
 
@@ -119,12 +124,23 @@ namespace AGNOS
     m_system->add_variable("u",FIRST);
 
     // provide pointer to assemly routine
-    // TODO define this
     m_physicsAssembly = new PhysicsAssembly<T_S>( 
         *m_equation_systems, "1D", m_forcing);
     const T_S tempParamValues(1);
     m_physicsAssembly->setParameterValues( tempParamValues );
     m_system->attach_assemble_object( *m_physicsAssembly );
+
+    //pointer to qoi
+    m_qoi = new PhysicsQoi<T_S>(
+        *m_equation_systems, "1D");
+    m_system->attach_QOI_object( *m_qoi );
+
+    // pointer to qoi derivative assembly
+    // TODO
+    m_system->qoi.resize(1);
+    m_qoiDerivative = new PhysicsQoiDerivative<T_S>(
+        *m_equation_systems, "1D");
+    m_system->attach_QOI_derivative_object( *m_qoiDerivative );
 
 
     //TODO mesh refinement stuff
@@ -161,13 +177,28 @@ namespace AGNOS
         const T_S& parameterValue  
         )
     {
-      T_P imageValue;
-      /* m_currentCoeff = parameterValue(0); */
-      m_physicsAssembly->setParameterValues( parameterValue );
 
+      // reference to system 
+      libMesh::LinearImplicitSystem& system =
+        m_equation_systems->get_system<LinearImplicitSystem>("1D");
+
+      // solve system
+      m_physicsAssembly->setParameterValues( parameterValue );
       m_equation_systems->reinit();
-      m_equation_systems->get_system("1D").solve();
-      
+      system.solve();
+
+      // convert solution to T_P framework
+      std::set<libMesh::dof_id_type> dofIndices;
+      system.local_dof_indices( 
+          system.variable_number("u"), dofIndices);
+
+      T_P imageValue(dofIndices.size());
+      std::set<libMesh::dof_id_type>::iterator dofIt = dofIndices.begin();
+      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      {
+        imageValue(i) =  system.current_solution(*dofIt) ;
+      }
+
       return imageValue;
     }
 
@@ -180,10 +211,32 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      // TODO need to set solution as well
+      
+      // reference to system 
+      libMesh::LinearImplicitSystem& system =
+        m_equation_systems->get_system<LinearImplicitSystem>("1D");
 
-      T_P imageValue(1);
 
-      imageValue(0) =  1.0 / (4. * parameterValue(0))  ;
+      libMesh::QoISet qois;
+      std::vector<unsigned int> qoi_indices;
+      qoi_indices.push_back(0);
+      qois.add_indices(qoi_indices);
+
+      system.adjoint_solve( qois );
+      libMesh::NumericVector<libMesh::Number> &Q = system.get_adjoint_rhs();
+      for (unsigned int i=0; i < Q.size(); i++)
+        std::cout << "Q(" << i << ") = " << Q(i) << std::endl;
+      
+      // convert solution to T_P
+      libMesh::NumericVector<double>& libmeshSol = system.get_adjoint_solution( ) ;
+
+      T_P imageValue( libmeshSol.size() );
+      for (unsigned int i=0; i< libmeshSol.size(); i++)
+      {
+        imageValue(i) = libmeshSol(i);
+      }
+
       return imageValue;
     }
 
