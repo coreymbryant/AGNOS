@@ -130,25 +130,20 @@ namespace AGNOS
         for(unsigned int qp=0; qp<qrule.n_points(); qp++)
         {
            const Real x = q_point[qp](0);
-           const Real y = q_point[qp](1);
 
           // Now build the element matrix and right-hand-side using loops to
           // integrate the test functions (i) against the trial functions (j).
           for(unsigned int i=0; i<phi.size(); i++)
           {
 
-            Qe(i) += JxW[qp]*phi[i][qp] ;
-
+            Qe(i) += JxW[qp]*phi[i][qp] 
+              * sqrt(500./(3.14159)) * std::exp( -500. * pow(x-0.5,2) );
           }
         }
 
-
-
         Q.add_vector(Qe, dof_indices);
-      }
 
-      for (unsigned int i=0; i < Q.size(); i++)
-        std::cout << "Q(" << i << ") = " << Q(i) << std::endl;
+      }
 
       return;
     }
