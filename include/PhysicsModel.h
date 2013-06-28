@@ -51,6 +51,7 @@ namespace AGNOS
           const T_P& primalSolution,   
           const T_P& adjointSolution  
           ) = 0;
+      const T_P estimateError(  const T_S& parameterValue );
 
       const T_P* getPrimalSolution( ) const;
       const T_P* getAdjointSolution( ) const;
@@ -65,6 +66,7 @@ namespace AGNOS
       T_P* m_adjointSolution;
       T_P* m_qoiValue;
       // this may need a different type
+      T_P* m_errorEstimate;
       T_P* m_errorIndicators;
 
       
@@ -86,6 +88,7 @@ namespace AGNOS
     m_primalSolution  = NULL;
     m_adjointSolution = NULL;
     m_qoiValue        = NULL;
+    m_errorEstimate = NULL;
     m_errorIndicators = NULL;
   }
 
@@ -98,6 +101,7 @@ namespace AGNOS
     delete m_primalSolution;
     delete m_adjointSolution;
     delete m_qoiValue;
+    delete m_errorEstimate;
     delete m_errorIndicators;
   }
 
@@ -183,6 +187,32 @@ namespace AGNOS
 
     return *m_qoiValue;
   }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  const T_P PhysicsModel<T_S,T_P>::estimateError( 
+      const T_S& parameterValue )
+  {
+
+    if (m_primalSolution == NULL)
+    {
+      delete m_primalSolution;
+      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
+      m_adjointSolution = new T_P( solveAdjoint( parameterValue ) ) ;
+    }
+
+    delete m_qoiValue;
+    m_qoiValue = new T_P( evaluateQoi( parameterValue, *m_primalSolution ) );
+    m_errorEstimate = new T_P( estimateError( parameterValue, *m_primalSolution,
+          *m_adjointSolution ) );
+
+
+    return *m_errorEstimate;
+  }
+
+
 }
 
 #endif //PHYSICS_MODEL_H

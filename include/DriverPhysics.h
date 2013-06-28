@@ -29,6 +29,7 @@ namespace AGNOS
 
     protected:
       std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions ;
+      std::map< std::string, PhysicsFunction<T_S,T_P>* > m_errorFunctions ;
 
 
   };
@@ -77,6 +78,15 @@ namespace AGNOS
     
 
 
+    std::map< std::string, PhysicsFunction<T_S,T_P>* > m_errorFunctions;
+    // error estimate
+    m_errorFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "error", 
+          new PhysicsFunctionError<T_S,T_P>( *myPhysics ) ) 
+        ); 
+
+
     // type specific setup
     switch( m_surrogateType )
     {
@@ -86,6 +96,12 @@ namespace AGNOS
           this->m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
               this->m_comm,
               m_physicsFunctions, 
+              m_parameters, 
+              m_order  );
+
+          this->m_errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
+              this->m_comm,
+              m_errorFunctions, 
               m_parameters, 
               m_order  );
 
@@ -126,6 +142,7 @@ namespace AGNOS
     for (id=m_physicsFunctions.begin(); id !=m_physicsFunctions.end(); id++)
       delete id->second;
     delete m_surrogate;
+    delete m_errorSurrogate;
   }
 
 /********************************************//**
@@ -142,7 +159,7 @@ namespace AGNOS
     m_surrogate->build();
     
     // build error surrogate
-    // TODO
+    m_errorSurrogate->build();
     
     // print out first iteration if requested
       if (this->m_outputIterations && (this->m_comm->rank() == 0) )
@@ -161,6 +178,8 @@ namespace AGNOS
         << iter << "  -------------\n " ;
       // TODO may need to pass some info to refine
       m_surrogate->refine();
+      // TODO
+      /* m_errorSurrogate->refine(); */
 
       if (this->m_outputIterations)
       {

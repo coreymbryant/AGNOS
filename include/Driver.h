@@ -54,6 +54,7 @@ namespace AGNOS
       int                       m_surrogateType;
       std::vector<unsigned int> m_order;
       SurrogateModel<T_S,T_P>*  m_surrogate;
+      SurrogateModel<T_S,T_P>*  m_errorSurrogate;
 
       // OUTPUT VARIABLES
       std::string               m_outputFilename; 
@@ -61,6 +62,7 @@ namespace AGNOS
       // TODO some sort of update output used for each iteration
       bool                      m_outputIterations  ;
       bool                      m_outputCoefficients  ;
+      bool                      m_outputErrorCoefficients  ;
       bool                      m_outputWeights       ;
       bool                      m_outputPoints        ;
       bool                      m_outputIndexSet      ;
@@ -128,6 +130,7 @@ namespace AGNOS
     m_outputIterations    = input("output/iterations",false);
 
     m_outputCoefficients  = input("output/coefficients",true);
+    m_outputErrorCoefficients  = input("output/errorCoefficients",true);
     m_outputWeights       = input("output/weights",true);
     m_outputPoints        = input("output/points",true);
     m_outputIndexSet      = input("output/index_set",true);
@@ -205,6 +208,12 @@ namespace AGNOS
   {
       if (m_outputCoefficients)
         m_surrogate->printCoefficients( m_solutionsToPrint, out );
+      if (m_outputErrorCoefficients)
+      {
+        std::vector<std::string> errorSols;
+        errorSols.push_back("error");
+        m_errorSurrogate->printCoefficients( errorSols, out );
+      }
       if (m_outputWeights)
         m_surrogate->printIntegrationWeights( out );
       if (m_outputPoints)
