@@ -209,6 +209,41 @@ namespace AGNOS
 
 
 
+/********************************************//**
+ * \brief Error function based on a PhysicsModel object
+ ***********************************************/
+  template<class T_S, class T_P>
+  class PhysicsFunctionError : public PhysicsFunction<T_S,T_P>
+  {
+    public:
+      PhysicsFunctionError( PhysicsModel<T_S,T_P>& physics );
+      void compute( const T_S& paramVector, T_P& imageVector) ;
+    protected:
+      PhysicsModel<T_S,T_P>& m_physics;
+  };
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    PhysicsFunctionError<T_S,T_P>::PhysicsFunctionError( 
+        PhysicsModel<T_S,T_P>& physics
+        )
+    : m_physics(physics)
+    { this->m_name = "error"; }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    void PhysicsFunctionError<T_S,T_P>::compute(
+        const T_S& paramVector,
+        T_P& imageVector
+        )
+    {
+      imageVector = this->m_physics.estimateError(paramVector);
+    }
+
+
 }
 
 
