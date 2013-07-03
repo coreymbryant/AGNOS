@@ -28,6 +28,7 @@ namespace AGNOS
       void run( ) ;
 
     protected:
+      PhysicsModel<T_S,T_P>*   m_myPhysics;
       std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions ;
       std::map< std::string, PhysicsFunction<T_S,T_P>* > m_errorFunctions ;
 
@@ -43,16 +44,10 @@ namespace AGNOS
       const Communicator& comm,
       PhysicsModel<T_S,T_P>*    myPhysics,          
       const GetPot&                   input 
-      ) : Driver( comm, input )
+      ) : Driver( comm, input ), m_myPhysics(myPhysics)
   {
     
-    // TODO add surrogate model for error
-    //  - need a libmesh hook before we can refine physics model
-    //  - input file info (order etc)
-    //  - construction 
-    
     // Setup common to all surrogate models
-    
     std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
 
     // primal solution
@@ -103,7 +98,7 @@ namespace AGNOS
               this->m_comm,
               m_errorFunctions, 
               m_parameters, 
-              m_order  );
+              m_errorOrder  );
 
           break;
         }
@@ -166,7 +161,7 @@ namespace AGNOS
       {
         std::cout << "\n writing results to: " << this->m_outputFilename
           << " (iter = " << 1 << " )"
-          << std::endl;
+         << std::endl;
         std::cout << std::endl;
         printSolution(1);
       }
@@ -176,10 +171,29 @@ namespace AGNOS
     {
       std::cout << "\n-------------  ITER "
         << iter << "  -------------\n " ;
-      // TODO may need to pass some info to refine
-      m_surrogate->refine();
-      // TODO
+      
+      // TODO control what type of refinement to perform
+      /* m_surrogate->refine(); */
       /* m_errorSurrogate->refine(); */
+
+
+      // use mean of errorSurrogate as error indicators
+      std::map< std::string, std::vector<T_P> >   errorCoeff = m_errorSurrogate->getCoefficients() ;
+      libMesh::ErrorVector errorIndicators(errorCoeff["error"][0].size()) ;
+      for (int i=0; i<errorCoeff["error"][0].size(); i++)
+      {
+        errorIndicators[i] = errorCoeff["error"][0](i);
+        std::cout << "error(" << i << ") = " << errorIndicators[i] << std::endl;
+      }
+
+      m_myPhysics->refine( errorIndicators );
+      m_surrogate->build();
+      m_errorSurrogate->build();
+
+
+
+      /* double totalError = errorIndicators->l2_norm(); */
+      /* std::cout << "totalError = " << totalError << std::endl; */
 
       if (this->m_outputIterations)
       {
@@ -197,18 +211,19 @@ namespace AGNOS
       std::cout << "\n writing final results to: " << this->m_outputFilename
         << std::endl;
       std::cout << std::endl;
-      printSolution(m_maxIter);
     }
+      printSolution(m_maxIter);
+
 
 
     // evaluate QoI
-      T_S evalPoint(1);
-      evalPoint(0) = 1.5;
-      T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint );
-    if (this->m_comm->rank() == 0)
-    {
-      std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
-    }
+      /* T_S evalPoint(1); */
+      /* evalPoint(0) = 1.5; */
+      /* T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint ); */
+    /* if (this->m_comm->rank() == 0) */
+    /* { */
+      /* std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
+    /* } */
 
 
 

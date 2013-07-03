@@ -12,6 +12,9 @@
 
 #ifndef PHYSICS_MODEL_H
 #define PHYSICS_MODEL_H
+
+#include "libmesh/error_vector.h"
+
 namespace AGNOS
 {
 
@@ -53,11 +56,12 @@ namespace AGNOS
           ) = 0;
       const T_P estimateError(  const T_S& parameterValue );
 
+      virtual void refine ( libMesh::ErrorVector errorIndicators ) = 0;
+
       const T_P* getPrimalSolution( ) const;
       const T_P* getAdjointSolution( ) const;
-
-      // this may need a different type
       const T_P* getErrorIndicators( ) const;
+
 
       
     protected:
@@ -66,8 +70,9 @@ namespace AGNOS
       T_P* m_adjointSolution;
       T_P* m_qoiValue;
       // this may need a different type
-      T_P* m_errorEstimate;
-      T_P* m_errorIndicators;
+      T_P*                            m_errorEstimate;
+      T_P*                            m_errorIndicators;
+      libMesh::ErrorVector            m_meanErrorIndicator;
 
       
   }; // PhysicsModel class
@@ -205,11 +210,10 @@ namespace AGNOS
 
     delete m_qoiValue;
     m_qoiValue = new T_P( evaluateQoi( parameterValue, *m_primalSolution ) );
-    m_errorEstimate = new T_P( estimateError( parameterValue, *m_primalSolution,
+    m_errorIndicators = new T_P( estimateError( parameterValue, *m_primalSolution,
           *m_adjointSolution ) );
 
-
-    return *m_errorEstimate;
+    return *m_errorIndicators;
   }
 
 
