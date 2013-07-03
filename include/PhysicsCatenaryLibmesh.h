@@ -10,7 +10,6 @@
 #include "PhysicsQoiDerivative.h"
 
 // libmesh includes
-#include "libmesh/petsc_vector.h"
 #include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/edge_edge2.h"
@@ -29,9 +28,9 @@ namespace AGNOS
     {
       libMesh::AutoPtr<libMesh::AdjointRefinementEstimator> error_estimator;
 
-      std::cout
-        <<"Computing the error estimate using the Adjoint Refinement Error Estimator" 
-        <<std::endl<<std::endl;
+      /* std::cout */
+      /*   <<"Computing the error estimate using the Adjoint Refinement Error Estimator" */ 
+      /*   <<std::endl<<std::endl; */
 
       libMesh::AdjointRefinementEstimator *adjoint_refinement_estimator = new
         libMesh::AdjointRefinementEstimator;
@@ -84,6 +83,8 @@ namespace AGNOS
           const T_P& primalSolution,   
           const T_P& adjointSolution  
           );
+
+      void refine ( libMesh::ErrorVector errorIndicators );
       
     protected:
       double          m_forcing;
@@ -170,13 +171,12 @@ namespace AGNOS
         *m_equation_systems, "1D");
     m_system->attach_QOI_derivative_object( *m_qoiDerivative );
 
-
-    //TODO mesh refinement stuff
     // define mesh refinement object
     m_mesh_refinement = new libMesh::MeshRefinement(m_mesh);
     m_mesh_refinement->refine_fraction()  = 0.7;
     m_mesh_refinement->coarsen_fraction() = 0.3;
-    m_mesh_refinement->max_h_level()      = 5;
+    m_mesh_refinement->max_h_level()      = 15;
+    m_mesh_refinement->absolute_global_tolerance() = 1e-3;
 
     //------ initialize data structures
     m_equation_systems->init();
@@ -215,7 +215,6 @@ namespace AGNOS
 
       // solve system
       m_physicsAssembly->setParameterValues( parameterValue );
-      m_equation_systems->reinit();
       m_system->solve();
 
       // convert solution to T_P framework
@@ -310,36 +309,75 @@ namespace AGNOS
         )
     {
       // set solution to provided value
-      /* m_physicsAssembly->setParameterValues( parameterValue ); */
-      /* std::cout << "solSize = " << m_system->solution->size() << std::endl; */
       for (unsigned int i=0; i<m_system->solution->size(); i++)
+      {
         m_system->solution->set(i, primalSolution(i) );
+        /* std::cout << "primal(" << i << ") = " << (*m_system->solution)(i) << std::endl; */
+      }
       m_system->solution->close();
       
       // set adjoint solutions
-      // TODO
-      
-      // error estimator and indicators
-      libMesh::ErrorVector QoiErrorIndicators;
+      libMesh::NumericVector<libMesh::Number>* adjSolution 
+        = &( m_system->get_adjoint_solution(0) ) ;
+      for (unsigned int i=0; i<adjointSolution.size(); i++)
+      {
+        adjSolution->set(i, adjointSolution(i) );
+        /* std::cout << "adjoint(" << i << ") = " << (*adjSolution)(i) << std::endl; */
+      }
+      adjSolution->close();
+
+      // error indicators
       libMesh::AutoPtr<libMesh::AdjointRefinementEstimator> 
         adjoint_refinement_error_estimator =
         build_adjoint_refinement_error_estimator(*m_qois);
 
-      adjoint_refinement_error_estimator->estimate_error(*m_system,
-          QoiErrorIndicators);
+      libMesh::ErrorVector qoiErrorIndicators;
 
-      /* std::cout << "error_est = " << */
-      /*   std::abs(adjoint_refinement_error_estimator->get_global_QoI_error_estimate(0)) */
+      adjoint_refinement_error_estimator->estimate_error(*m_system,
+          qoiErrorIndicators);
+
+      /* std::cout << "errorEst = " << qoiErrorIndicators->l2_norm() */
       /*   << std::endl; */
 
-      // in this case the FE solution interpolates at x=1/2 so the QoI is
-      // evaluated exactly
-      T_P imageValue(1);
-      imageValue.zero();
+
+      // copy to solution vector
+      T_P imageValue(qoiErrorIndicators.size());
+      for (unsigned int i=0; i<imageValue.size(); i++)
+      {
+        imageValue(i) = qoiErrorIndicators[i];
+        std::cout << "error(" << i << ") = " << qoiErrorIndicators[i] <<
+          std::endl;
+      }
 
       return imageValue;
     }
 
+
+  template<class T_S, class T_P>
+    void PhysicsCatenaryLibmesh<T_S,T_P>::refine(
+        libMesh::ErrorVector errorIndicators
+        ) 
+    {
+
+
+      //TODO need to use some sort of average as error indicators
+      /* m_mesh_refinement->flag_elements_by_error_tolerance */
+      /*    (this->m_meanErrorIndicator); */              
+      /* m_mesh_refinement->flag_elements_by_error_fraction */
+      /*    (this->m_meanErrorIndicator); */              
+                   
+      /* m_mesh_refinement->refine_and_coarsen_elements(); */
+      /* m_mesh_refinement->refine_elements(); */
+
+      m_mesh_refinement->uniformly_refine(1);
+
+      m_equation_systems->reinit();
+
+      std::cout << "nDofs = " << m_equation_systems->n_active_dofs() << std::endl;
+
+
+      return;
+    }
 
 }
 

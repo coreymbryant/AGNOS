@@ -1,5 +1,5 @@
 [driver]
-maxIter = '1'
+maxIter = '3'
 []
 
 [parameters]
@@ -15,20 +15,22 @@ min = '0.0'
 max = '1.0'
 forcing = '-10.0'
 n = '2'
-maxRefineSteps ='1'
+maxRefineSteps ='15'
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '10'
+order = '2'
+errorOrder = '3'
 []
 
 [output]
 filename = './testFile.dat'
 solutions = 'primal adjoint qoi'
-coefficients  = 1
-points        = 1
-weights       = 1
-index_set     = 1
+coefficients        = 1
+errorCoefficients   = 1
+points              = 1
+weights             = 1
+index_set           = 1
 []

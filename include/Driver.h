@@ -21,7 +21,6 @@ namespace AGNOS
 
     public:
 
-      // TODO default inputs settings
       Driver( );
       Driver( const Communicator& comm, const GetPot& input );
 
@@ -29,7 +28,6 @@ namespace AGNOS
 
       virtual void run( ) = 0 ;
 
-      // TODO clean up output headings
       void printSolutionData( std::ostream& out ) ;
       void printSurrogateSettings( std::ostream& out ) ;
       void printParameterSettings( std::ostream& out ) ;
@@ -43,23 +41,24 @@ namespace AGNOS
 
       // DRIVER VARIABLES
       unsigned int m_maxIter;
-      // TODO adaptivity settings
 
       // PARAMETERS VARIABLES
       unsigned int              m_paramDim;
       std::vector<Parameter*>   m_parameters;
-
+      
+      // ADAPTIVE SETTINGS
+      // TODO adaptive settings
 
       // SURROGATE VARIABLES
       int                       m_surrogateType;
       std::vector<unsigned int> m_order;
+      std::vector<unsigned int> m_errorOrder;
       SurrogateModel<T_S,T_P>*  m_surrogate;
       SurrogateModel<T_S,T_P>*  m_errorSurrogate;
 
       // OUTPUT VARIABLES
       std::string               m_outputFilename; 
       std::vector<std::string>  m_solutionsToPrint ;
-      // TODO some sort of update output used for each iteration
       bool                      m_outputIterations  ;
       bool                      m_outputCoefficients  ;
       bool                      m_outputErrorCoefficients  ;
@@ -82,6 +81,7 @@ namespace AGNOS
     // DRIVER SETTINGS
     m_maxIter = input("driver/maxIter",1);
     
+    // ADAPTIVE SETTINGS
     // TODO adaptive settings
     
     
@@ -99,6 +99,9 @@ namespace AGNOS
     // SURROGATE MODEL SETTINGS
     for (unsigned int i=0; i < m_paramDim; i++)
       m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+    // TODO make this a functino like we have in matlab code
+    for (unsigned int i=0; i < m_paramDim; i++)
+      m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i], i) ) ;
 
     std::string surrType  = 
       input("surrogateModel/type","PseudoSpectralTensorProduct");
@@ -175,6 +178,10 @@ namespace AGNOS
     out << "#     order = " ;
     for(unsigned int i=0; i < m_paramDim; i++)
       out << m_order[i] << " " ;
+    out << std::endl;
+    out << "#     errorOrder = " ;
+    for(unsigned int i=0; i < m_paramDim; i++)
+      out << m_errorOrder[i] << " " ;
     out << std::endl;
 
     out << "#     mins = " ;
