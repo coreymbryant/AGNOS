@@ -80,6 +80,8 @@ namespace AGNOS
 
       virtual void refine( ) = 0;
 
+      //TODO calculate mean
+
 
       // Manipulators
       void setParameters( std::vector<Parameter*> parameters );
