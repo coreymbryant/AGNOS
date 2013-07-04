@@ -87,6 +87,7 @@ namespace AGNOS
       void refine ( libMesh::ErrorVector errorIndicators );
       
     protected:
+      const Communicator*   m_comm;
       double          m_forcing;
       double          m_min;
       double          m_max;
@@ -115,7 +116,7 @@ namespace AGNOS
   PhysicsCatenaryLibmesh<T_S,T_P>::PhysicsCatenaryLibmesh(
       const Communicator&       comm,
       const GetPot&             physicsInput
-      ) 
+      ) : m_comm(&comm)
   {
     //-------- get physics model settings
     if (comm.rank() == 0)
@@ -173,10 +174,14 @@ namespace AGNOS
 
     // define mesh refinement object
     m_mesh_refinement = new libMesh::MeshRefinement(m_mesh);
-    m_mesh_refinement->refine_fraction()  = 0.7;
-    m_mesh_refinement->coarsen_fraction() = 0.3;
-    m_mesh_refinement->max_h_level()      = 15;
-    m_mesh_refinement->absolute_global_tolerance() = 1e-3;
+
+    m_mesh_refinement->coarsen_by_parents()         = true;
+    m_mesh_refinement->absolute_global_tolerance()  = 0.0;
+    m_mesh_refinement->nelem_target()               = 21;  
+    m_mesh_refinement->refine_fraction()            = 0.7;
+    m_mesh_refinement->coarsen_fraction()           = 0.3;  
+    m_mesh_refinement->coarsen_threshold()          = 5;
+    m_mesh_refinement->max_h_level()                = 15;
 
     //------ initialize data structures
     m_equation_systems->init();
@@ -253,6 +258,7 @@ namespace AGNOS
 
       // solve adjoint
       m_system->adjoint_solve( );
+      m_system->set_adjoint_already_solved(true);
       
       // convert solution to T_P
       libMesh::NumericVector<double>& libmeshSol 
@@ -325,6 +331,7 @@ namespace AGNOS
         /* std::cout << "adjoint(" << i << ") = " << (*adjSolution)(i) << std::endl; */
       }
       adjSolution->close();
+      m_system->set_adjoint_already_solved(true);
 
       // error indicators
       libMesh::AutoPtr<libMesh::AdjointRefinementEstimator> 
@@ -345,8 +352,8 @@ namespace AGNOS
       for (unsigned int i=0; i<imageValue.size(); i++)
       {
         imageValue(i) = qoiErrorIndicators[i];
-        std::cout << "error(" << i << ") = " << qoiErrorIndicators[i] <<
-          std::endl;
+        /* std::cout << "error(" << i << ") = " << qoiErrorIndicators[i] << */
+        /*   std::endl; */
       }
 
       return imageValue;
@@ -358,22 +365,28 @@ namespace AGNOS
         libMesh::ErrorVector errorIndicators
         ) 
     {
-
+      if (m_comm->rank() == 0)
+      {
+        std::cout << " error.size = " << errorIndicators.size() << std::endl;
+        std::cout << "nElem = " << m_mesh.n_active_elem() << std::endl;
+      }
 
       //TODO need to use some sort of average as error indicators
-      /* m_mesh_refinement->flag_elements_by_error_tolerance */
-      /*    (this->m_meanErrorIndicator); */              
-      /* m_mesh_refinement->flag_elements_by_error_fraction */
-      /*    (this->m_meanErrorIndicator); */              
+      /* m_mesh_refinement->clean_refinement_flags(); */
+      /* m_mesh_refinement->flag_elements_by_error_tolerance (errorIndicators); */              
+      /* m_mesh_refinement->flag_elements_by_error_fraction (errorIndicators); */              
+      m_mesh_refinement->flag_elements_by_elem_fraction (errorIndicators);              
                    
+      /* std::cout << "unflagged: " << m_mesh_refinement->test_unflagged( ) << std::endl; */
       /* m_mesh_refinement->refine_and_coarsen_elements(); */
-      /* m_mesh_refinement->refine_elements(); */
+      m_mesh_refinement->refine_elements();
 
-      m_mesh_refinement->uniformly_refine(1);
+      /* m_mesh_refinement->uniformly_refine(1); */
 
       m_equation_systems->reinit();
 
-      std::cout << "nDofs = " << m_equation_systems->n_active_dofs() << std::endl;
+
+
 
 
       return;

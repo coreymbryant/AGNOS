@@ -168,6 +168,7 @@ namespace AGNOS
         )
     {
       imageVector = this->m_physics.solveAdjoint(paramVector);
+      return;
     }
   
 
