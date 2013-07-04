@@ -169,8 +169,8 @@ namespace AGNOS
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
     {
-      std::cout << "\n-------------  ITER "
-        << iter << "  -------------\n " ;
+      if (this->m_comm->rank() == 0) 
+        std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
       
       // TODO control what type of refinement to perform
       /* m_surrogate->refine(); */
@@ -180,10 +180,13 @@ namespace AGNOS
       // use mean of errorSurrogate as error indicators
       std::map< std::string, std::vector<T_P> >   errorCoeff = m_errorSurrogate->getCoefficients() ;
       libMesh::ErrorVector errorIndicators(errorCoeff["error"][0].size()) ;
+
+      std::cout << " error.size = " << errorCoeff["error"][0].size() << std::endl;
+
       for (int i=0; i<errorCoeff["error"][0].size(); i++)
       {
         errorIndicators[i] = errorCoeff["error"][0](i);
-        std::cout << "error(" << i << ") = " << errorIndicators[i] << std::endl;
+        /* std::cout << "error(" << i << ") = " << errorIndicators[i] << std::endl; */
       }
 
       m_myPhysics->refine( errorIndicators );
@@ -195,7 +198,7 @@ namespace AGNOS
       /* double totalError = errorIndicators->l2_norm(); */
       /* std::cout << "totalError = " << totalError << std::endl; */
 
-      if (this->m_outputIterations)
+      if (this->m_outputIterations && (this->m_comm->rank() == 0) )
       {
         std::cout << "\n writing results to: " << this->m_outputFilename
           << " (iter = " << iter << " )"

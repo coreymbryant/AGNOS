@@ -312,8 +312,12 @@ namespace AGNOS
           tempSize = myContribs[0][id->first].size();
 
         this->m_comm->broadcast(tempSize);
+
+        this->m_solSize.clear();
+
         this->m_solSize.insert( std::pair<std::string,unsigned int>(
               id->first,tempSize ) );
+
       }
 
 
@@ -331,6 +335,9 @@ namespace AGNOS
       // save if its one of my coefficients
       // --------------
       
+      // clear old coefficients
+      this->m_coefficients.clear();
+
       //-- loop through sols
       for (id=this->m_solutionFunction.begin();
           id!=this->m_solutionFunction.end(); id++)
@@ -359,9 +366,11 @@ namespace AGNOS
         } // c
 
         if (solCoefficientVectors.size() > 0)
+        {
           this->m_coefficients.insert(
               std::pair< std::string, std::vector<T_P> >(id->first,
                 solCoefficientVectors) ) ;
+        }
 
       } // id
 
