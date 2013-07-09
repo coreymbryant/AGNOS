@@ -70,6 +70,13 @@ namespace AGNOS
   }
 
 /********************************************//**
+ * \brief 
+ * 
+ ***********************************************/
+  QuadratureTensorProduct::~QuadratureTensorProduct( )
+  {}
+
+/********************************************//**
  * \brief recurs to produce quad rule for higher dimensions
  *
  ***********************************************/
@@ -120,6 +127,9 @@ namespace AGNOS
         }
       }
     }
+    delete[] oneDimQuadPoints;
+    delete[] oneDimQuadWeights;
+
     return ;
   }
 

@@ -305,6 +305,7 @@ namespace AGNOS
       // need to know size of solution vector on all processes (in case some
       // don't have any work but will still be called in reduce operation)
       unsigned int tempSize;
+      this->m_solSize.clear();
       for (id=this->m_solutionFunction.begin();
           id!=this->m_solutionFunction.end(); id++)
       {
@@ -312,8 +313,6 @@ namespace AGNOS
           tempSize = myContribs[0][id->first].size();
 
         this->m_comm->broadcast(tempSize);
-
-        this->m_solSize.clear();
 
         this->m_solSize.insert( std::pair<std::string,unsigned int>(
               id->first,tempSize ) );
