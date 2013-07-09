@@ -56,7 +56,7 @@ namespace AGNOS
           ) = 0;
       const T_P estimateError(  const T_S& parameterValue );
 
-      virtual void refine ( libMesh::ErrorVector errorIndicators ) = 0;
+      virtual void refine (  )  = 0;
 
       const T_P* getPrimalSolution( ) const;
       const T_P* getAdjointSolution( ) const;
@@ -103,11 +103,16 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::~PhysicsModel( )
   {
-    delete m_primalSolution;
-    delete m_adjointSolution;
-    delete m_qoiValue;
-    delete m_errorEstimate;
-    delete m_errorIndicators;
+    if ( m_primalSolution )
+      delete m_primalSolution;
+    if ( m_adjointSolution )
+      delete m_adjointSolution;
+    if ( m_qoiValue )
+      delete m_qoiValue;
+    if ( m_errorEstimate )
+      delete m_errorEstimate;
+    if ( m_errorIndicators )
+      delete m_errorIndicators;
   }
 
 
@@ -215,7 +220,6 @@ namespace AGNOS
 
     return *m_errorIndicators;
   }
-
 
 }
 

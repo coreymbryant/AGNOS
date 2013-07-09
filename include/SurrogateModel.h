@@ -238,6 +238,13 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::~SurrogateModel( )
     {
+      /* typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id; */
+      /* for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++) */
+      /*   delete id->second; */
+
+      /* for (unsigned int i=0; i<m_parameters.size(); i++) */
+      /*   delete m_parameters[i]; */
+
     }
 
 /********************************************//**

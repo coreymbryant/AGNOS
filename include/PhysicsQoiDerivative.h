@@ -137,7 +137,7 @@ namespace AGNOS
           {
 
             Qe(i) += JxW[qp]*phi[i][qp] 
-              * sqrt(500./(3.14159)) * std::exp( -500. * pow(x-0.5,2) );
+              * sqrt(10./(3.14159)) * std::exp( -10. * pow(x-0.5,2) );
           }
         }
 
