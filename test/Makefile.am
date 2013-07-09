@@ -2,7 +2,11 @@
 # Programs and libraries we want to build
 #----------------------------------------
 
-check_PROGRAMS = polynomialTest catenaryTest evaluationTest parallelCatenary
+check_PROGRAMS = polynomialTest \
+								 catenaryTest \
+								 evaluationTest \
+								 parallelCatenary \
+								 catenaryLibmeshTest
 
 #--------------------------------------
 #Local Directories to include for build
@@ -31,8 +35,10 @@ polynomialTest_SOURCES 	=$(top_srcdir)/test/PolynomialTest.cpp
 catenaryTest_SOURCES 		=$(top_srcdir)/test/CatenaryTest.cpp
 evaluationTest_SOURCES 	=$(top_srcdir)/test/EvaluationTest.cpp
 parallelCatenary_SOURCES 		=$(top_srcdir)/test/ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES 		=$(top_srcdir)/test/LibmeshCatenaryTest.cpp
 
 TESTS  = $(top_builddir)/test/polynomialTest.sh
 TESTS += $(top_builddir)/test/catenaryTest.sh
 TESTS += $(top_builddir)/test/evaluationTest.sh
 TESTS += $(top_builddir)/test/parallelCatenary.sh
+TESTS += $(top_builddir)/test/catenaryLibmeshTest.sh

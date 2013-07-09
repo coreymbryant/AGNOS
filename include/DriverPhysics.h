@@ -133,11 +133,7 @@ namespace AGNOS
  ***********************************************/
   DriverPhysics::~DriverPhysics( )
   {
-    std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
-    for (id=m_physicsFunctions.begin(); id !=m_physicsFunctions.end(); id++)
-      delete id->second;
-    delete m_surrogate;
-    delete m_errorSurrogate;
+    /* delete m_myPhysics; */
   }
 
 /********************************************//**
@@ -181,7 +177,7 @@ namespace AGNOS
       std::map< std::string, std::vector<T_P> >   errorCoeff = m_errorSurrogate->getCoefficients() ;
       libMesh::ErrorVector errorIndicators(errorCoeff["error"][0].size()) ;
 
-      std::cout << " error.size = " << errorCoeff["error"][0].size() << std::endl;
+      /* std::cout << " error.size = " << errorCoeff["error"][0].size() << std::endl; */
 
       for (int i=0; i<errorCoeff["error"][0].size(); i++)
       {
@@ -189,11 +185,12 @@ namespace AGNOS
         /* std::cout << "error(" << i << ") = " << errorIndicators[i] << std::endl; */
       }
 
-      m_myPhysics->refine( errorIndicators );
+      /* m_myPhysics->refine( errorIndicators ); */
+      m_myPhysics->refine( );
+      m_surrogate->refine( );
+      m_errorSurrogate->refine( );
       m_surrogate->build();
       m_errorSurrogate->build();
-
-
 
       /* double totalError = errorIndicators->l2_norm(); */
       /* std::cout << "totalError = " << totalError << std::endl; */
@@ -205,6 +202,16 @@ namespace AGNOS
           << std::endl;
         std::cout << std::endl;
         printSolution(iter);
+      }
+      //
+      // evaluate QoI
+      T_S evalPoint(1);
+      evalPoint(0) = 1.5;
+      T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
+      T_P qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ;
+      if (this->m_comm->rank() == 0)
+      {
+        std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
       }
     }
     
@@ -219,14 +226,6 @@ namespace AGNOS
 
 
 
-    // evaluate QoI
-      /* T_S evalPoint(1); */
-      /* evalPoint(0) = 1.5; */
-      /* T_P qoiValue = m_surrogate->evaluate("qoi", evalPoint ); */
-    /* if (this->m_comm->rank() == 0) */
-    /* { */
-      /* std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
-    /* } */
 
 
 

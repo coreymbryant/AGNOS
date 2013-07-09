@@ -47,6 +47,8 @@ namespace AGNOS
         const T_P& primalSolution,   
         const T_P& adjointSolution  
         );
+
+    void refine( );
   
   protected:
     double m_forcing;
@@ -135,6 +137,17 @@ namespace AGNOS
       return imageValue;
     }
 
+
+  /********************************************//**
+   * \brief 
+   *
+   * 
+   ***********************************************/
+  template<class T_S,class T_P> 
+    void PhysicsCatenary<T_S,T_P>::refine( ) 
+    {
+      return;
+    }
 
 
 }
