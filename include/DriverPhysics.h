@@ -189,8 +189,8 @@ namespace AGNOS
       m_myPhysics->refine( );
       m_surrogate->refine( );
       m_errorSurrogate->refine( );
-      m_surrogate->build();
-      m_errorSurrogate->build();
+      /* m_surrogate->build(); */
+      /* m_errorSurrogate->build(); */
 
       /* double totalError = errorIndicators->l2_norm(); */
       /* std::cout << "totalError = " << totalError << std::endl; */

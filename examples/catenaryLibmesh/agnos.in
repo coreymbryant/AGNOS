@@ -1,5 +1,5 @@
 [driver]
-maxIter = '9'
+maxIter = '1'
 []
 
 [parameters]
@@ -21,7 +21,7 @@ maxRefineSteps ='15'
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '2'
+order = '0'
 errorOrder = '3'
 []
 

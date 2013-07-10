@@ -113,7 +113,8 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
 
   BOOST_CHECK_CLOSE( 
       myCoeff["linear"].back()(0) , 
-      std::pow(std::sqrt(1.0/3.0),dimension),
+      std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
+        static_cast<int>(dimension)), 
       1e-4 );
 }
 
@@ -175,10 +176,13 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , std::pow(1.0/3.0,dimension), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , 
+      std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)), 
+      1e-9 );
   BOOST_CHECK_CLOSE( 
       myCoeff["quad"].back()(0) , 
-      std::pow( std::sqrt(1.0/5.0) * 2.0/3.0 ,dimension), 
+      std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
+        static_cast<int>(dimension)), 
       1e-9 );
 }
 
