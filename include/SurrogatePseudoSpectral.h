@@ -394,6 +394,12 @@ namespace AGNOS
 
       
       typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      // clear out old solutions
+      for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
+      {
+        id->second->resetPhysicsSolution();
+      }
+
       for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
       {
         
