@@ -54,21 +54,21 @@ namespace AGNOS
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "primal", 
-          new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ) 
+          new PhysicsFunctionPrimal<T_S,T_P>( myPhysics ) ) 
         );
 
     // adjoint solution
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "adjoint", 
-          new PhysicsFunctionAdjoint<T_S,T_P>( *myPhysics ) ) 
+          new PhysicsFunctionAdjoint<T_S,T_P>( myPhysics ) ) 
         ); 
 
     // qoi evaluation
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "qoi", 
-          new PhysicsFunctionQoi<T_S,T_P>( *myPhysics ) ) 
+          new PhysicsFunctionQoi<T_S,T_P>( myPhysics ) ) 
         ); 
     
 
@@ -78,7 +78,7 @@ namespace AGNOS
     m_errorFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "error", 
-          new PhysicsFunctionError<T_S,T_P>( *myPhysics ) ) 
+          new PhysicsFunctionError<T_S,T_P>( myPhysics ) ) 
         ); 
 
 

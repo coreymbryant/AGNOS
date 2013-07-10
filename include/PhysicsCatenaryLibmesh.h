@@ -89,6 +89,8 @@ namespace AGNOS
       void refine (  );
       void refine ( libMesh::ErrorVector errorIndicators );
       
+      const libMesh::Mesh getMesh() const ;
+
     protected:
       const Communicator*   m_comm;
       double          m_forcing;
@@ -130,7 +132,7 @@ namespace AGNOS
     m_min             = physicsInput("physics/min",0.);
     m_max             = physicsInput("physics/max",1.);
     m_forcing         = physicsInput("physics/forcing",-10.);
-    m_n               = physicsInput("physics/n",2);
+    m_n               = physicsInput("physics/n",1);
     m_maxRefineSteps  = physicsInput("physics/maxRefineSteps",1);
 
 
@@ -145,7 +147,6 @@ namespace AGNOS
     if (comm.rank() == 0)
       std::cout << "\n-- Setting up equation system and refinement strategy.\n";
 
-    std::cout << "test" << std::endl;
     // define equation system
     m_equation_systems = new libMesh::EquationSystems(m_mesh);
     m_system = &( m_equation_systems->add_system<LinearImplicitSystem>("1D") ) ;
@@ -597,6 +598,16 @@ namespace AGNOS
 
       return;
     }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S, class T_P>
+    const libMesh::Mesh PhysicsCatenaryLibmesh<T_S,T_P>::getMesh( ) const
+    { 
+      return m_mesh;
+    }
+
 
 }
 

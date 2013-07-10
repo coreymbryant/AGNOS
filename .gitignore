@@ -34,6 +34,12 @@ test/polynomialTest
 test/catenaryTest
 test/evaluationTest
 test/parallelCatenary
+test/catenaryLibmeshTest
+
+examples/catenaryLibmesh/catenaryLibmesh
+examples/catenary/catenary
+
+*testFile.dat
 
 *.o
 *.deps/

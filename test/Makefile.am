@@ -12,15 +12,16 @@ check_PROGRAMS = polynomialTest \
 #Local Directories to include for build
 #--------------------------------------
 AM_CPPFLAGS = -I$(top_srcdir)/include \
-							-I$(top_srcdir)/contrib/sandia_rules \
-							-I$(LIBMESH_CPPFLAGS)
+							-I$(top_srcdir)/contrib/sandia_rules
 
 #-------------------------------------
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
-							 $(LIBMESH_CPPFLAGS)
+							 $(LIBMESH_CPPFLAGS) \
+							 $(CPPUNIT_CFLAGS)
 # AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
+LIBS = $(CPPUNIT_LIBS)
 
 #------------------------------------
 # Flags we need to pass to the linker
@@ -35,10 +36,12 @@ polynomialTest_SOURCES 	=$(top_srcdir)/test/PolynomialTest.cpp
 catenaryTest_SOURCES 		=$(top_srcdir)/test/CatenaryTest.cpp
 evaluationTest_SOURCES 	=$(top_srcdir)/test/EvaluationTest.cpp
 parallelCatenary_SOURCES 		=$(top_srcdir)/test/ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES 		=$(top_srcdir)/test/LibmeshCatenaryTest.cpp
+catenaryLibmeshTest_SOURCES 		= $(top_srcdir)/test/libmeshTests.C \
+																	$(top_srcdir)/test/LibmeshCatenaryTest.cpp
+
 
 TESTS  = $(top_builddir)/test/polynomialTest.sh
 TESTS += $(top_builddir)/test/catenaryTest.sh
 TESTS += $(top_builddir)/test/evaluationTest.sh
 TESTS += $(top_builddir)/test/parallelCatenary.sh
-TESTS += $(top_builddir)/test/catenaryLibmeshTest.sh
+TESTS += $(top_builddir)/test/catenaryLibmeshTest

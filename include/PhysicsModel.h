@@ -35,33 +35,34 @@ namespace AGNOS
       virtual T_P solvePrimal( 
           const T_S& parameterValue  
           ) = 0;
-      void setPrimalSolution( T_P& primalSolution );
+      void setPrimalSolution( T_P primalSolution );
 
       virtual T_P solveAdjoint( 
           const T_S& parameterValue,  
           const T_P& primalSolution    
           ) = 0;
-      const T_P solveAdjoint( const T_S& parameterValue) ;
+      void setAdjointSolution( T_P adjointSolution );
 
       virtual T_P evaluateQoi( 
           const T_S& parameterValue,
           const T_P& primalSolution    
           ) = 0;
-      const T_P evaluateQoi( const T_S& parameterValue);
+      void setQoiValue( T_P qoiValue );
 
       virtual T_P estimateError( 
           const T_S& parameterValue,  
           const T_P& primalSolution,   
           const T_P& adjointSolution  
           ) = 0;
-      const T_P estimateError(  const T_S& parameterValue );
+      void setErrorIndicators( T_P& errorIndicators );
 
       virtual void refine (  )  = 0;
 
-      const T_P* getPrimalSolution( ) const;
-      const T_P* getAdjointSolution( ) const;
+      const T_P* getPrimalSolution( ) const ;
+      const T_P* getAdjointSolution( ) const ;
       const T_P* getErrorIndicators( ) const;
 
+      void resetSolution( );
 
       
     protected:
@@ -148,12 +149,10 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   void PhysicsModel<T_S,T_P>::setPrimalSolution( 
-      T_P& primalSolution )
+      T_P primalSolution )
   {
     delete m_primalSolution;
     m_primalSolution = new T_P(primalSolution);
-    /* *m_primalSolution = primalSolution ; */
-
     return ;
   }
 
@@ -161,64 +160,60 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-  const T_P PhysicsModel<T_S,T_P>::solveAdjoint( 
-      const T_S& parameterValue )
+  void PhysicsModel<T_S,T_P>::setAdjointSolution( 
+      T_P adjointSolution )
   {
-    //TODO we could have problems if sol is for different parameter value
-    if (m_primalSolution == NULL)
-    {
-      delete m_primalSolution;
-      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
-    }
-
     delete m_adjointSolution;
-    m_adjointSolution = new T_P( solveAdjoint( parameterValue, *m_primalSolution) );
-
-    return *m_adjointSolution;
+    m_adjointSolution = new T_P(adjointSolution);
+    return ;
   }
 
 /********************************************//**
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-  const T_P PhysicsModel<T_S,T_P>::evaluateQoi( 
-      const T_S& parameterValue )
+  void PhysicsModel<T_S,T_P>::setQoiValue( 
+      T_P qoiValue )
   {
-
-    if (m_primalSolution == NULL)
-    {
-      delete m_primalSolution;
-      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
-    }
-
     delete m_qoiValue;
-    m_qoiValue = new T_P( evaluateQoi( parameterValue, *m_primalSolution ) );
-
-
-    return *m_qoiValue;
+    m_qoiValue = new T_P(qoiValue);
+    return ;
   }
 
 /********************************************//**
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-  const T_P PhysicsModel<T_S,T_P>::estimateError( 
-      const T_S& parameterValue )
+  void PhysicsModel<T_S,T_P>::setErrorIndicators( 
+      T_P& errorIndicators )
   {
+    delete m_errorIndicators;
+    m_errorIndicators = new T_P(errorIndicators);
+    return ;
+  }
 
-    if (m_primalSolution == NULL)
-    {
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsModel<T_S,T_P>::resetSolution( )
+  {
+    if ( m_primalSolution )
       delete m_primalSolution;
-      m_primalSolution = new T_P( solvePrimal( parameterValue ) ) ;
-      m_adjointSolution = new T_P( solveAdjoint( parameterValue ) ) ;
-    }
+    if ( m_adjointSolution )
+      delete m_adjointSolution;
+    if ( m_qoiValue )
+      delete m_qoiValue;
+    if ( m_errorEstimate )
+      delete m_errorEstimate;
+    if ( m_errorIndicators )
+      delete m_errorIndicators;
 
-    delete m_qoiValue;
-    m_qoiValue = new T_P( evaluateQoi( parameterValue, *m_primalSolution ) );
-    m_errorIndicators = new T_P( estimateError( parameterValue, *m_primalSolution,
-          *m_adjointSolution ) );
-
-    return *m_errorIndicators;
+    m_primalSolution  = NULL;
+    m_adjointSolution = NULL;
+    m_qoiValue        = NULL;
+    m_errorEstimate = NULL;
+    m_errorIndicators = NULL;
   }
 
 }
