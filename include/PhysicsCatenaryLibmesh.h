@@ -258,20 +258,11 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      //TODO may need to refine and project solution (like what is done in the
-      //adjoint refinement estimator)
-      // reference to system 
-      /* libMesh::LinearImplicitSystem& system = */
-      /*   m_equation_systems->get_system<LinearImplicitSystem>("1D"); */
 
       // set solution to provided value
-      /* m_physicsAssembly->setParameterValues( parameterValue ); */
       for (unsigned int i=0; i<m_system->solution->size(); i++)
         m_system->solution->set(i, primalSolution(i) );
       m_system->solution->close();
-
-      // We have to break the rules here, because we can't refine a const System
-      /* LinearImplicitSystem& system = const_cast<LinearImplicitSystem&>(*m_system); */
 
       // An EquationSystems reference will be convenient.
       EquationSystems& es = m_system->get_equation_systems();
@@ -292,6 +283,7 @@ namespace AGNOS
       // Back up the coarse solution and coarse local solution
       NumericVector<Number> * coarse_solution =
         m_system->solution->clone().release();
+
       NumericVector<Number> * coarse_local_solution =
         m_system->current_local_solution->clone().release();
       // And make copies of the projected solution
@@ -360,6 +352,15 @@ namespace AGNOS
       m_system->adjoint_solve( );
       m_system->set_adjoint_already_solved(true);
 
+      // convert solution to T_P
+      libMesh::NumericVector<double>& computedAdjointSolution 
+        = m_system->get_adjoint_solution( ) ;
+
+      T_P imageValue( computedAdjointSolution.size() );
+      for (unsigned int i=0; i< computedAdjointSolution.size(); i++)
+        imageValue(i) = computedAdjointSolution(i);
+
+
       
       // Don't bother projecting the solution; we'll restore from backup
       // after coarsening
@@ -384,19 +385,6 @@ namespace AGNOS
           es.reinit();
         }
 
-      /* std::cout << "primalSize: " << m_system->solution->size() << std::endl; */
-      /* for(unsigned int i=0; i < m_system->solution->size() ; i++) */
-      /* { */
-      /*   std::cout << "solution(" << i << ") = " << (*m_system->solution)(i) << */
-      /*     std::endl; */
-      /* } */
-      /* std::cout << "adjointSize: " << m_system->get_adjoint_solution().size() << std::endl; */
-      /* for(unsigned int i=0; i < m_system->get_adjoint_solution().size() ; i++) */
-      /* { */
-      /*   std::cout << "adjoint(" << i << ") = " << */
-      /*     (m_system->get_adjoint_solution())(i) << std::endl; */
-      /* } */
-
       // We should be back where we started
       libmesh_assert_equal_to (n_coarse_elem, mesh.n_elem());
 
@@ -413,7 +401,6 @@ namespace AGNOS
       std::map<std::string, NumericVector<Number> *>::iterator vec;
       for (vec = coarse_vectors.begin(); vec != coarse_vectors.end(); ++vec)
         {
-          /* std::cout << "var_naem: <" << vec->first << std::endl; */
           // The (string) name of this vector
           const std::string& var_name = vec->first;
 
@@ -427,29 +414,6 @@ namespace AGNOS
       mesh.partitioner() = old_partitioner;
       mesh.allow_renumbering(old_renumbering_setting);
 
-
-      
-      // convert solution to T_P
-      libMesh::NumericVector<double>& libmeshSol 
-        = m_system->get_adjoint_solution( ) ;
-
-      /* std::cout << "primalSize: " << m_system->solution->size() << std::endl; */
-      /* for(unsigned int i=0; i < m_system->solution->size() ; i++) */
-      /* { */
-      /*   std::cout << "solution(" << i << ") = " << (*m_system->solution)(i) << */
-      /*     std::endl; */
-      /* } */
-      /* std::cout << "adjointSize: " << m_system->get_adjoint_solution().size() << std::endl; */
-      /* for(unsigned int i=0; i < m_system->get_adjoint_solution().size() ; i++) */
-      /* { */
-      /*   std::cout << "adjoint(" << i << ") = " << */
-      /*     (m_system->get_adjoint_solution())(i) << std::endl; */
-      /* } */
-
-      T_P imageValue( libmeshSol.size() );
-      for (unsigned int i=0; i< libmeshSol.size(); i++)
-        imageValue(i) = libmeshSol(i);
-
       return imageValue;
     }
 
@@ -462,12 +426,8 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      // reference to system 
-      /* libMesh::LinearImplicitSystem& system = */
-      /*   m_equation_systems->get_system<LinearImplicitSystem>("1D"); */
       
       // set solution to provided value
-      /* m_physicsAssembly->setParameterValues( parameterValue ); */
       for (unsigned int i=0; i<m_system->solution->size(); i++)
         m_system->solution->set(i, primalSolution(i) );
       m_system->solution->close();
@@ -482,7 +442,6 @@ namespace AGNOS
       for (unsigned int i=0; i<qoiValue.size(); i++)
         returnVec(i) = qoiValue[i];
 
-      /* std::cout << "qoi = " << returnVec(0) << std::endl; */
 
       return returnVec;
     }
@@ -497,45 +456,45 @@ namespace AGNOS
         const T_P& adjointSolution  
         )
     {
-      // set solution to provided value
-      for (unsigned int i=0; i<m_system->solution->size(); i++)
-      {
-        m_system->solution->set(i, primalSolution(i) );
-        /* std::cout << "primal(" << i << ") = " << (*m_system->solution)(i) << std::endl; */
-      }
-      m_system->solution->close();
+      /* // set solution to provided value */
+      /* std::cout << " solution->size(): " << m_system->solution->size() << std::endl; */
+      /* for (unsigned int i=0; i<m_system->solution->size(); i++) */
+      /*   m_system->solution->set(i, primalSolution(i) ); */
+      /* m_system->solution->close(); */
       
-      // set adjoint solutions
-      libMesh::NumericVector<libMesh::Number>* adjSolution 
-        = &( m_system->get_adjoint_solution(0) ) ;
-      for (unsigned int i=0; i<adjointSolution.size(); i++)
-      {
-        adjSolution->set(i, adjointSolution(i) );
-        /* std::cout << "adjoint(" << i << ") = " << (*adjSolution)(i) << std::endl; */
-      }
-      adjSolution->close();
-      m_system->set_adjoint_already_solved(true);
+      /* // set adjoint solutions */
+      /* libMesh::NumericVector<libMesh::Number>* adjSolution */ 
+      /*   = &( m_system->get_adjoint_solution(0) ) ; */
+      /* adjSolution->clear(); */
+      /* std::cout << " adjSolution->size(): " << adjSolution->size() << std::endl; */
+      /* std::cout << " adjointSolution->size(): " << adjointSolution.size() << std::endl; */
+
+      /* adjSolution->init(adjointSolution.size()); */
+      /* for (unsigned int i=0; i<adjSolution->size(); i++) */
+      /*   adjSolution->set(i, adjointSolution(i) ); */
+      /* adjSolution->close(); */
+      /* m_system->set_adjoint_already_solved(true); */
+
+      /* std::cout << " adjSolution->size(): " << adjSolution->size() << std::endl; */
+      /* std::cout << " adjointSolution->size(): " << adjointSolution.size() << std::endl; */
 
 
-      libMesh::ErrorVector qoiErrorIndicators(m_mesh.n_elem());
 
-      //  modified estimate_error routine and rebuilding libmesh
-      m_adjointRefinementErrorEstimator->estimate_error(
-          *m_system,
-          qoiErrorIndicators);
 
-      /* std::cout << "errorEst = " << qoiErrorIndicators->l2_norm() */
-      /*   << std::endl; */
+      /* //TODO copy over estimate error portion */
+      /* libMesh::ErrorVector qoiErrorIndicators; */
 
+
+      /* //  modified estimate_error routine and rebuilding libmesh */
+      /* m_adjointRefinementErrorEstimator->estimate_error( */
+      /*     *m_system, */
+      /*     qoiErrorIndicators); */
 
       // copy to solution vector
-      T_P imageValue(qoiErrorIndicators.size());
-      for (unsigned int i=0; i<imageValue.size(); i++)
-      {
-        imageValue(i) = qoiErrorIndicators[i];
-        /* std::cout << "error(" << i << ") = " << qoiErrorIndicators[i] << */
-        /*   std::endl; */
-      }
+      /* T_P imageValue(qoiErrorIndicators.size()); */
+      /* for (unsigned int i=0; i<imageValue.size(); i++) */
+      /*   imageValue(i) = qoiErrorIndicators[i]; */
+      T_P imageValue(1);
 
       return imageValue;
     }
