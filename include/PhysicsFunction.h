@@ -37,8 +37,11 @@ namespace AGNOS
 
       std::string name( ) const;
 
+      void resetPhysicsSolution( );
+
     protected:
       std::string m_name;
+      PhysicsModel<T_S,T_P>* m_physics;
 
   };
 
@@ -67,6 +70,16 @@ namespace AGNOS
       return m_name;
     }
   
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    void PhysicsFunction<T_S,T_P>::resetPhysicsSolution( )
+    {
+      if (this->m_physics != NULL )
+        this->m_physics->resetSolution( );
+      return;
+    }
 
 
 
@@ -80,8 +93,11 @@ namespace AGNOS
       PhysicsFunctionSimple( 
           std::string functionName,
           T_P (*myFunction)(const T_S&)  
-          ) : m_myFunction(myFunction) 
-      { this->m_name = functionName; }
+          ) : m_myFunction(myFunction)
+      { 
+        this->m_name = functionName;
+        this->m_physics = NULL;
+      }
 
       void compute( const T_S& paramVector, T_P& imageVector)
       {
@@ -104,10 +120,9 @@ namespace AGNOS
   class PhysicsFunctionPrimal : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionPrimal( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionPrimal( PhysicsModel<T_S,T_P>* physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
-      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -115,10 +130,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionPrimal<T_S,T_P>::PhysicsFunctionPrimal( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>* physics
         )
-    : m_physics(physics)
-    { this->m_name = "primal"; }
+    { 
+      this->m_name = "primal"; 
+      this->m_physics = physics;
+    }
 
 /********************************************//**
  * \brief 
@@ -129,8 +146,8 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      imageVector = this->m_physics.solvePrimal(paramVector);
-      this->m_physics.setPrimalSolution(imageVector);
+      imageVector = this->m_physics->solvePrimal(paramVector);
+      this->m_physics->setPrimalSolution(imageVector);
       return ;
     }
   
@@ -142,10 +159,9 @@ namespace AGNOS
   class PhysicsFunctionAdjoint : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionAdjoint( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionAdjoint( PhysicsModel<T_S,T_P>* physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
-      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -153,10 +169,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionAdjoint<T_S,T_P>::PhysicsFunctionAdjoint( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>* physics
         )
-    : m_physics(physics)
-    { this->m_name = "adjoint"; }
+    { 
+      this->m_name = "adjoint"; 
+      this->m_physics =  physics ;
+    }
 
 /********************************************//**
  * \brief 
@@ -167,7 +185,14 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      imageVector = this->m_physics.solveAdjoint(paramVector);
+      if ( this->m_physics->getPrimalSolution() == NULL )
+        this->m_physics->setPrimalSolution(
+            this->m_physics->solvePrimal(paramVector)
+            );
+
+      imageVector = this->m_physics->solveAdjoint(paramVector,
+          *this->m_physics->getPrimalSolution() );
+      this->m_physics->setAdjointSolution(imageVector);
       return;
     }
   
@@ -180,10 +205,9 @@ namespace AGNOS
   class PhysicsFunctionQoi : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionQoi( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionQoi( PhysicsModel<T_S,T_P>* physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
-      PhysicsModel<T_S,T_P>& m_physics;
   };
 
 /********************************************//**
@@ -191,10 +215,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionQoi<T_S,T_P>::PhysicsFunctionQoi( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>* physics
         )
-    : m_physics(physics)
-    { this->m_name = "qoi"; }
+    { 
+      this->m_name = "qoi"; 
+      this->m_physics = physics ;
+    }
 
 /********************************************//**
  * \brief 
@@ -205,7 +231,14 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      imageVector = this->m_physics.evaluateQoi(paramVector);
+      if ( this->m_physics->getPrimalSolution() == NULL )
+        this->m_physics->setPrimalSolution(
+            this->m_physics->solvePrimal(paramVector)
+            );
+
+      imageVector = this->m_physics->evaluateQoi(paramVector,
+          *this->m_physics->getPrimalSolution() );
+      this->m_physics->setQoiValue( imageVector );
     }
 
 
@@ -217,20 +250,21 @@ namespace AGNOS
   class PhysicsFunctionError : public PhysicsFunction<T_S,T_P>
   {
     public:
-      PhysicsFunctionError( PhysicsModel<T_S,T_P>& physics );
+      PhysicsFunctionError( PhysicsModel<T_S,T_P>* physics );
       void compute( const T_S& paramVector, T_P& imageVector) ;
     protected:
-      PhysicsModel<T_S,T_P>& m_physics;
   };
 /********************************************//**
  * \brief 
  ***********************************************/
   template<class T_S,class T_P>
     PhysicsFunctionError<T_S,T_P>::PhysicsFunctionError( 
-        PhysicsModel<T_S,T_P>& physics
+        PhysicsModel<T_S,T_P>* physics
         )
-    : m_physics(physics)
-    { this->m_name = "error"; }
+    { 
+      this->m_name = "error"; 
+      this->m_physics = physics;
+    }
 
 /********************************************//**
  * \brief 
@@ -241,7 +275,20 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      imageVector = this->m_physics.estimateError(paramVector);
+      if ( this->m_physics->getPrimalSolution() == NULL )
+        this->m_physics->setPrimalSolution(
+            this->m_physics->solvePrimal(paramVector)
+            );
+      if ( this->m_physics->getAdjointSolution() == NULL )
+        this->m_physics->setAdjointSolution(
+            this->m_physics->solveAdjoint(paramVector,
+              *this->m_physics->getPrimalSolution() )
+            );
+      imageVector = this->m_physics->estimateError(paramVector,
+          *this->m_physics->getPrimalSolution(),
+          *this->m_physics->getAdjointSolution() );
+      this->m_physics->setErrorIndicators( imageVector );
+      return;
     }
 
 

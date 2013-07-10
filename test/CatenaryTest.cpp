@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
 
   PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( -10.0 );
   PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionPrimal<T_S,T_P>( *myPhysics ) ;
+    new PhysicsFunctionPrimal<T_S,T_P>( myPhysics ) ;
 
 BOOST_AUTO_TEST_CASE(Catenary_N0)
 {

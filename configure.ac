@@ -85,6 +85,24 @@ fi
 dnl -Wall warnings, -Wall the time.
 dnl AX_CXXFLAGS_WARN_ALL
 
+# -------------------------------------------------------------
+# cppunit C++ unit testing -- enabled by default
+# -------------------------------------------------------------
+AC_ARG_ENABLE(cppunit,
+             AC_HELP_STRING([--enable-cppunit],
+                            [Build with cppunit C++ unit testing support]),
+		[case "${enableval}" in
+		  yes)  enablecppunit=yes ;;
+		   no)  enablecppunit=no ;;
+ 		    *)  AC_MSG_ERROR(bad value ${enableval} for --enable-cppunit) ;;
+		 esac],
+		 [enablecppunit=$enableoptional])
+if (test "$enablecppunit" = yes) ; then
+  AM_PATH_CPPUNIT([1.10.0],[enablecppunit=yes],[enablecppunit=no])
+fi
+AM_CONDITIONAL(LIBMESH_ENABLE_CPPUNIT, test x$enablecppunit = xyes)
+# -------------------------------------------------------------
+
 #--------------------------------
 # Query configuration environment
 #------------------------------
