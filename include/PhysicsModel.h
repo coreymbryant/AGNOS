@@ -54,26 +54,31 @@ namespace AGNOS
           const T_P& primalSolution,   
           const T_P& adjointSolution  
           ) = 0;
-      void setErrorIndicators( T_P& errorIndicators );
+      void setErrorEstimate( T_P errorEstimate );
+      void setErrorIndicators( T_P errorIndicators );
 
       virtual void refine (  )  = 0;
+      virtual void refine ( T_P& errorIndicators  ) ;
 
       const T_P* getPrimalSolution( ) const ;
       const T_P* getAdjointSolution( ) const ;
+      const T_P* getErrorEstimate( ) const;
       const T_P* getErrorIndicators( ) const;
 
       void resetSolution( );
 
+      bool useUniformRefinement();
       
     protected:
 
       T_P* m_primalSolution;
       T_P* m_adjointSolution;
       T_P* m_qoiValue;
-      // this may need a different type
-      T_P*                            m_errorEstimate;
-      T_P*                            m_errorIndicators;
-      libMesh::ErrorVector            m_meanErrorIndicator;
+      T_P* m_errorEstimate;
+      T_P* m_errorIndicators;
+      T_P* m_meanErrorIndicator;
+
+      bool m_useUniformRefinement;
 
       
   }; // PhysicsModel class
@@ -86,16 +91,13 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::PhysicsModel( )
   {
-    /* m_primalSolution  = new T_P; */
-    /* m_adjointSolution = new T_P; */
-    /* m_qoiValue        = new T_P; */
-    /* m_errorIndicators = new T_P; */
-
     m_primalSolution  = NULL;
     m_adjointSolution = NULL;
     m_qoiValue        = NULL;
     m_errorEstimate = NULL;
     m_errorIndicators = NULL;
+
+    m_useUniformRefinement =  true ;
   }
 
 /********************************************//**
@@ -133,6 +135,15 @@ namespace AGNOS
   const T_P* PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
   {
     return m_adjointSolution;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  const T_P* PhysicsModel<T_S,T_P>::getErrorEstimate( ) const
+  {
+    return m_errorEstimate;
   }
 
 /********************************************//**
@@ -184,8 +195,20 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
+  void PhysicsModel<T_S,T_P>::setErrorEstimate( 
+      T_P errorEstimate )
+  {
+    delete m_errorEstimate;
+    m_errorEstimate = new T_P(errorEstimate);
+    return ;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
   void PhysicsModel<T_S,T_P>::setErrorIndicators( 
-      T_P& errorIndicators )
+      T_P errorIndicators )
   {
     delete m_errorIndicators;
     m_errorIndicators = new T_P(errorIndicators);
@@ -216,6 +239,29 @@ namespace AGNOS
     m_errorIndicators = NULL;
   }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    bool PhysicsModel<T_S,T_P>::useUniformRefinement()
+    {
+      return m_useUniformRefinement;
+    }
+
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    void PhysicsModel<T_S,T_P>::refine(
+        T_P& errorIndicators)
+    {
+      std::cerr 
+        << "\n\t ERROR: Adaptive refinement is not available in derived "
+        << "PhysicsModel class\n" << std::endl;
+      exit(1);
+      return;
+    }
 }
 
 #endif //PHYSICS_MODEL_H

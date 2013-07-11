@@ -276,21 +276,94 @@ namespace AGNOS
         )
     {
       if ( this->m_physics->getPrimalSolution() == NULL )
+      {
         this->m_physics->setPrimalSolution(
             this->m_physics->solvePrimal(paramVector)
             );
+      }
+
       if ( this->m_physics->getAdjointSolution() == NULL )
+      {
         this->m_physics->setAdjointSolution(
-            this->m_physics->solveAdjoint(paramVector,
+            this->m_physics->solveAdjoint(
+              paramVector,
               *this->m_physics->getPrimalSolution() )
             );
+      }
+
       imageVector = this->m_physics->estimateError(paramVector,
           *this->m_physics->getPrimalSolution(),
           *this->m_physics->getAdjointSolution() );
-      this->m_physics->setErrorIndicators( imageVector );
+      this->m_physics->setErrorEstimate( imageVector );
       return;
     }
 
+/********************************************//**
+ * \brief Error indicator function
+ ***********************************************/
+  template<class T_S, class T_P>
+  class PhysicsFunctionIndicators : public PhysicsFunction<T_S,T_P>
+  {
+    public:
+      PhysicsFunctionIndicators( PhysicsModel<T_S,T_P>* physics );
+      void compute( const T_S& paramVector, T_P& imageVector) ;
+    protected:
+  };
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    PhysicsFunctionIndicators<T_S,T_P>::PhysicsFunctionIndicators( 
+        PhysicsModel<T_S,T_P>* physics
+        )
+    { 
+      this->m_name = "indicators"; 
+      this->m_physics = physics;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S,class T_P>
+    void PhysicsFunctionIndicators<T_S,T_P>::compute(
+        const T_S& paramVector,
+        T_P& imageVector
+        )
+    {
+      // check if error has been computed, compute if not
+      if ( this->m_physics->getErrorEstimate() == NULL )
+      {
+        // check if primal is solved, solve if not
+        if ( this->m_physics->getPrimalSolution() == NULL )
+        {
+          this->m_physics->setPrimalSolution(
+              this->m_physics->solvePrimal(paramVector)
+              );
+        }
+
+        // check if adjoint is solved, solve if not
+        if ( this->m_physics->getAdjointSolution() == NULL )
+        {
+          this->m_physics->setAdjointSolution(
+              this->m_physics->solveAdjoint(
+                paramVector,
+                *this->m_physics->getPrimalSolution() )
+              );
+        }
+
+        this->m_physics->setErrorEstimate(
+            this->m_physics->estimateError(paramVector,
+              *this->m_physics->getPrimalSolution(),
+              *this->m_physics->getAdjointSolution() )
+            );
+      }
+
+      imageVector = *this->m_physics->getErrorIndicators( );
+
+
+      return;
+    }
 
 }
 

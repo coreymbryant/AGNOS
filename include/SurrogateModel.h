@@ -80,7 +80,7 @@ namespace AGNOS
 
       virtual void refine( ) = 0;
 
-      //TODO calculate mean
+      std::map< std::string, T_P > mean( ) ;
 
 
       // Manipulators
@@ -417,8 +417,29 @@ namespace AGNOS
       for (id=m_solutionFunction.begin(); id!=m_solutionFunction.end(); id++)
         solutionsToGet.push_back( id->first ) ;
 
-      return evaluate( solutionsToGet, parameterValues ) ;    }
+      return evaluate( solutionsToGet, parameterValues ) ;    
+    }
   
+  /********************************************//**
+   * \brief get mean of surrogate model
+   *      returns first coeff vector
+   * 
+   ***********************************************/
+  template<class T_S,class T_P>
+     std::map< std::string, T_P > SurrogateModel<T_S,T_P>::mean( )
+    {
+      std::map< std::string, T_P > meanCoefficients;
+
+      typename std::map< std::string, std::vector<T_P> >::iterator id;
+      for (id=m_coefficients.begin(); id!=m_coefficients.end(); id++)
+        meanCoefficients.insert(
+            std::pair< std::string, T_P>( id->first, (id->second)[0])
+            );
+
+      return meanCoefficients;
+    }
+
+
 
 }
 #endif //SURROGATE_MODEL_H
