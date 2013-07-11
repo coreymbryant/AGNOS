@@ -1,5 +1,5 @@
 [driver]
-maxIter = '1'
+maxIter = '5'
 []
 
 [parameters]
@@ -15,6 +15,7 @@ min = '0.0'
 max = '1.0'
 forcing = '-10.0'
 n = '2'
+useUniformRefinement = true
 maxRefineSteps ='15'
 []
 
@@ -22,7 +23,7 @@ maxRefineSteps ='15'
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
 order = '0'
-errorOrder = '3'
+errorOrder = '1'
 []
 
 [output]

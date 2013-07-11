@@ -223,6 +223,8 @@ namespace AGNOS
     }
 
   
+  //TODO add refinement option to increase order a given amount instead of just
+  //+1 in all directions
 
 /********************************************//**
  * \brief 
