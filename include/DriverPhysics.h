@@ -46,9 +46,6 @@ namespace AGNOS
       const GetPot&                   input 
       ) : Driver( comm, input ), m_myPhysics(myPhysics)
   {
-    
-    // Setup common to all surrogate models
-    std::map< std::string, PhysicsFunction<T_S,T_P>* > m_physicsFunctions;
 
     // primal solution
     m_physicsFunctions.insert( 
@@ -71,9 +68,23 @@ namespace AGNOS
           new PhysicsFunctionQoi<T_S,T_P>( myPhysics ) ) 
         ); 
     
+    // error estimate
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "error", 
+          new PhysicsFunctionError<T_S,T_P>( myPhysics ) ) 
+        ); 
 
+    // error indicators if needed
+    if ( ! myPhysics->useUniformRefinement() )
+    {
+      m_physicsFunctions.insert( 
+          std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+            "indicators", 
+            new PhysicsFunctionIndicators<T_S,T_P>( myPhysics ) ) 
+          ); 
+    }
 
-    std::map< std::string, PhysicsFunction<T_S,T_P>* > m_errorFunctions;
     // error estimate
     m_errorFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
@@ -168,32 +179,26 @@ namespace AGNOS
       if (this->m_comm->rank() == 0) 
         std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
       
-      // TODO control what type of refinement to perform
-      /* m_surrogate->refine(); */
-      /* m_errorSurrogate->refine(); */
 
+      // TODO control which space is refined
+      // for now both are refined
 
-      // use mean of errorSurrogate as error indicators
-      std::map< std::string, std::vector<T_P> >   errorCoeff = m_errorSurrogate->getCoefficients() ;
-      libMesh::ErrorVector errorIndicators(errorCoeff["error"][0].size()) ;
-
-      /* std::cout << " error.size = " << errorCoeff["error"][0].size() << std::endl; */
-
-      for (int i=0; i<errorCoeff["error"][0].size(); i++)
+      
+      if ( m_physicsFunctions.find("indicators") == m_physicsFunctions.end() )
+        m_myPhysics->refine( );
+      else
       {
-        errorIndicators[i] = errorCoeff["error"][0](i);
-        /* std::cout << "error(" << i << ") = " << errorIndicators[i] << std::endl; */
+        // retrieve first coefficient (i.e. the mean) of error inidcators
+        T_P errorIndicators = (m_surrogate->mean())["indicators"];
+        
+        m_myPhysics->refine( errorIndicators );
       }
 
-      /* m_myPhysics->refine( errorIndicators ); */
-      m_myPhysics->refine( );
+
       m_surrogate->refine( );
       m_errorSurrogate->refine( );
-      /* m_surrogate->build(); */
-      /* m_errorSurrogate->build(); */
 
-      /* double totalError = errorIndicators->l2_norm(); */
-      /* std::cout << "totalError = " << totalError << std::endl; */
+
 
       if (this->m_outputIterations && (this->m_comm->rank() == 0) )
       {
@@ -203,7 +208,7 @@ namespace AGNOS
         std::cout << std::endl;
         printSolution(iter);
       }
-      //
+
       // evaluate QoI
       T_S evalPoint(1);
       evalPoint(0) = 1.5;
