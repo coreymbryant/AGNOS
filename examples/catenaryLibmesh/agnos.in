@@ -1,5 +1,5 @@
 [driver]
-maxIter = '5'
+maxIter = '1'
 []
 
 [parameters]
@@ -9,21 +9,28 @@ mins = '1.0'
 maxs = '3.0'
 []
 
+[adaptive]
+refinePhysical = false
+refineSurrogate = true
+[]
+
 [physics]
 type = 'catenary'
 min = '0.0'
 max = '1.0'
 forcing = '-10.0'
-n = '2'
+n = '8'
 useUniformRefinement = true
+numberHRefinements = '1';
+numberPRefinements = '0';
 maxRefineSteps ='15'
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '0'
-errorOrder = '1'
+order = '3'
+errorOrder = '4'
 []
 
 [output]
