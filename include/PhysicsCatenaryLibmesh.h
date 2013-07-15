@@ -66,6 +66,7 @@ namespace AGNOS
       void refine (  );
       void refine ( T_P& errorIndicators );
       
+      libMesh::Mesh getMesh( ) ;
 
     protected:
       const Communicator*   m_comm;
@@ -913,6 +914,14 @@ namespace AGNOS
       return;
     }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P> 
+    libMesh::Mesh PhysicsCatenaryLibmesh<T_S,T_P>::getMesh( )
+    {
+      return m_mesh;
+    }
 
 
 }
