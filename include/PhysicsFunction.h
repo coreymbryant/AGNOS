@@ -37,11 +37,13 @@ namespace AGNOS
 
       std::string name( ) const;
 
-      void resetPhysicsSolution( );
+      virtual void computeData( std::vector<T_S> integrationPoints );
+      virtual void setData( unsigned int currentIndex );
 
     protected:
       std::string m_name;
       PhysicsModel<T_S,T_P>* m_physics;
+
 
   };
 
@@ -74,13 +76,25 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P> 
-    void PhysicsFunction<T_S,T_P>::resetPhysicsSolution( )
+    void PhysicsFunction<T_S,T_P>::computeData( 
+        std::vector<T_S> integrationPoints )
     {
+      // in general do nothing
+      return;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    void PhysicsFunction<T_S,T_P>::setData( 
+       unsigned int currentIndex )
+    {
+      // in general do nothing new just rest physical solution 
       if (this->m_physics != NULL )
         this->m_physics->resetSolution( );
       return;
     }
-
 
 
 /********************************************//**
@@ -146,8 +160,13 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      imageVector = this->m_physics->solvePrimal(paramVector);
-      this->m_physics->setPrimalSolution(imageVector);
+      if (this->m_physics->getPrimalSolution() == NULL)
+      {
+        imageVector = this->m_physics->solvePrimal(paramVector);
+        this->m_physics->setPrimalSolution(imageVector);
+      }
+      else 
+        imageVector = *this->m_physics->getPrimalSolution() ;
       return ;
     }
   
@@ -185,14 +204,22 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      if ( this->m_physics->getPrimalSolution() == NULL )
-        this->m_physics->setPrimalSolution(
-            this->m_physics->solvePrimal(paramVector)
-            );
+      if( this->m_physics->getAdjointSolution() == NULL )
+      {
+        if ( this->m_physics->getPrimalSolution() == NULL )
+        {
+          this->m_physics->setPrimalSolution(
+              this->m_physics->solvePrimal(paramVector)
+              );
+        }
 
-      imageVector = this->m_physics->solveAdjoint(paramVector,
-          *this->m_physics->getPrimalSolution() );
-      this->m_physics->setAdjointSolution(imageVector);
+        imageVector = this->m_physics->solveAdjoint(paramVector,
+            *this->m_physics->getPrimalSolution() );
+        this->m_physics->setAdjointSolution(imageVector);
+      }
+      else
+        imageVector = *this->m_physics->getAdjointSolution() ;
+
       return;
     }
   
@@ -231,14 +258,19 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      if ( this->m_physics->getPrimalSolution() == NULL )
-        this->m_physics->setPrimalSolution(
-            this->m_physics->solvePrimal(paramVector)
-            );
+      if (this->m_physics->getQoiValue() == NULL )
+      {
+        if ( this->m_physics->getPrimalSolution() == NULL )
+          this->m_physics->setPrimalSolution(
+              this->m_physics->solvePrimal(paramVector)
+              );
 
-      imageVector = this->m_physics->evaluateQoi(paramVector,
-          *this->m_physics->getPrimalSolution() );
-      this->m_physics->setQoiValue( imageVector );
+        imageVector = this->m_physics->evaluateQoi(paramVector,
+            *this->m_physics->getPrimalSolution() );
+        this->m_physics->setQoiValue( imageVector );
+      }
+      else
+        imageVector = *this->m_physics->getQoiValue( ) ;
     }
 
 
@@ -275,26 +307,31 @@ namespace AGNOS
         T_P& imageVector
         )
     {
-      if ( this->m_physics->getPrimalSolution() == NULL )
+      if (this->m_physics->getErrorEstimate() == NULL )
       {
-        this->m_physics->setPrimalSolution(
-            this->m_physics->solvePrimal(paramVector)
-            );
-      }
+        if ( this->m_physics->getPrimalSolution() == NULL )
+        {
+          this->m_physics->setPrimalSolution(
+              this->m_physics->solvePrimal(paramVector)
+              );
+        }
 
-      if ( this->m_physics->getAdjointSolution() == NULL )
-      {
-        this->m_physics->setAdjointSolution(
-            this->m_physics->solveAdjoint(
-              paramVector,
-              *this->m_physics->getPrimalSolution() )
-            );
-      }
+        if ( this->m_physics->getAdjointSolution() == NULL )
+        {
+          this->m_physics->setAdjointSolution(
+              this->m_physics->solveAdjoint(
+                paramVector,
+                *this->m_physics->getPrimalSolution() )
+              );
+        }
 
-      imageVector = this->m_physics->estimateError(paramVector,
-          *this->m_physics->getPrimalSolution(),
-          *this->m_physics->getAdjointSolution() );
-      this->m_physics->setErrorEstimate( imageVector );
+        imageVector = this->m_physics->estimateError(paramVector,
+            *this->m_physics->getPrimalSolution(),
+            *this->m_physics->getAdjointSolution() );
+        this->m_physics->setErrorEstimate( imageVector );
+      }
+      else 
+        imageVector = *this->m_physics->getErrorEstimate() ;
       return;
     }
 

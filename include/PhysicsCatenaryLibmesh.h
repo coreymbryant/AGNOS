@@ -23,29 +23,6 @@
 namespace AGNOS
 {
 
-  libMesh::AutoPtr<libMesh::AdjointRefinementEstimator>
-    build_adjoint_refinement_error_estimator(libMesh::QoISet &qois)
-    {
-      libMesh::AutoPtr<libMesh::AdjointRefinementEstimator> error_estimator;
-
-      /* std::cout */
-      /*   <<"Computing the error estimate using the Adjoint Refinement Error Estimator" */ 
-      /*   <<std::endl<<std::endl; */
-
-      libMesh::AdjointRefinementEstimator *adjoint_refinement_estimator = new
-        libMesh::AdjointRefinementEstimator;
-
-      error_estimator.reset(adjoint_refinement_estimator);
-
-      adjoint_refinement_estimator->qoi_set() = qois;
-      adjoint_refinement_estimator->number_h_refinements = 2;
-      adjoint_refinement_estimator->number_p_refinements = 0;
-
-                    
-
-      return error_estimator;
-    }
-
   /********************************************//**
    * \brief Example PhysicsModel class - catenary chain (solution computed using
    * libmesh)
@@ -102,8 +79,9 @@ namespace AGNOS
       libMesh::EquationSystems*       m_equation_systems;
       libMesh::LinearImplicitSystem*  m_system;
       libMesh::MeshRefinement*        m_mesh_refinement;
-      libMesh::AutoPtr<libMesh::AdjointRefinementEstimator> 
-        m_adjointRefinementErrorEstimator ;
+
+      unsigned int m_numberHRefinements;
+      unsigned int m_numberPRefinements;
 
       PhysicsAssembly<T_S>*           m_physicsAssembly;
       PhysicsQoi<T_S>*                m_qoi;
@@ -135,6 +113,8 @@ namespace AGNOS
     m_maxRefineSteps  = physicsInput("physics/maxRefineSteps",1);
     this->m_useUniformRefinement =
       physicsInput("physics/useUniformRefinement",true);
+    m_numberHRefinements = physicsInput("physics/numberHRefinements",0);
+    m_numberPRefinements = physicsInput("physics/numberPRefinements",1);
 
 
     //-------- crate libmesh mesh object
@@ -191,9 +171,9 @@ namespace AGNOS
     m_mesh_refinement->coarsen_threshold()          = 5;
     m_mesh_refinement->max_h_level()                = 15;
     
-    // error indicators
-    m_adjointRefinementErrorEstimator =
-      build_adjoint_refinement_error_estimator(*m_qois);
+    // refinement settings
+    /* m_numberHRefinements = 0; */
+    /* m_numberPRefinements = 1; */
 
     //------ initialize data structures
     m_equation_systems->init();
@@ -259,6 +239,7 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      m_physicsAssembly->setParameterValues(parameterValue);
 
 
       m_system->set_adjoint_already_solved(false);
@@ -322,21 +303,15 @@ namespace AGNOS
 
 
 
-      libmesh_assert (m_adjointRefinementErrorEstimator->number_h_refinements > 0
-          || m_adjointRefinementErrorEstimator->number_p_refinements > 0);
+      libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
-      // FIXME: this may break if there is more than one System
-      // on this mesh but estimate_error was still called instead of
-      // estimate_errors
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_h_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_refine(1);
           es.reinit();
         }
 
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_p_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberPRefinements; ++i)
         {
           mesh_refinement.uniformly_p_refine(1);
           es.reinit();
@@ -349,6 +324,7 @@ namespace AGNOS
       m_system->solution->localize(*projected_solution,
               m_system->get_dof_map().get_send_list());
 
+
       // Rebuild the rhs with the projected primal solution
       (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, false);
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
@@ -357,6 +333,8 @@ namespace AGNOS
       // solve adjoint
       m_system->adjoint_solve( );
       m_system->set_adjoint_already_solved(true);
+      /* std::cout << " 336:post adjoint_solve" << std::endl; */
+
 
       // convert solution to T_P
       libMesh::NumericVector<double>& computedAdjointSolution 
@@ -373,19 +351,16 @@ namespace AGNOS
       m_system->project_solution_on_reinit() = false;
 
       // Uniformly coarsen the mesh, without projecting the solution
-      libmesh_assert (m_adjointRefinementErrorEstimator->number_h_refinements > 0
-          || m_adjointRefinementErrorEstimator->number_p_refinements > 0);
+      libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_h_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_coarsen(1);
           // FIXME - should the reinits here be necessary? - RHS
           es.reinit();
         }
 
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_p_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberPRefinements; ++i)
         {
           mesh_refinement.uniformly_p_coarsen(1);
           es.reinit();
@@ -434,6 +409,7 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      m_physicsAssembly->setParameterValues(parameterValue);
       
       // set solution to provided value
       for (unsigned int i=0; i<m_system->solution->size(); i++)
@@ -464,23 +440,27 @@ namespace AGNOS
         const T_P& adjointSolution  
         )
     {
+      
+      std::cout << "test: estimateError() beginning" << std::endl;
+      
 
+      m_system->set_adjoint_already_solved(false);
+      m_physicsAssembly->setParameterValues(parameterValue);
+
+      std::cout << "test: estimateError() pre set solution" << std::endl;
+      std::cout << "   primalSoution.size(): " << primalSolution.size() <<
+                                                  std::endl;
+      std::cout << "   m_system->solution->size(): " 
+        << m_system->solution->size() << std::endl;
+      
       // set solution to provided value
       for (unsigned int i=0; i<m_system->solution->size(); i++)
         m_system->solution->set(i, primalSolution(i) );
       m_system->solution->close();
+      m_system->update();
 
+      std::cout << "test: estimateError() post set solution" << std::endl;
       
-      // set adjoint solutions
-      libMesh::NumericVector<libMesh::Number>* adjSolution 
-        = &( m_system->get_adjoint_solution(0) ) ;
-      adjSolution->clear();
-      adjSolution->init(adjointSolution.size());
-      for (unsigned int i=0; i<adjSolution->size(); i++)
-        adjSolution->set(i, adjointSolution(i) );
-      adjSolution->close();
-      m_system->set_adjoint_already_solved(true);
-
 
 
       // An EquationSystems reference will be convenient.
@@ -542,21 +522,15 @@ namespace AGNOS
 
 
 
-      libmesh_assert (m_adjointRefinementErrorEstimator->number_h_refinements > 0
-          || m_adjointRefinementErrorEstimator->number_p_refinements > 0);
+      libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
-      // FIXME: this may break if there is more than one System
-      // on this mesh but estimate_error was still called instead of
-      // estimate_errors
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_h_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_refine(1);
           es.reinit();
         }
 
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_p_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberPRefinements; ++i)
         {
           mesh_refinement.uniformly_p_refine(1);
           es.reinit();
@@ -574,19 +548,51 @@ namespace AGNOS
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
+      std::cout << "test: estimateError() pre set adjiont" << std::endl;
+
+
+      // check if system has adjoint_solution vector
+      //    this will fail if adjoint hasn't beend solved on this process yet.
+      //    For example if only needed for higher order error estimate.
+      if (!m_system->have_vector("adjoint_solution0"))
+      {
+        // if not present initialize it
+        m_system->add_adjoint_solution(0);
+      }
+    
+      // set adjoint solutions
+      libMesh::NumericVector<libMesh::Number>* adjSolution 
+        = &( m_system->get_adjoint_solution(0) ) ;
+      // shouldn't need to do this
+      /* adjSolution->clear(); */
+      /* adjSolution->init(adjointSolution.size()); */
+      for (unsigned int i=0; i<adjSolution->size(); i++)
+        adjSolution->set(i, adjointSolution(i) );
+      adjSolution->close();
+      m_system->set_adjoint_already_solved(true);
+      m_system->update();
+
+      std::cout << "test: estimateError() post set adjiont" << std::endl;
+
+
       // Now that we have the refined adjoint solution and the projected primal solution,
       // we first compute the global QoI error estimate
 
       // Resize the computed_global_QoI_errors vector to hold the error estimates for each QoI
-      libMesh::ErrorVector computed_global_QoI_errors;
+      std::vector<Number> computed_global_QoI_errors;
       computed_global_QoI_errors.resize(m_system->qoi.size());
 
       // Loop over all the adjoint solutions and get the QoI error
       // contributions from all of them
+      
+      
       for (unsigned int j=0; j != m_system->qoi.size(); j++)
         {
           computed_global_QoI_errors[j] = projected_residual.dot(m_system->get_adjoint_solution(j));
+          /* std::cout << "computed_global_QoI_errors = " << */
+          /*   computed_global_QoI_errors[j] << std::endl; */
         }
+      /* std::cout << "test: estimateError() post compute error " << std::endl; */
 
       // Done with the global error estimates, now construct the element wise error indicators
 
@@ -668,7 +674,7 @@ namespace AGNOS
 
           // Find the element id for the corresponding coarse grid element
           const Elem* coarse_elem = fine_elem;
-          for (unsigned int j = 0; j != m_adjointRefinementErrorEstimator->number_h_refinements; ++j)
+          for (unsigned int j = 0; j != m_numberHRefinements; ++j)
             {
               libmesh_assert (coarse_elem->parent());
 
@@ -754,7 +760,7 @@ namespace AGNOS
             // Go up number_h_refinements levels up to find the coarse parent
             const Elem* coarse = elem;
 
-            for (unsigned int j = 0; j != m_adjointRefinementErrorEstimator->number_h_refinements; ++j)
+            for (unsigned int j = 0; j != m_numberHRefinements; ++j)
               {
           libmesh_assert (coarse->parent());
 
@@ -794,11 +800,9 @@ namespace AGNOS
       m_system->project_solution_on_reinit() = false;
 
       // Uniformly coarsen the mesh, without projecting the solution
-      libmesh_assert (m_adjointRefinementErrorEstimator->number_h_refinements > 0
-          || m_adjointRefinementErrorEstimator->number_p_refinements > 0);
+      libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
-      for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_h_refinements; ++i)
+      for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_coarsen(1);
           // FIXME - should the reinits here be necessary? - RHS
@@ -806,7 +810,7 @@ namespace AGNOS
         }
 
       for (unsigned int i = 0; i !=
-          m_adjointRefinementErrorEstimator->number_p_refinements; ++i)
+          m_numberPRefinements; ++i)
         {
           mesh_refinement.uniformly_p_coarsen(1);
           es.reinit();
@@ -859,6 +863,7 @@ namespace AGNOS
         errorEstimate(i) = computed_global_QoI_errors[i];
 
 
+      /* std::cout << "test: estimateError() end" << std::endl; */
       return errorEstimate;
     }
 

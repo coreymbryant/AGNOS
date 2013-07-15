@@ -80,7 +80,22 @@ namespace AGNOS
 
       virtual void refine( ) = 0;
 
+      // calculate norms and statistics
       std::map< std::string, T_P > mean( ) ;
+      // integration method depends on surr type
+      virtual std::map<std::string, T_P> l2Norm( 
+          std::vector<std::string> solutionNames  ///< solution to return
+          ) = 0;
+      T_P l2Norm( 
+          std::string solutionName  ///< solution to return
+          ) ;
+      std::map<std::string, T_P> l2Norm( ) ;
+
+      // difference btw two surrogate models
+      virtual double l2NormDifference( 
+          SurrogateModel<T_S,T_P>& comparisonModel,
+          std::string solutionName
+          ) ;
 
 
       // Manipulators
@@ -92,6 +107,7 @@ namespace AGNOS
         std::ostream& out ) ;
       void printCoefficients( std::string solutionName, std::ostream& out ) ;
       void printCoefficients( std::ostream& out ) ;
+      const std::map< std::string, std::vector<T_P> >   getLocalCoefficients() const;
       const std::map< std::string, std::vector<T_P> >   getCoefficients() const;
 
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
@@ -102,6 +118,8 @@ namespace AGNOS
       virtual void prettyPrintIndexSet( ) const = 0;
 
       std::vector<unsigned int> getExpansionOrder( ) const;
+
+      std::set<std::string> getSolutionNames( );
 
     protected: 
       const Communicator* m_comm;
@@ -283,8 +301,19 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     const std::map< std::string, std::vector<T_P> >
+    SurrogateModel<T_S,T_P>::getLocalCoefficients( ) const
+    {
+      return m_coefficients;
+    }
+
+/********************************************//**
+ * \brief return coefficient values
+ ***********************************************/
+  template<class T_S, class T_P> 
+    const std::map< std::string, std::vector<T_P> >
     SurrogateModel<T_S,T_P>::getCoefficients( ) const
     {
+  // TODO alter to get all coefficients
       return m_coefficients;
     }
 
@@ -419,6 +448,38 @@ namespace AGNOS
 
       return evaluate( solutionsToGet, parameterValues ) ;    
     }
+
+/********************************************//**
+ * \brief calculate l2norm for single function
+ * calls virtual l2Norm( solutionNames) routine
+ ***********************************************/
+  template<class T_S, class T_P> 
+    T_P SurrogateModel<T_S,T_P>::l2Norm( 
+        std::string solutionName  ///< solution to return
+        ) 
+    {
+      std::vector< std::string > solutionsToGet(1,solutionName);
+      std::map< std::string, T_P > solutionVectors
+        = this->l2Norm( solutionsToGet ) ;
+
+      return solutionVectors[solutionName];
+    }
+
+/********************************************//**
+ * \brief calculate l2norm for all functions
+ * calls virtual l2Norm( solutionNames) routine
+ ***********************************************/
+  template<class T_S, class T_P> 
+    std::map<std::string, T_P> SurrogateModel<T_S,T_P>::l2Norm( ) 
+    {
+      std::vector< std::string > solutionsToGet ;
+      
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id!=m_solutionFunction.end(); id++)
+        solutionsToGet.push_back( id->first ) ;
+
+      return l2Norm( solutionsToGet) ;    
+    }
   
   /********************************************//**
    * \brief get mean of surrogate model
@@ -438,8 +499,36 @@ namespace AGNOS
 
       return meanCoefficients;
     }
+  
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    double SurrogateModel<T_S,T_P>::l2NormDifference(
+        SurrogateModel<T_S,T_P>& comparisonModel,
+        std::string solutionName )
+    {
+      std::cerr << "\n\t ERROR: l2NormDifference( ... )"
+        << " is not implemented in derived class\n" 
+        << std::endl;
+      exit(1);
+    }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    std::set<std::string> SurrogateModel<T_S,T_P>::getSolutionNames()
+    {
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      std::set<std::string> names;
+
+      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
+        names.insert(id->first);
+
+      return names;
+    }
 
 }
 #endif //SURROGATE_MODEL_H

@@ -2,6 +2,7 @@
 #ifndef SURROGATE_PSEUDO_SPECTRAL_H
 #define SURROGATE_PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
+#include "QuadratureTensorProduct.h"
 
 
 namespace AGNOS
@@ -66,6 +67,14 @@ namespace AGNOS
           T_S&                        parameterValues 
           );
 
+      using SurrogateModel<T_S,T_P>::l2Norm;
+      std::map< std::string, T_P> l2Norm(
+        std::vector< std::string > solutionNames
+        );
+      double l2NormDifference(
+          SurrogateModel<T_S,T_P>& comparisonModel,
+          std::string solutionName );
+
       // Manipulators
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
@@ -82,6 +91,8 @@ namespace AGNOS
       void                      prettyPrintIntegrationWeights( ) const;
       void                      prettyPrintIntegrationPoints( ) const;
       void                      prettyPrintIndexSet( ) const;
+
+
 
     protected:
 
@@ -260,7 +271,6 @@ namespace AGNOS
         }
         std::cout << " }" << std::endl;
       }
-
       
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
@@ -282,7 +292,16 @@ namespace AGNOS
       // initiaize contribution vector
       std::vector< std::map< std::string, T_P > > myContribs;
       myContribs.reserve(nPts);
-      
+
+      this->m_comm->barrier();
+      // compute necessary info for each solution function
+      for (id=this->m_solutionFunction.begin();
+          id!=this->m_solutionFunction.end(); id++)
+      {
+        id->second->computeData( m_integrationPoints );
+      }
+      this->m_comm->barrier();
+
 
       if( this->m_comm->rank() == 0)
         std::cout << "     --> Solving at " << m_nIntegrationPoints 
@@ -291,15 +310,30 @@ namespace AGNOS
       // solve for my integration points
       for(unsigned int pt=0; pt < nPts; pt++)
       {
+        /* std::cout << "test: beginning of pt" << std::endl; */
+
+        // clear out old solutions
+        for (id=this->m_solutionFunction.begin();
+            id!=this->m_solutionFunction.end(); id++)
+        {
+          // set data for each solution function at this integration pt
+          id->second->setData( intPtsStart + pt*this->m_comm->size() );
+        }
+
+
+        /* std::cout << "test: pt (pre computeContribution)" << std::endl; */
+        // compute the contribution
         myContribs.push_back( computeContribution( 
             this->m_solutionFunction,
             m_integrationPoints[intPtsStart + pt*this->m_comm->size() ], 
             m_integrationWeights[intPtsStart + pt*this->m_comm->size() ]
             ) );
+        /* std::cout << "test: pt (post computeContribution)" << std::endl; */
         polyValues.push_back(
             evaluateBasis( this->m_indexSet, m_integrationPoints[intPtsStart +
               pt*this->m_comm->size()]) 
             );
+        /* std::cout << "test: end of pt" << std::endl; */
       }
 
       // need to know size of solution vector on all processes (in case some
@@ -387,6 +421,8 @@ namespace AGNOS
         double&                                             integrationWeight
         )
     {
+
+      /* std::cout << "test: computeContribution( ) beginning" << std::endl; */
       
 
       std::map< std::string, T_P > contrib;
@@ -394,17 +430,13 @@ namespace AGNOS
 
       
       typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
-      // clear out old solutions
-      for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
-      {
-        id->second->resetPhysicsSolution();
-      }
-
       for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
       {
         
+        /* std::cout << "test: computeContribution( ) pre compute()" << std::endl; */
         // get solution for this integration point
         id->second->compute( integrationPoint, solution );
+        /* std::cout << "test: computeContribution( ) post compute()" << std::endl; */
         solution.scale( integrationWeight );
         contrib.insert( std::pair< std::string, T_P >(
               id->first, solution  ) ); 
@@ -414,6 +446,7 @@ namespace AGNOS
 
 
 
+      /* std::cout << "test: computeContribution( ) ending" << std::endl; */
       return contrib;
     }
 
@@ -661,6 +694,153 @@ namespace AGNOS
 
       }
       return ;
+    }
+
+  /********************************************//**
+   * \brief calculate l2 norm by integration
+   ***********************************************/
+  template<class T_S, class T_P>
+    std::map< std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::l2Norm(
+        std::vector< std::string > solutionNames
+        )
+    {
+
+      // initialize to zero
+      std::map< std::string, T_P> l2norm;
+      for (unsigned int n=0; n < solutionNames.size(); n++)
+      {
+        std::string id = solutionNames[n];
+        l2norm.insert( std::pair<std::string,T_P>(
+              id, T_P( std::vector<double>(this->m_solSize[id],0.) ) )
+            );
+      }
+
+      //---------
+      //get integration points for higher order quad rule
+      std::vector<unsigned int> integrationOrder = this->m_order;
+      for(unsigned int i=0; i<integrationOrder.size();i++)
+        integrationOrder[i] += 2;
+
+      QuadratureTensorProduct integrationQuadratureRule(
+          this->m_parameters, integrationOrder );
+
+      unsigned int dimension = this->m_dimension;
+      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+      double** quadPoints = integrationQuadratureRule.getQuadPoints();
+      double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+      //----------
+      // loop over quad points
+      for(unsigned int i=0; i<nQuadPoints; i++)
+      {
+        T_S paramValues(dimension);
+        for(unsigned int j=0; j<paramValues.size(); j++)
+          paramValues(j) = quadPoints[i][j];
+
+        std::map<std::string,T_P> pointValue 
+          = this->evaluate(solutionNames,paramValues);
+        for (unsigned int n=0; n < solutionNames.size(); n++)
+        {
+          std::string id = solutionNames[n];
+          for(unsigned int j=0; j<l2norm[id].size();j++)
+            l2norm[id](j) += pointValue[id](j) * pointValue[id](j) 
+              * quadWeights[i] ; 
+        }
+
+      } // end loop over quad points
+
+      
+      // take square root
+      for (unsigned int n=0; n < solutionNames.size(); n++)
+      {
+        std::string id = solutionNames[n];
+
+        for(unsigned int j=0; j<l2norm[id].size();j++)
+          l2norm[id](j) =  std::sqrt( l2norm[id](j) );
+      }
+
+
+      return l2norm;
+    }
+
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    double SurrogatePseudoSpectral<T_S,T_P>::l2NormDifference(
+        SurrogateModel<T_S,T_P>& comparisonModel,
+        std::string solutionName )
+    {
+
+      // make sure solutionName is present in both models
+      // evaluate at integration points
+      //
+      //
+      // initialize to zero
+      double l2norm = 0;
+
+      if (this->m_solutionFunction.count(solutionName) == 0) 
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " base model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+      if (comparisonModel.getSolutionNames().count(solutionName) == 0 )
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " comparison model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+
+      //---------
+      //get integration points for higher order quad rule
+      std::vector<unsigned int> integrationOrder = this->m_order;
+      std::vector<unsigned int> comparisonOrder 
+        = comparisonModel.getExpansionOrder() ;
+      for(unsigned int i=0; i<integrationOrder.size();i++)
+        integrationOrder[i] 
+          = std::max(integrationOrder[i],comparisonOrder[i]) 
+          + 2;
+
+      QuadratureTensorProduct integrationQuadratureRule(
+          this->m_parameters, integrationOrder );
+
+      unsigned int dimension = this->m_dimension;
+      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+      double** quadPoints = integrationQuadratureRule.getQuadPoints();
+      double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+      //----------
+      // loop over quad points
+      for(unsigned int i=0; i<nQuadPoints; i++)
+      {
+        T_S paramValues(dimension);
+        for(unsigned int j=0; j<paramValues.size(); j++)
+          paramValues(j) = quadPoints[i][j];
+
+        T_P diffVec = this->evaluate(solutionName,paramValues);
+        diffVec -= comparisonModel.evaluate(solutionName,paramValues);
+
+
+        l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
+        /* l2norm += 1  * quadWeights[i] ; */ 
+
+      } // end loop over quad points
+
+      
+      // take square root
+      l2norm =  std::sqrt( l2norm );
+
+
+      return l2norm;
+
     }
   
 }
