@@ -126,13 +126,16 @@ namespace AGNOS
 
           // Now build the element matrix and right-hand-side using loops to
           // integrate the test functions (i) against the trial functions (j).
-            Q[0] += JxW[qp] * U;
-              /* * sqrt(100./(3.14159)) * std::exp( -100. * pow(x-0.5,2) ); */
+            Q[0] += JxW[qp] * U
+              * sqrt(100./(3.14159)) * std::exp( -100. * pow(x-0.5,2) );
         }
 
 
       }
 
+      // overwrite to exact point calculation
+      libMesh::Point point(0.5);
+      Q[0] = system.point_value(0,point);
 
       return;
     }

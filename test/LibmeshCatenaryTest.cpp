@@ -94,6 +94,8 @@ using namespace AGNOS;
         delete mySurrogate;
         delete myPhysicsFunction;
         delete myPhysics;
+        for (unsigned int i=0; i<myParameters.size(); i++)
+          delete myParameters[i] ;
         myParameters.clear();
       }
 
