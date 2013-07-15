@@ -4,6 +4,7 @@
 
 
 #include "Driver.h"
+#include "PhysicsFunctionTotalError.h"
 
 
 namespace AGNOS
@@ -85,13 +86,6 @@ namespace AGNOS
           ); 
     }
 
-    // error estimate
-    m_errorFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "error", 
-          new PhysicsFunctionError<T_S,T_P>( myPhysics ) ) 
-        ); 
-
 
     // type specific setup
     switch( m_surrogateType )
@@ -104,6 +98,48 @@ namespace AGNOS
               m_physicsFunctions, 
               m_parameters, 
               m_order  );
+
+          break;
+        }
+      case(PSEUDO_SPECTRAL_SPARSE_GRID):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(PSEUDO_SPECTRAL_MONTE_CARLO):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(COLLOCATION):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+    }
+    
+
+    // ----- ERROR SURROGATE
+    //
+    m_errorFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "error", 
+          new PhysicsFunctionTotalError<T_S,T_P>( 
+            myPhysics, this->m_surrogate ) 
+          ) 
+        ); 
+
+    // type specific setup
+    switch( m_surrogateType )
+    {
+      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
+        {
 
           this->m_errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
               this->m_comm,
@@ -162,16 +198,39 @@ namespace AGNOS
     
     // build error surrogate
     m_errorSurrogate->build();
+
     
     // print out first iteration if requested
-      if (this->m_outputIterations && (this->m_comm->rank() == 0) )
-      {
-        std::cout << "\n writing results to: " << this->m_outputFilename
-          << " (iter = " << 1 << " )"
-         << std::endl;
-        std::cout << std::endl;
-        printSolution(1);
-      }
+    if (this->m_outputIterations && (this->m_comm->rank() == 0) )
+    {
+      std::cout << "\n writing results to: " << this->m_outputFilename
+        << " (iter = " << 1 << " )"
+       << std::endl;
+      std::cout << std::endl;
+      printSolution(1);
+    }
+    
+      // evaluate QoI
+      T_S evalPoint(1);
+      evalPoint(0) = 1.5;
+      T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
+      T_P qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ;
+
+      T_P l2normofphyerror = m_surrogate->l2Norm("error");
+      T_P l2normoftotalerror = m_errorSurrogate->l2Norm("error");
+      double normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+
+    if (this->m_comm->rank() == 0)
+    {
+
+      std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
+      std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
+      std::cout << "| phyErrorNorm-totalErrorNorm | = " <<
+        std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl;
+      std::cout << "normDiff = " << normDiff << std::endl;
+
+      std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
+    }
 
     // refine approximation
     for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
@@ -179,24 +238,35 @@ namespace AGNOS
       if (this->m_comm->rank() == 0) 
         std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
       
-
       // TODO control which space is refined
       // for now both are refined
-
+      //
       
-      if ( m_physicsFunctions.find("indicators") == m_physicsFunctions.end() )
-        m_myPhysics->refine( );
-      else
+      if (m_refinePhysical)
       {
-        // retrieve first coefficient (i.e. the mean) of error inidcators
-        T_P errorIndicators = (m_surrogate->mean())["indicators"];
-        
-        m_myPhysics->refine( errorIndicators );
+        if ( m_physicsFunctions.find("indicators") == m_physicsFunctions.end() )
+          m_myPhysics->refine( );
+        else
+        {
+          // retrieve first coefficient (i.e. the mean) of error inidcators
+          T_P errorIndicators = (m_surrogate->mean())["indicators"];
+          
+          m_myPhysics->refine( errorIndicators );
+        }
+        if (!m_refineSurrogate)
+        {
+          m_surrogate->build();
+          m_errorSurrogate->build();
+        }
+      }
+
+      if (m_refineSurrogate)
+      {
+        m_surrogate->refine( );
+        m_errorSurrogate->refine( );
       }
 
 
-      m_surrogate->refine( );
-      m_errorSurrogate->refine( );
 
 
 
@@ -209,15 +279,37 @@ namespace AGNOS
         printSolution(iter);
       }
 
-      // evaluate QoI
-      T_S evalPoint(1);
-      evalPoint(0) = 1.5;
-      T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
-      T_P qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ;
+      this->m_comm->barrier();
+
+      solutionVec = m_surrogate->evaluate("primal", evalPoint );
+      qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ;
+
+      l2normofphyerror = m_surrogate->l2Norm("error");
+      l2normoftotalerror = m_errorSurrogate->l2Norm("error");
+      normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+
       if (this->m_comm->rank() == 0)
       {
+
+        std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
+        std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
+        /* std::cout << "| phyErrorNorm-totalErrorNorm | = " << */
+        /* std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; */
+        std::cout << "normDiff = " << normDiff << std::endl;
+
         std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
       }
+
+      
+      /* // evaluate QoI */
+      /* T_S evalPoint(1); */
+      /* evalPoint(0) = 1.5; */
+      /* T_P solutionVec = m_surrogate->evaluate("primal", evalPoint ); */
+      /* T_P qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ; */
+      /* if (this->m_comm->rank() == 0) */
+      /* { */
+      /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
+      /* } */
     }
     
     // output whatever user asks for

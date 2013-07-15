@@ -62,6 +62,7 @@ namespace AGNOS
 
       const T_P* getPrimalSolution( ) const ;
       const T_P* getAdjointSolution( ) const ;
+      const T_P* getQoiValue( ) const;
       const T_P* getErrorEstimate( ) const;
       const T_P* getErrorIndicators( ) const;
 
@@ -135,6 +136,15 @@ namespace AGNOS
   const T_P* PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
   {
     return m_adjointSolution;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  const T_P* PhysicsModel<T_S,T_P>::getQoiValue( ) const
+  {
+    return m_qoiValue;
   }
 
 /********************************************//**

@@ -48,6 +48,8 @@ namespace AGNOS
       
       // ADAPTIVE SETTINGS
       // TODO adaptive settings
+      bool m_refinePhysical;
+      bool m_refineSurrogate;
 
       // SURROGATE VARIABLES
       int                       m_surrogateType;
@@ -83,6 +85,8 @@ namespace AGNOS
     
     // ADAPTIVE SETTINGS
     // TODO adaptive settings
+    m_refinePhysical = input("adaptive/refinePhysical",false);
+    m_refineSurrogate = input("adaptive/refineSurrogate",true);
     
     
     // PARAMETER SETTINGS

@@ -90,11 +90,48 @@ namespace AGNOS
       std::vector<libMesh::Number> &Q = system.qoi;
       Q[0]=0;
       std::vector<libMesh::dof_id_type> dof_indices;
-      libMesh::Number qoiValue;
-
       
-      libMesh::Point evalPoint(0.5);
-      Q[0] = system.point_value( 0, evalPoint);
+      // loop over all elements
+      libMesh::MeshBase::const_element_iterator el     
+        = mesh.active_local_elements_begin();
+      const libMesh::MeshBase::const_element_iterator el_end 
+        = mesh.active_local_elements_end();
+
+      // Note that ++el is preferred to el++ when using loops with iterators
+      for( ; el != el_end; ++el)
+      {
+
+        // It is convenient to store a pointer to the current element
+        const libMesh::Elem* elem = *el;
+
+        // Get the degree of freedom indices for the current element. 
+        // These define where in the global matrix and right-hand-side this 
+        // element will contribute to.
+        dof_map.dof_indices(elem, dof_indices);
+
+        // Compute the element-specific data for the current element. This 
+        // involves computing the location of the quadrature points (q_point) 
+        // and the shape functions (phi, dphi) for the current element.
+        fe->reinit(elem);
+
+
+
+        // Now loop over quadrature points to handle numerical integration
+        for(unsigned int qp=0; qp<qrule.n_points(); qp++)
+        {
+           const Real x = q_point[qp](0);
+
+           // get solution value 
+           Number U = system.point_value(0,q_point[qp]);
+
+          // Now build the element matrix and right-hand-side using loops to
+          // integrate the test functions (i) against the trial functions (j).
+            Q[0] += JxW[qp] * U;
+              /* * sqrt(100./(3.14159)) * std::exp( -100. * pow(x-0.5,2) ); */
+        }
+
+
+      }
 
 
       return;
