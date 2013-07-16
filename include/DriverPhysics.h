@@ -238,13 +238,20 @@ namespace AGNOS
       if (this->m_comm->rank() == 0) 
         std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
       
-      if (m_refinePhysical && (l2normofphyerror(0) >= normDiff) )
+
+      // if physical error dominates and we are allowed to refine physical
+      // solution
+      if ( 
+          ( m_refinePhysical && (l2normofphyerror(0) >= normDiff) ) 
+          ||
+          ( m_refinePhysical && !m_refineSurrogate )
+          )
       {
         if (this->m_comm->rank() == 0) 
-        {
           std::cout << "    refining physical solution " << std::endl;
-          std::cout << "-------------------------------------\n " ;
-        }
+        
+        // if using uniform refinement we won't have error indicators in the
+        // surrogate model (by design)
         if ( m_physicsFunctions.count("indicators") == 0 )
           m_myPhysics->refine( );
         else
@@ -254,17 +261,26 @@ namespace AGNOS
           
           m_myPhysics->refine( errorIndicators );
         }
+        if (this->m_comm->rank() == 0) 
+          std::cout << "-------------------------------------\n " ;
 
         m_surrogate->build();
         m_errorSurrogate->build();
       }
 
-      if (m_refineSurrogate && (l2normofphyerror(0) < normDiff) )
+
+      // if surrogate error dominates and we are allowed to refine surrogate
+      // model
+      if ( 
+          ( m_refineSurrogate && (l2normofphyerror(0) < normDiff) ) 
+          ||
+          ( m_refineSurrogate && !m_refinePhysical ) 
+          )
       {
         if (this->m_comm->rank() == 0) 
         {
           std::cout << "    refining surrogate model " << std::endl;
-          std::cout << "------------------------------------\n " ;
+          std::cout << "-------------------------------------\n " ;
         }
         m_surrogate->refine( );
         m_errorSurrogate->refine( );

@@ -307,6 +307,7 @@ namespace AGNOS
         T_P& imageVector
         )
     {
+      /* std::cout << " test: compute begin " << std::endl; */
       if (this->m_physics->getErrorEstimate() == NULL )
       {
         if ( this->m_physics->getPrimalSolution() == NULL )
@@ -332,6 +333,8 @@ namespace AGNOS
       }
       else 
         imageVector = *this->m_physics->getErrorEstimate() ;
+
+      /* std::cout << " test: compute end " << std::endl; */
       return;
     }
 
