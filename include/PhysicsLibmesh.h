@@ -66,6 +66,7 @@ namespace AGNOS
 
     protected:
       const Communicator*   m_comm; //< global comm (not libmesh object specific)
+      const GetPot&               m_input;
 
       // mesh and equation variables
       unsigned int    m_n;              // number of elements
@@ -100,7 +101,7 @@ namespace AGNOS
   PhysicsLibmesh<T_S,T_P>::PhysicsLibmesh(
       const Communicator&       comm,
       const GetPot&             physicsInput
-      ) : m_comm(&comm)
+      ) : m_comm(&comm), m_input(physicsInput)
   {
     //-------- get physics model settings
     if (comm.rank() == 0)

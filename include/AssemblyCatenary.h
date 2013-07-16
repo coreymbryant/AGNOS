@@ -1,74 +1,82 @@
-#ifndef PHYSICS_ASSEMBLY_H
-#define PHYSICS_ASSEMBLY_H
+#ifndef ASSEMBLY_CATENARY_H
+#define ASSEMBLY_CATENARY_H
 
 
 #include "agnosDefines.h"
 
-
-
+#include "PhysicsAssembly.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/linear_implicit_system.h"
-#include "libmesh/fe.h"
-
-#include "libmesh/quadrature_gauss.h"
-#include "libmesh/sparse_matrix.h"
-#include "libmesh/dof_map.h"
-#include "libmesh/numeric_vector.h"
-#include "libmesh/dense_matrix.h"
-#include "libmesh/dense_vector.h"
 
 namespace AGNOS
 {
 
 
   /********************************************//**
-   * \brief Derive a libmesh assembly class for custom assembly
+   * \brief PhysicsAssembly class for Catenary problem.
    ***********************************************/
   template<class T_S>
-  class PhysicsAssembly : public libMesh::System::Assembly
+  class AssemblyCatenary : public PhysicsAssembly<T_S>
   {
     public:
-      PhysicsAssembly(
+      AssemblyCatenary(
         libMesh::EquationSystems& es, 
-        const std::string&        systemName,
-        double&                   forcing
+        const std::string&        systemName
           );
-      ~PhysicsAssembly( );
+      ~AssemblyCatenary( );
 
       void assemble( );
 
-      void setParameterValues( const T_S& parameters );
+      void setSystemData( const GetPot& input ) ;
 
     private:
-      T_S                       m_paramValues;
-      libMesh::EquationSystems& m_es; 
-      const std::string&        m_systemName;
-      double&                   m_forcing;
+      double                   m_forcing;
 
   };
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    PhysicsAssembly<T_S>::PhysicsAssembly( 
+    AssemblyCatenary<T_S>::AssemblyCatenary( 
         libMesh::EquationSystems& es, 
-        const std::string&        systemName,
-        double&                   forcing
+        const std::string&        systemName
         )
-    : m_es(es), m_systemName(systemName), m_forcing(forcing), 
-      m_paramValues( T_S(1) )
-    { }
+    : PhysicsAssembly<T_S>(es,systemName)
+    { 
+      m_forcing = 0.;
+    }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    PhysicsAssembly<T_S>::~PhysicsAssembly( ){ }
+    void AssemblyCatenary<T_S>::setSystemData(
+        const GetPot& input
+        )
+    { 
+      m_forcing = input("physics/forcing",-10.);
+      return;
+    }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    void PhysicsAssembly<T_S>::assemble( )
+    AssemblyCatenary<T_S>::~AssemblyCatenary( ){ }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S>
+    void AssemblyCatenary<T_S>::assemble( )
     {
 
       // reference to mesh
-      const libMesh::MeshBase& mesh = m_es.get_mesh();
+      const libMesh::MeshBase& mesh = this->m_es.get_mesh();
       const unsigned int dim = mesh.mesh_dimension();
-      libMesh::LinearImplicitSystem& system =
-        m_es.get_system<LinearImplicitSystem>("1D");
+      LinearImplicitSystem& system 
+        = this->m_es.template get_system<LinearImplicitSystem>("1D") ;
 
       // dofs map
       const libMesh::DofMap& dof_map = system.get_dof_map();
@@ -136,7 +144,7 @@ namespace AGNOS
 
             for(unsigned int j=0; j<phi.size(); j++)
             {
-              Ke(i,j) += JxW[qp]*(m_paramValues(0)*dphi[i][qp]*dphi[j][qp] );
+              Ke(i,j) += JxW[qp]*(this->m_paramValues(0)*dphi[i][qp]*dphi[j][qp] );
             }
           }
         }
@@ -176,15 +184,8 @@ namespace AGNOS
       return;
     }
 
-  template<class T_S> 
-    void PhysicsAssembly<T_S>::setParameterValues( const T_S& parameters) 
-    { 
-      m_paramValues = parameters ;
-      return; 
-    }
-  
 
 }
 
 
-#endif // PHYSICS_ASSEMBLY_H
+#endif // ASSEMBLY_CATENARY_H

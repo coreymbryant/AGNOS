@@ -1,74 +1,77 @@
-#ifndef PHYSICS_ASSEMBLY_H
-#define PHYSICS_ASSEMBLY_H
+#ifndef ASSEMBLY_VISCOUS_BURGERS_H
+#define ASSEMBLY_VISCOUS_BURGERS_H
 
 
 #include "agnosDefines.h"
 
-
-
-#include "libmesh/equation_systems.h"
-#include "libmesh/linear_implicit_system.h"
-#include "libmesh/fe.h"
-
-#include "libmesh/quadrature_gauss.h"
-#include "libmesh/sparse_matrix.h"
-#include "libmesh/dof_map.h"
-#include "libmesh/numeric_vector.h"
-#include "libmesh/dense_matrix.h"
-#include "libmesh/dense_vector.h"
+#include "PhysicsAssembly.h"
 
 namespace AGNOS
 {
 
 
   /********************************************//**
-   * \brief Derive a libmesh assembly class for custom assembly
+   * \brief PhysicsAssembly class for ViscousBurgers problem.
    ***********************************************/
   template<class T_S>
-  class PhysicsAssembly : public libMesh::System::Assembly
+  class AssemblyViscousBurgers : public PhysicsAssembly
   {
     public:
-      PhysicsAssembly(
+      AssemblyViscousBurgers(
         libMesh::EquationSystems& es, 
-        const std::string&        systemName,
-        double&                   forcing
+        const std::string&        systemName
           );
-      ~PhysicsAssembly( );
+      ~AssemblyViscousBurgers( );
 
       void assemble( );
 
-      void setParameterValues( const T_S& parameters );
+      void setSystemData(  ) ;
 
     private:
-      T_S                       m_paramValues;
-      libMesh::EquationSystems& m_es; 
-      const std::string&        m_systemName;
-      double&                   m_forcing;
 
   };
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    PhysicsAssembly<T_S>::PhysicsAssembly( 
+    AssemblyViscousBurgers<T_S>::AssemblyViscousBurgers( 
         libMesh::EquationSystems& es, 
-        const std::string&        systemName,
-        double&                   forcing
+        const std::string&        systemName
         )
-    : m_es(es), m_systemName(systemName), m_forcing(forcing), 
-      m_paramValues( T_S(1) )
-    { }
+    : PhysicsAssembly<T_S>(es,systemName)
+    { 
+    }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    PhysicsAssembly<T_S>::~PhysicsAssembly( ){ }
+    void AssemblyViscousBurgers<T_S>::setSystemData()
+    { 
+      return;
+    }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S>
-    void PhysicsAssembly<T_S>::assemble( )
+    AssemblyViscousBurgers<T_S>::~AssemblyViscousBurgers( ){ }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S>
+    void AssemblyViscousBurgers<T_S>::assemble( )
+   
     {
+      // TODO
 
       // reference to mesh
-      const libMesh::MeshBase& mesh = m_es.get_mesh();
+      const libMesh::MeshBase& mesh = this->m_es.get_mesh();
       const unsigned int dim = mesh.mesh_dimension();
-      libMesh::LinearImplicitSystem& system =
-        m_es.get_system<LinearImplicitSystem>("1D");
+      NonlinearImplicitSystem& system 
+        = this->m_es.template get_system<NonlinearImplicitSystem>("1D") ;
 
       // dofs map
       const libMesh::DofMap& dof_map = system.get_dof_map();
@@ -136,7 +139,7 @@ namespace AGNOS
 
             for(unsigned int j=0; j<phi.size(); j++)
             {
-              Ke(i,j) += JxW[qp]*(m_paramValues(0)*dphi[i][qp]*dphi[j][qp] );
+              Ke(i,j) += JxW[qp]*(this->m_paramValues(0)*dphi[i][qp]*dphi[j][qp] );
             }
           }
         }
@@ -175,16 +178,10 @@ namespace AGNOS
 
       return;
     }
+ 
 
-  template<class T_S> 
-    void PhysicsAssembly<T_S>::setParameterValues( const T_S& parameters) 
-    { 
-      m_paramValues = parameters ;
-      return; 
-    }
-  
 
 }
 
 
-#endif // PHYSICS_ASSEMBLY_H
+#endif // ASSEMBLY_VISCOUS_BURGERS_H

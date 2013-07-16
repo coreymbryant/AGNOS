@@ -7,6 +7,15 @@ SUBDIRS          = src test examples doxygen
 #SUBDIRS 				+= contrib
 #EXTRA_DIST       =
 
+# Tools in the auxiliary directory
+
+AUX_DIST         = build-aux/install-sh
+AUX_DIST        += build-aux/missing
+AUX_DIST        += build-aux/config.guess
+AUX_DIST        += build-aux/config.sub
+AUX_DIST        += build-aux/depcomp
+AUX_DIST        += build-aux/ltmain.sh
+
 # Files to be deleted by 'make maintainer-clean'
 MAINTAINERCLEANFILES = aclocal.m4                               \
                        aminclude.am                             \
@@ -25,3 +34,5 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
 											 doxygen/Makefile.in
 
 
+MOSTLYCLEANFILES     = $(DX_CLEANFILES) \
+                       docs/lcov
