@@ -870,8 +870,8 @@ namespace AGNOS
         for(unsigned int i=0; i<error_per_cell.size(); i++)
           (*this->m_errorIndicators)(i) =  error_per_cell[i] ;
 
-        std::cout << "test: rank" << this->m_comm->rank() 
-          << ": error_per_cell.size(): " << error_per_cell.size() << std::endl;
+        /* std::cout << "test: rank" << this->m_comm->rank() */ 
+        /*   << ": error_per_cell.size(): " << error_per_cell.size() << std::endl; */
 
       }
 
@@ -893,17 +893,17 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsCatenaryLibmesh<T_S,T_P>::refine() 
     {
-      std::cout << "  rank" << this->m_comm->rank() ; 
-      std::cout << "  previous n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+      if ( this->m_comm->rank() == 0 )
+        std::cout << "  previous n_active_elem(): " 
+          << m_mesh.n_active_elem() << std::endl;
 
       m_mesh_refinement->uniformly_refine(1);
 
       m_equation_systems->reinit();
 
-      std::cout << "  rank" << this->m_comm->rank() ; 
-      std::cout << "   refined n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+      if ( this->m_comm->rank() == 0 )
+        std::cout << "   refined n_active_elem(): " 
+          << m_mesh.n_active_elem() << std::endl;
 
     }
 
@@ -918,9 +918,9 @@ namespace AGNOS
         ) 
     {
 
-      std::cout << "  rank" << this->m_comm->rank() ; 
-      std::cout << "  previous n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+      if ( this->m_comm->rank() == 0 )
+        std::cout << "  previous n_active_elem(): " 
+          << m_mesh.n_active_elem() << std::endl;
 
       libMesh::ErrorVector error_per_cell(errorIndicators.size());
       for(unsigned int i=0; i<errorIndicators.size();i++)
@@ -940,9 +940,9 @@ namespace AGNOS
 
       m_equation_systems->reinit();
 
-      std::cout << "  rank" << this->m_comm->rank() ; 
-      std::cout << "   refined n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+      if ( this->m_comm->rank() == 0 )
+        std::cout << "   refined n_active_elem(): " 
+          << m_mesh.n_active_elem() << std::endl;
 
       return;
     }
