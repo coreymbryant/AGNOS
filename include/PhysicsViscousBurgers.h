@@ -55,8 +55,10 @@ namespace AGNOS
       const GetPot&             physicsInput
       ) : PhysicsLibmesh(comm,physicsInput)
   {
-    m_min             = physicsInput("physics/min",-10.);
-    m_max             = physicsInput("physics/max",10.);
+    m_min                 = physicsInput("physics/min",-10.);
+    m_max                 = physicsInput("physics/max",10.);
+    m_nonlinearSteps      = physicsInput("physics/nNonlinearSteps",15);
+    m_nonlineartolerance  = physicsInput("physics/nonlinearTolerance",1.e-3);
 
     this->init( );
   }
