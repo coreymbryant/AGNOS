@@ -5,7 +5,7 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "PhysicsAssembly.h"
+#include "AssemblyCatenary.h"
 #include "QoiCatenary.h"
 #include "QoiDerivativeCatenary.h"
 
@@ -107,9 +107,10 @@ namespace AGNOS
     this->m_system->add_variable("u",FIRST);
 
     // provide pointer to assemly routine
-    this->m_physicsAssembly = new PhysicsAssembly<T_S>( 
-        *this->m_equation_systems, "1D", m_forcing);
     const T_S tempParamValues(1);
+    this->m_physicsAssembly = new AssemblyCatenary<T_S>( 
+        *this->m_equation_systems, "1D");
+    this->m_physicsAssembly->setSystemData( this->m_input );
     this->m_physicsAssembly->setParameterValues( tempParamValues );
 
 
