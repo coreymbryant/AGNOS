@@ -238,13 +238,14 @@ namespace AGNOS
       if (this->m_comm->rank() == 0) 
         std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
       
-      // TODO control which space is refined
-      // for now both are refined
-      //
-      
-      if (m_refinePhysical)
+      if (m_refinePhysical && (l2normofphyerror(0) >= normDiff) )
       {
-        if ( m_physicsFunctions.find("indicators") == m_physicsFunctions.end() )
+        if (this->m_comm->rank() == 0) 
+        {
+          std::cout << "    refining physical solution " << std::endl;
+          std::cout << "-------------------------------------\n " ;
+        }
+        if ( m_physicsFunctions.count("indicators") == 0 )
           m_myPhysics->refine( );
         else
         {
@@ -253,15 +254,18 @@ namespace AGNOS
           
           m_myPhysics->refine( errorIndicators );
         }
-        if (!m_refineSurrogate)
-        {
-          m_surrogate->build();
-          m_errorSurrogate->build();
-        }
+
+        m_surrogate->build();
+        m_errorSurrogate->build();
       }
 
-      if (m_refineSurrogate)
+      if (m_refineSurrogate && (l2normofphyerror(0) < normDiff) )
       {
+        if (this->m_comm->rank() == 0) 
+        {
+          std::cout << "    refining surrogate model " << std::endl;
+          std::cout << "------------------------------------\n " ;
+        }
         m_surrogate->refine( );
         m_errorSurrogate->refine( );
       }

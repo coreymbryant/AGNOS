@@ -442,17 +442,17 @@ namespace AGNOS
         )
     {
       
-      std::cout << "test: estimateError() beginning" << std::endl;
+      /* std::cout << "test: estimateError() beginning" << std::endl; */
       
 
       m_system->set_adjoint_already_solved(false);
       m_physicsAssembly->setParameterValues(parameterValue);
 
-      std::cout << "test: estimateError() pre set solution" << std::endl;
-      std::cout << "   primalSoution.size(): " << primalSolution.size() <<
-                                                  std::endl;
-      std::cout << "   m_system->solution->size(): " 
-        << m_system->solution->size() << std::endl;
+      /* std::cout << "test: estimateError() pre set solution" << std::endl; */
+      /* std::cout << "   primalSoution.size(): " << primalSolution.size() << */
+      /*                                             std::endl; */
+      /* std::cout << "   m_system->solution->size(): " */ 
+      /*   << m_system->solution->size() << std::endl; */
       
       // set solution to provided value
       for (unsigned int i=0; i<m_system->solution->size(); i++)
@@ -460,7 +460,7 @@ namespace AGNOS
       m_system->solution->close();
       m_system->update();
 
-      std::cout << "test: estimateError() post set solution" << std::endl;
+      /* std::cout << "test: estimateError() post set solution" << std::endl; */
       
 
 
@@ -549,7 +549,7 @@ namespace AGNOS
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
-      std::cout << "test: estimateError() pre set adjiont" << std::endl;
+      /* std::cout << "test: estimateError() pre set adjiont" << std::endl; */
 
 
       // check if system has adjoint_solution vector
@@ -573,7 +573,7 @@ namespace AGNOS
       m_system->set_adjoint_already_solved(true);
       m_system->update();
 
-      std::cout << "test: estimateError() post set adjiont" << std::endl;
+      /* std::cout << "test: estimateError() post set adjiont" << std::endl; */
 
 
       // Now that we have the refined adjoint solution and the projected primal solution,
