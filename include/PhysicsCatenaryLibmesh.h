@@ -165,11 +165,11 @@ namespace AGNOS
     m_mesh_refinement = new libMesh::MeshRefinement(m_mesh);
 
     m_mesh_refinement->coarsen_by_parents()         = true;
-    m_mesh_refinement->absolute_global_tolerance()  = 0.0;
-    m_mesh_refinement->nelem_target()               = 21;  
+    m_mesh_refinement->absolute_global_tolerance()  = 1e-6;
+    /* m_mesh_refinement->nelem_target()               = 64; */  
     m_mesh_refinement->refine_fraction()            = 0.7;
     m_mesh_refinement->coarsen_fraction()           = 0.3;  
-    m_mesh_refinement->coarsen_threshold()          = 5;
+    m_mesh_refinement->coarsen_threshold()          = 1e-5;
     m_mesh_refinement->max_h_level()                = 15;
     
     // refinement settings
@@ -240,6 +240,7 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      /* std::cout << " test: solveAdjoint start " << std::endl; */
       m_physicsAssembly->setParameterValues(parameterValue);
 
 
@@ -262,6 +263,7 @@ namespace AGNOS
       for (System::vectors_iterator vec = m_system->vectors_begin(); vec !=
            m_system->vectors_end(); ++vec)
         {
+          /* std::cout << " var_name: " << vec->first << std::endl; */
           // The (string) name of this vector
           const std::string& var_name = vec->first;
 
@@ -331,10 +333,20 @@ namespace AGNOS
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
+      /* // if we have already solved adjoint on this process we may need to */
+      /* // remove it */
+      /* if (!m_system->have_vector("adjoint_solution0")) */
+      /* { */
+      /*   m_system->remove_vector("adjoint_solution0"); */
+      /* } */
+    
+
+      /* std::cout << " test: pre adjoint_solve " << std::endl; */
       // solve adjoint
       m_system->adjoint_solve( );
       m_system->set_adjoint_already_solved(true);
       /* std::cout << " 336:post adjoint_solve" << std::endl; */
+      /* std::cout << " test: post adjoint_solve " << std::endl; */
 
 
       // convert solution to T_P
@@ -398,6 +410,7 @@ namespace AGNOS
 
 
 
+      /* std::cout << " test: solveAdjoint end " << std::endl; */
       return imageValue;
     }
 
@@ -441,9 +454,9 @@ namespace AGNOS
         const T_P& adjointSolution  
         )
     {
-      
       /* std::cout << "test: estimateError() beginning" << std::endl; */
       
+      m_physicsAssembly->setParameterValues(parameterValue);
 
       m_system->set_adjoint_already_solved(false);
       m_physicsAssembly->setParameterValues(parameterValue);
@@ -849,13 +862,17 @@ namespace AGNOS
 
       // computed_global_QoI_errors holds error estimate for each qoi
       // error_per_cell holds error indicators
-
+      
       // set errorIndicators if we need them for adaptive refinement
       if (!this->m_useUniformRefinement)
       {
         this->m_errorIndicators = new T_P(error_per_cell.size());
         for(unsigned int i=0; i<error_per_cell.size(); i++)
           (*this->m_errorIndicators)(i) =  error_per_cell[i] ;
+
+        std::cout << "test: rank" << this->m_comm->rank() 
+          << ": error_per_cell.size(): " << error_per_cell.size() << std::endl;
+
       }
 
       // convert to return type
@@ -876,9 +893,18 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsCatenaryLibmesh<T_S,T_P>::refine() 
     {
+      std::cout << "  rank" << this->m_comm->rank() ; 
+      std::cout << "  previous n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
+
       m_mesh_refinement->uniformly_refine(1);
 
       m_equation_systems->reinit();
+
+      std::cout << "  rank" << this->m_comm->rank() ; 
+      std::cout << "   refined n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
+
     }
 
   /********************************************//**
@@ -892,6 +918,9 @@ namespace AGNOS
         ) 
     {
 
+      std::cout << "  rank" << this->m_comm->rank() ; 
+      std::cout << "  previous n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
       libMesh::ErrorVector error_per_cell(errorIndicators.size());
       for(unsigned int i=0; i<errorIndicators.size();i++)
@@ -899,17 +928,21 @@ namespace AGNOS
       m_mesh_refinement->clean_refinement_flags();
 
       
-      //TODO control type of refinement
+      //TODO input options to control type of refinement
       m_mesh_refinement->flag_elements_by_error_tolerance (error_per_cell);            
       /* m_mesh_refinement->flag_elements_by_error_fraction (error_per_cell); */             
       /* m_mesh_refinement->flag_elements_by_elem_fraction (error_per_cell); */              
                    
-      //TODO control whether we coarsen as well
+      //TODO input options to control whether we coarsen as well
       /* m_mesh_refinement->refine_and_coarsen_elements(); */
       m_mesh_refinement->refine_elements();
 
 
       m_equation_systems->reinit();
+
+      std::cout << "  rank" << this->m_comm->rank() ; 
+      std::cout << "   refined n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
       return;
     }

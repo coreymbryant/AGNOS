@@ -112,21 +112,18 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
   mySurrogate->build( );
   std::map< std::string, std::vector<T_P> > myCoeff;
 
-  if ( 0 % comm.size() == comm.rank() )
+  myCoeff = mySurrogate->getCoefficients();
+
+  if (comm.rank() == 0)
   {
-    myCoeff = mySurrogate->getCoefficients();
     // 12/11 is the sum of u(\xi_j) 
     BOOST_CHECK_CLOSE( 
         myCoeff["primal"][0](0),
         -10.0/16.0 * (12./11.), 1e-9 );
-  }
 
-  if ( 1 % comm.size() == comm.rank() )
-  {
-    myCoeff = mySurrogate->getCoefficients();
     // -2 sqrt(3)/11 is correct contribution from poly evals
     BOOST_CHECK_CLOSE( 
-        myCoeff["primal"][1/comm.size() ](0) , 
+        myCoeff["primal"][1](0) , 
         -10.0/16.0 * ( -2.0 * std::sqrt(3.0) / 11.0 ), 
         1e-9 );
   }
@@ -153,47 +150,72 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   mySurrogate->build( );
   std::map< std::string, std::vector<T_P> > myCoeff ;
 
-  if ( 0 % comm.size() == comm.rank() )
+  myCoeff = mySurrogate->getCoefficients();
+
+  if (comm.rank() == 0)
   {
-    myCoeff = mySurrogate->getCoefficients();
     // Coefficients generated from pmpack for comparison
     BOOST_CHECK_CLOSE( 
         myCoeff["primal"][0](0) , 
         -6.866307761327950e-01,
         1e-9 );
-  }
-  if ( 1 % comm.size() == comm.rank() )
-  {
-    myCoeff = mySurrogate->getCoefficients();
+    std::cout << "myCoeff[0]=" << myCoeff["primal"][0](0) << std::endl;
+    
     BOOST_CHECK_CLOSE( 
-        myCoeff["primal"][1/comm.size()](0) , 
+        myCoeff["primal"][1](0) , 
         2.134952711438086e-01,
         1e-9 );
-  }
-  if ( 2 % comm.size() == comm.rank() )
-  {
-    myCoeff = mySurrogate->getCoefficients();
+    std::cout << "myCoeff[1]=" << myCoeff["primal"][1](0) << std::endl;
+   
     BOOST_CHECK_CLOSE( 
-        myCoeff["primal"][2/comm.size()](0) , 
+        myCoeff["primal"][2](0) , 
         -5.918708419582225e-02, 
         1e-9 );
-  }
-  if ( 3 % comm.size() == comm.rank() )
-  {
-    myCoeff = mySurrogate->getCoefficients();
+    std::cout << "myCoeff[2]=" << myCoeff["primal"][2](0) << std::endl;
+
     BOOST_CHECK_CLOSE( 
-        myCoeff["primal"][3/comm.size()](0) , 
+        myCoeff["primal"][3](0) , 
         1.602406581398491e-02,
         1e-9 );
-  }
-  if ( 4 % comm.size() == comm.rank() )
-  {
-    myCoeff = mySurrogate->getCoefficients();
+    std::cout << "myCoeff[3]=" << myCoeff["primal"][3](0) << std::endl;
+
     BOOST_CHECK_CLOSE( 
-        myCoeff["primal"][4/comm.size()](0) , 
+        myCoeff["primal"][4](0) , 
         -4.037685060565489e-03,
         1e-9 );
+    std::cout << "myCoeff[4]=" << myCoeff["primal"][4](0) << std::endl;
   }
+
+}
+
+BOOST_AUTO_TEST_CASE(Catenary_mean)
+{
+  initialize_mpi();
+  comm = MPI_COMM_WORLD;
+
+  if (comm.rank()==0)
+    BOOST_TEST_MESSAGE(" Testing Catenary with N=4 for mean calculation");
+
+  std::vector<unsigned int> myOrder(dimension,4);
+  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
+    new PseudoSpectralTensorProduct<T_S,T_P>(
+        &comm,
+        myPhysicsFunction, 
+        myParameters, 
+        myOrder  
+        );
+
+  mySurrogate->build( );
+  std::map< std::string, T_P > myMean ;
+
+  myMean = mySurrogate->mean();
+
+  // Coefficients generated from pmpack for comparison
+  BOOST_CHECK_CLOSE( 
+      myMean["primal"](0) , 
+      -6.866307761327950e-01,
+      1e-9 );
+    
 
 }
 

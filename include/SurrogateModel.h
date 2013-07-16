@@ -108,7 +108,7 @@ namespace AGNOS
       void printCoefficients( std::string solutionName, std::ostream& out ) ;
       void printCoefficients( std::ostream& out ) ;
       const std::map< std::string, std::vector<T_P> >   getLocalCoefficients() const;
-      const std::map< std::string, std::vector<T_P> >   getCoefficients() const;
+      const std::map< std::string, std::vector<T_P> >   getCoefficients() ;
 
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
       virtual void printIntegrationPoints( std::ostream& out ) const = 0;
@@ -134,6 +134,8 @@ namespace AGNOS
       std::vector<Parameter*>                             m_parameters;
       unsigned int                                        m_dimension;
 
+      std::set<std::string>                               m_solutionNames;
+
       
 
   }; //SurrogateModel class
@@ -155,6 +157,12 @@ namespace AGNOS
         m_dimension( parameters.size() )
     {
       m_order = std::vector<unsigned int>(m_dimension,order);
+
+      m_solutionNames.clear();
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
+        m_solutionNames.insert(id->first);
+
     }
 
 /********************************************//*
@@ -174,6 +182,10 @@ namespace AGNOS
         m_dimension( parameters.size() ), 
         m_order(order)
     {
+      m_solutionNames.clear();
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
+        m_solutionNames.insert(id->first);
 
       if (m_order.size() != parameters.size() )
       {
@@ -207,6 +219,11 @@ namespace AGNOS
           std::pair<std::string, PhysicsFunction<T_S,T_P>* >(
             solutionFunction->name(),solutionFunction) );
 
+      m_solutionNames.clear();
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
+        m_solutionNames.insert(id->first);
+
 
       if (m_order.size() != parameters.size() )
       {
@@ -238,6 +255,11 @@ namespace AGNOS
       m_solutionFunction = std::map< std::string, PhysicsFunction<T_S,T_P>* > ( 
           std::map<std::string, PhysicsFunction<T_S,T_P>* >(
             solutionFunction->name(),solutionFunction) );
+
+      m_solutionNames.clear();
+      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
+        m_solutionNames.insert(id->first);
 
       m_order = std::vector<unsigned int>(m_dimension,order);
     }
@@ -307,14 +329,74 @@ namespace AGNOS
     }
 
 /********************************************//**
- * \brief return coefficient values
+ * \brief return all coefficients to rank 0, to save on communication we do not
+ * broadcast to all processes
  ***********************************************/
   template<class T_S, class T_P> 
     const std::map< std::string, std::vector<T_P> >
-    SurrogateModel<T_S,T_P>::getCoefficients( ) const
+    SurrogateModel<T_S,T_P>::getCoefficients( ) 
     {
-  // TODO alter to get all coefficients
-      return m_coefficients;
+     
+      std::map< std::string, std::vector<T_P> > allCoefficients;
+
+      unsigned int myRank = m_comm->rank();
+      unsigned int commSize = m_comm->size();
+      unsigned int coeffStart = std::min(m_comm->rank(), m_totalNCoeff-1);
+
+      // loop over all functions
+      std::set<std::string>::iterator id = m_solutionNames.begin();
+      for (; id!=m_solutionNames.end(); ++id)
+      {
+        unsigned int solSize = m_solSize[*id];
+        std::vector<T_P> solutionCoeff( m_totalNCoeff, T_P(solSize) );
+
+        for(unsigned int c=0; c<this->m_totalNCoeff; c++)
+        {
+          unsigned int myC = (c-coeffStart)/commSize;
+          std::vector<double> myCoeff(solSize,0.) ;
+          libMesh::Parallel::MessageTag tag(c);
+          libMesh::Parallel::Status stat;
+
+          if (c%commSize == myRank)
+          {
+            if (myRank == 0)
+            {
+              // get and insert in total set
+              solutionCoeff[c] = m_coefficients[*id][myC] ;
+            }
+            else
+            {
+              // send my coeff to rank 0
+              for(unsigned int comp=0; comp<myCoeff.size(); comp++)
+                myCoeff[comp]= m_coefficients[*id][myC](comp) ; 
+              m_comm->send(0,myCoeff,tag);
+            }
+          }
+          else
+          {
+            if (myRank == 0)
+            {
+              // if im rank 0 receive all coefficients
+              stat=m_comm->receive( c%commSize, myCoeff, tag);
+
+              // insert into global set
+              for(unsigned int i=0; i<solSize; i++)
+                solutionCoeff[c](i) = myCoeff[i];
+
+            }
+          }
+
+
+        }
+
+
+        allCoefficients.insert( 
+            std::pair<std::string, std::vector<T_P> >(
+              *id, solutionCoeff )
+            );
+      }
+
+      return allCoefficients;
     }
 
 /********************************************//**
@@ -484,18 +566,49 @@ namespace AGNOS
   /********************************************//**
    * \brief get mean of surrogate model
    *      returns first coeff vector
-   * 
    ***********************************************/
   template<class T_S,class T_P>
      std::map< std::string, T_P > SurrogateModel<T_S,T_P>::mean( )
     {
       std::map< std::string, T_P > meanCoefficients;
 
-      typename std::map< std::string, std::vector<T_P> >::iterator id;
-      for (id=m_coefficients.begin(); id!=m_coefficients.end(); id++)
+      // some initialization
+      unsigned int myRank = m_comm->rank();
+      unsigned int commSize = m_comm->size();
+      unsigned int coeffStart = std::min(m_comm->rank(), m_totalNCoeff-1);
+
+      // mean is the first coefficient
+      unsigned int coeff = 0 ;
+
+      // some initialization
+      unsigned int myC = (coeff-coeffStart)/commSize;
+      libMesh::Parallel::MessageTag tag(coeff);
+      libMesh::Parallel::Status stat;
+
+      std::set<std::string>::iterator id = m_solutionNames.begin();
+      for (; id!=m_solutionNames.end(); ++id)
+      {
+        std::vector<double> myCoeff(m_solSize[*id],0.) ;
+        T_P solutionCoeff( m_solSize[*id] );
+
+        if (coeff%commSize == myRank)
+        {
+          // set value of mean coefficient
+          for(unsigned int comp=0; comp<myCoeff.size(); comp++)
+            myCoeff[comp]= m_coefficients[*id][myC](comp) ; 
+        }
+
+        // if I don't have coeff 0 receive it if I do send it
+        m_comm->broadcast(myCoeff, coeff%commSize);
+
+        // insert into global set
+        for(unsigned int i=0; i<solutionCoeff.size(); i++)
+          solutionCoeff(i) = myCoeff[i];
+
         meanCoefficients.insert(
-            std::pair< std::string, T_P>( id->first, (id->second)[0])
+            std::pair< std::string, T_P>( *id, solutionCoeff )
             );
+      }
 
       return meanCoefficients;
     }
@@ -521,13 +634,7 @@ namespace AGNOS
   template<class T_S,class T_P>
     std::set<std::string> SurrogateModel<T_S,T_P>::getSolutionNames()
     {
-      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
-      std::set<std::string> names;
-
-      for (id=m_solutionFunction.begin(); id !=m_solutionFunction.end(); id++)
-        names.insert(id->first);
-
-      return names;
+      return m_solutionNames;
     }
 
 }

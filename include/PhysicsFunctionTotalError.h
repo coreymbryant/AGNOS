@@ -98,6 +98,9 @@ namespace AGNOS
     void PhysicsFunctionTotalError<T_S,T_P>::setData(
         unsigned int currentIndex )
     {
+      if (this->m_physics != NULL )
+        this->m_physics->resetSolution( );
+
       this->m_physics->setPrimalSolution( m_primalData[currentIndex] );
       this->m_physics->setAdjointSolution( m_adjointData[currentIndex] );
 
@@ -155,10 +158,12 @@ namespace AGNOS
 
       T_P tempPrimal(*(this->m_physics->getPrimalSolution()) ) ;
       T_P tempAdjoint(*(this->m_physics->getAdjointSolution()) ) ;
-
       /* std::cout << "test: compute post temp vectors " << std::endl; */
+
+      /* std::cout << "test: compute pre estimateError " << std::endl; */
       imageVector = this->m_physics->estimateError(
           paramVector, tempPrimal, tempAdjoint);
+      /* std::cout << "test: compute post estimateError " << std::endl; */
 
       /* std::cout << "test: compute end " << std::endl; */
       return;
