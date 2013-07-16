@@ -87,7 +87,7 @@ namespace AGNOS
       }
       
       
-      std::cout << "test: computeData(...) " << m_primalData.size() << std::endl;
+      /* std::cout << "test: computeData(...) " << m_primalData.size() << std::endl; */
       return;
     }
 
@@ -101,32 +101,32 @@ namespace AGNOS
       this->m_physics->setPrimalSolution( m_primalData[currentIndex] );
       this->m_physics->setAdjointSolution( m_adjointData[currentIndex] );
 
-      std::cout << "m_primalData.size(): " << m_primalData[currentIndex].size()
-                                         << std::endl;
+      /* std::cout << "m_primalData.size(): " << m_primalData[currentIndex].size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<m_primalData[currentIndex].size(); i++) */
       /*   std::cout << "m_primalData(" << i << ") = " << */
       /*     m_primalData[currentIndex](i) << std::endl; */
 
-      std::cout << "primal.size(): " << this->m_physics->getPrimalSolution()->size()
-                                         << std::endl;
+      /* std::cout << "primal.size(): " << this->m_physics->getPrimalSolution()->size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<this->m_physics->getPrimalSolution()->size(); i++) */
       /*   std::cout << "primal(" << i << ") = " << */
       /*     (*this->m_physics->getPrimalSolution())(i) << std::endl; */
 
-      std::cout << "m_adjointData.size(): " << m_adjointData[currentIndex].size()
-                                         << std::endl;
+      /* std::cout << "m_adjointData.size(): " << m_adjointData[currentIndex].size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<m_adjointData[currentIndex].size(); i++) */
       /*   std::cout << "m_adjointData(" << i << ") = " << */
       /*     m_adjointData[currentIndex](i) << std::endl; */
 
-      std::cout << "adjoint.size(): " << this->m_physics->getAdjointSolution()->size()
-                                         << std::endl;
+      /* std::cout << "adjoint.size(): " << this->m_physics->getAdjointSolution()->size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<this->m_physics->getAdjointSolution()->size(); i++) */
       /*   std::cout << "adjoint(" << i << ") = " << */
       /*     (*this->m_physics->getAdjointSolution())(i) << std::endl; */
 
 
-      std::cout << "test: setData(...) " << std::endl;
+      /* std::cout << "test: setData(...) " << std::endl; */
       return;
     }
 
@@ -140,15 +140,15 @@ namespace AGNOS
         )
     {
 
-      std::cout << "test: compute beginning " << std::endl;
+      /* std::cout << "test: compute beginning " << std::endl; */
 
-      std::cout << "primal.size(): " << this->m_physics->getPrimalSolution()->size()
-                                         << std::endl;
+      /* std::cout << "primal.size(): " << this->m_physics->getPrimalSolution()->size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<this->m_physics->getPrimalSolution()->size(); i++) */
       /*   std::cout << "primal(" << i << ") = " << */
       /*     (*this->m_physics->getPrimalSolution())(i) << std::endl; */
-      std::cout << "adjoint.size(): " << this->m_physics->getAdjointSolution()->size()
-                                         << std::endl;
+      /* std::cout << "adjoint.size(): " << this->m_physics->getAdjointSolution()->size() */
+      /*                                    << std::endl; */
       /* for(unsigned int i=0; i<this->m_physics->getAdjointSolution()->size(); i++) */
       /*   std::cout << "adjoint(" << i << ") = " << */
       /*     (*this->m_physics->getAdjointSolution())(i) << std::endl; */
@@ -156,11 +156,11 @@ namespace AGNOS
       T_P tempPrimal(*(this->m_physics->getPrimalSolution()) ) ;
       T_P tempAdjoint(*(this->m_physics->getAdjointSolution()) ) ;
 
-      std::cout << "test: compute post temp vectors " << std::endl;
+      /* std::cout << "test: compute post temp vectors " << std::endl; */
       imageVector = this->m_physics->estimateError(
           paramVector, tempPrimal, tempAdjoint);
 
-      std::cout << "test: compute end " << std::endl;
+      /* std::cout << "test: compute end " << std::endl; */
       return;
     }
 
