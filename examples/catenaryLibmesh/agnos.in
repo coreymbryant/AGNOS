@@ -1,5 +1,5 @@
 [driver]
-maxIter = '3'
+maxIter = '18'
 []
 
 [parameters]
@@ -11,7 +11,7 @@ maxs = '3.0'
 
 [adaptive]
 refinePhysical = true
-refineSurrogate = false
+refineSurrogate = true
 []
 
 [physics]
