@@ -38,6 +38,7 @@ test/catenaryLibmeshTest
 
 examples/catenaryLibmesh/catenaryLibmesh
 examples/catenary/catenary
+examples/viscousBurgers/viscousBurgers
 
 *testFile.dat
 

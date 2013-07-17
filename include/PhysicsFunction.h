@@ -204,6 +204,7 @@ namespace AGNOS
         T_P& imageVector
         )
     {
+      std::cout << "test: adjoint compute begin" << std::endl;
       if( this->m_physics->getAdjointSolution() == NULL )
       {
         if ( this->m_physics->getPrimalSolution() == NULL )

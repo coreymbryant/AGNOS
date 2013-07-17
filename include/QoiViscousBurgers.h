@@ -38,7 +38,7 @@ namespace AGNOS
         libMesh::EquationSystems& es, 
         const std::string&        systemName
         )
-    : PhysicsQoi( es, systemName )
+    : PhysicsQoi<T_S>( es, systemName )
     { }
 
   /********************************************//**

@@ -5,14 +5,16 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "PhysicsAssembly.h"
-#include "PhysicsQoi.h"
-#include "PhysicsQoiDerivative.h"
+#include "ResidualViscousBurgers.h"
+#include "JacobianViscousBurgers.h"
+#include "QoiViscousBurgers.h"
+#include "QoiDerivativeViscousBurgers.h"
 
 // libmesh includes
 #include "libmesh/mesh_generation.h"
 #include "libmesh/edge_edge2.h"
-#include "libmesh/linear_implicit_system.h"
+#include "libmesh/nonlinear_solver.h"
+#include "libmesh/nonlinear_implicit_system.h"
 
 namespace AGNOS
 {
@@ -33,9 +35,18 @@ namespace AGNOS
           );
       ~PhysicsViscousBurgers( );
 
+      void setParameterValues( const T_S& parameterValues ) ;
+
     protected:
+      PhysicsJacobian<T_S>*           m_physicsJacobian;
+      PhysicsResidual<T_S>*           m_physicsResidual;
+
       double          m_min;
       double          m_max;
+
+      // solver settings
+      unsigned int    m_nonlinearTolerance;
+      unsigned int    m_nonlinearSteps;
 
       void _initializeSystem( );
       void _constructMesh( );
@@ -53,12 +64,12 @@ namespace AGNOS
   PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
       const Communicator&       comm,
       const GetPot&             physicsInput
-      ) : PhysicsLibmesh(comm,physicsInput)
+      ) : PhysicsLibmesh<T_S,T_P>(comm,physicsInput)
   {
     m_min                 = physicsInput("physics/min",-10.);
     m_max                 = physicsInput("physics/max",10.);
     m_nonlinearSteps      = physicsInput("physics/nNonlinearSteps",15);
-    m_nonlineartolerance  = physicsInput("physics/nonlinearTolerance",1.e-3);
+    m_nonlinearTolerance  = physicsInput("physics/nonlinearTolerance",1.e-3);
 
     this->init( );
   }
@@ -92,19 +103,25 @@ namespace AGNOS
     // define equation system
     this->m_equation_systems 
       = new libMesh::EquationSystems(this->m_mesh);
-    this->m_system = &( 
-        this->m_equation_systems->add_system("NonlinearImplicit", "1D")
-        ) ;
+
+    // local system pointer to set up Nonlinear specific settings
+    NonlinearImplicitSystem* system = new NonlinearImplicitSystem( 
+        *this->m_equation_systems, "Burgers", 0);
 
     // add variable (first order)
-    this->m_system->add_variable("u",FIRST);
+    system->add_variable("u",FIRST);
 
-    // provide pointer to assemly routine
-    this->m_physicsAssembly = new PhysicsAssembly<T_S>( 
-        *this->m_equation_systems, "1D");
-    const T_S tempParamValues(1);
-    this->m_physicsAssembly->setParameterValues( tempParamValues );
+    //---- set up nonlinear solver
+    // initalize the nonlinear solver
+    // provide pointer to residual object
+    m_physicsResidual = new ResidualViscousBurgers<T_S>( );
+    system->nonlinear_solver->jacobian_object = m_physicsJacobian;
 
+    // provide pointer to jacobian object
+    m_physicsJacobian = new JacobianViscousBurgers<T_S>( );
+    system->nonlinear_solver->residual_object = m_physicsResidual;
+
+    this->m_system = system;
 
     // QoISet
     this->m_qois = new libMesh::QoISet;
@@ -114,16 +131,28 @@ namespace AGNOS
     this->m_qois->set_weight(0, 1.0);
                             
     //pointer to qoi
-    this->m_qoi = new PhysicsQoi<T_S>(
-        *this->m_equation_systems, "1D");
+    this->m_qoi = new QoiViscousBurgers<T_S>(
+        *this->m_equation_systems, "Burgers");
 
     // pointer to qoi derivative assembly
     this->m_system->qoi.resize(1);
-    this->m_qoiDerivative = new PhysicsQoiDerivative<T_S>(
-        *this->m_equation_systems, "1D");
+    this->m_qoiDerivative = new QoiDerivativeViscousBurgers<T_S>(
+        *this->m_equation_systems, "Burgers");
+    std::cout << "test: system initialized" << std::endl;
   }
 
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsViscousBurgers<T_S,T_P>::setParameterValues( 
+        const T_S& parameterValues ) 
+    {
+      m_physicsResidual->setParameterValues( parameterValues );
+      m_physicsJacobian->setParameterValues( parameterValues );
+      return;
+    }
 
 
 
