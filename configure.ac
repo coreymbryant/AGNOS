@@ -134,6 +134,7 @@ AC_CONFIG_FILES([
                  examples/Makefile 
                  examples/catenary/Makefile
                  examples/catenaryLibmesh/Makefile
+                 examples/viscousBurgers/Makefile
                  doxygen/Makefile])
 
 

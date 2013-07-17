@@ -37,8 +37,11 @@ namespace AGNOS
           );
       ~PhysicsCatenaryLibmesh( );
 
+      void setParameterValues( const T_S& parameterValues ) ;
 
     protected:
+      PhysicsAssembly<T_S>*           m_physicsAssembly;
+
       double          m_forcing;
       double          m_min;
       double          m_max;
@@ -107,12 +110,12 @@ namespace AGNOS
     this->m_system->add_variable("u",FIRST);
 
     // provide pointer to assemly routine
-    const T_S tempParamValues(1);
-    this->m_physicsAssembly = new AssemblyCatenary<T_S>( 
+    m_physicsAssembly = new AssemblyCatenary<T_S>( 
         *this->m_equation_systems, "1D");
-    this->m_physicsAssembly->setSystemData( this->m_input );
-    this->m_physicsAssembly->setParameterValues( tempParamValues );
+    m_physicsAssembly->setSystemData( this->m_input );
 
+    // provide pointer to assemly routine
+    this->m_system->attach_assemble_object( *m_physicsAssembly );
 
     // QoISet
     this->m_qois = new libMesh::QoISet;
@@ -131,6 +134,16 @@ namespace AGNOS
         *this->m_equation_systems, "1D");
   }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsCatenaryLibmesh<T_S,T_P>::setParameterValues( 
+        T_S parameterValues ) 
+    {
+      m_physicsAssembly->setParameterValues( parameterValues );
+      return;
+    }
 
 
 }

@@ -30,7 +30,10 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
                        Makefile.in                              \
                        src/Makefile.in                          \
 											 test/Makefile.in 												\
-											 examples/Makefile.in 												\
+											 examples/Makefile.in 										\
+											 examples/catenary/Makefile.in 						\
+											 examples/catenaryLibmesh/Makefile.in 		\
+											 examples/viscousBurgers/Makefile.in 			\
 											 doxygen/Makefile.in
 
 

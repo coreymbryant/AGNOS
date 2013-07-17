@@ -1,10 +1,11 @@
-
-
 #ifndef PHYSICS_LIBMESH_H
 #define PHYSICS_LIBMESH_H
 
 #include "agnosDefines.h"
 #include "PhysicsModel.h"
+#include "PhysicsAssembly.h"
+#include "PhysicsJacobian.h"
+#include "PhysicsResidual.h"
 #include "PhysicsAssembly.h"
 #include "PhysicsQoi.h"
 #include "PhysicsQoiDerivative.h"
@@ -12,6 +13,7 @@
 // libmesh includes
 #include "libmesh/mesh.h"
 #include "libmesh/equation_systems.h"
+#include "libmesh/nonlinear_solver.h"
 #include "libmesh/error_vector.h"
 #include "libmesh/adjoint_refinement_estimator.h"
 #include "libmesh/mesh_refinement.h"
@@ -64,6 +66,8 @@ namespace AGNOS
 
       void init( ) ;
 
+      virtual void setParameterValues( const T_S& parameterValues ) = 0;
+
     protected:
       const Communicator*   m_comm; //< global comm (not libmesh object specific)
       const GetPot&               m_input;
@@ -81,7 +85,6 @@ namespace AGNOS
       unsigned int m_maxRefineSteps;
 
       // problem specific routines
-      PhysicsAssembly<T_S>*           m_physicsAssembly;
       PhysicsQoi<T_S>*                m_qoi;
       PhysicsQoiDerivative<T_S>*      m_qoiDerivative;
       libMesh::QoISet*                m_qois;
@@ -138,9 +141,6 @@ namespace AGNOS
 
 
     //-------- set up specific routines
-    // provide pointer to assemly routine
-    // requisite member variables should be initialized in _initializeSystem()
-    m_system->attach_assemble_object( *m_physicsAssembly );
 
     //pointer to qoi
     m_system->attach_QOI_object( *m_qoi );
@@ -163,6 +163,7 @@ namespace AGNOS
 
     //------ initialize data structures
     m_equation_systems->init();
+    std::cout << "test: post init " << std::endl;
 
   }
 
@@ -174,7 +175,6 @@ namespace AGNOS
   {
     delete m_equation_systems;
     delete m_mesh_refinement;
-    delete m_physicsAssembly;
     delete m_qoi;
     delete m_qoiDerivative;
     delete m_qois;
@@ -191,14 +191,13 @@ namespace AGNOS
         const T_S& parameterValue  
         )
     {
-
-      // reference to system 
-      /* libMesh::LinearImplicitSystem& system = */
-      /*   m_equation_systems->get_system<LinearImplicitSystem>("1D"); */
+      std::cout << "test: solvePrimal begin" << std::endl;
 
       // solve system
-      m_physicsAssembly->setParameterValues( parameterValue );
+      this->setParameterValues( parameterValue );
+      std::cout << "test: pre reinit" << std::endl;
       m_system->reinit();
+      std::cout << "test: pre solve" << std::endl;
       m_system->solve();
 
       // convert solution to T_P framework
@@ -224,8 +223,10 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      std::cout << "test: solveAdjoint begin" << std::endl;
+
       /* std::cout << " test: solveAdjoint start " << std::endl; */
-      m_physicsAssembly->setParameterValues(parameterValue);
+      this->setParameterValues(parameterValue);
 
       m_system->set_adjoint_already_solved(false);
 
@@ -315,13 +316,6 @@ namespace AGNOS
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
-      /* // if we have already solved adjoint on this process we may need to */
-      /* // remove it */
-      /* if (!m_system->have_vector("adjoint_solution0")) */
-      /* { */
-      /*   m_system->remove_vector("adjoint_solution0"); */
-      /* } */
-    
 
       /* std::cout << " test: pre adjoint_solve " << std::endl; */
       // solve adjoint
@@ -404,7 +398,7 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      m_physicsAssembly->setParameterValues(parameterValue);
+      this->setParameterValues(parameterValue);
       
       // set solution to provided value
       for (unsigned int i=0; i<m_system->solution->size(); i++)
@@ -438,7 +432,7 @@ namespace AGNOS
       /* std::cout << "test: estimateError() beginning" << std::endl; */
       
       m_system->set_adjoint_already_solved(false);
-      m_physicsAssembly->setParameterValues(parameterValue);
+      this->setParameterValues(parameterValue);
 
       /* std::cout << "test: estimateError() pre set solution" << std::endl; */
       /* std::cout << "   primalSoution.size(): " << primalSolution.size() << */
