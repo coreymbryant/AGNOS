@@ -121,6 +121,18 @@ namespace AGNOS
     // initalize the nonlinear solver
     /* this->m_equation_systems->template */
     /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
+
+    // set solver settings
+    this->m_equation_systems->parameters.template set<Real>
+      ("nonlinear solver relative residual tolerance") = 1.e-8;
+    this->m_equation_systems->parameters.template set<Real>
+      ("nonlinear solver absolute residual tolerance") = 1.e-35;
+    this->m_equation_systems->parameters.template set<Real>
+      ("nonlinear solver absolute step tolerance") = 1.e-12;
+    this->m_equation_systems->parameters.template set<Real>
+      ("nonlinear solver relative step tolerance") = 1.e-12;
+    this->m_equation_systems->parameters.template set<unsigned int>
+      ("nonlinear solver maximum iterations") = 50;
     
     // provide pointer to residual object
     m_physicsResidual = new ResidualViscousBurgers<T_S>( );
