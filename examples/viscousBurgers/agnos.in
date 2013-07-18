@@ -20,7 +20,7 @@ min = '-10.0'
 max = '10.0'
 
 n = '4'
-useUniformRefinement = true
+useUniformRefinement = false
 numberHRefinements = '1'
 numberPRefinements = '0'
 maxRefineSteps ='15'

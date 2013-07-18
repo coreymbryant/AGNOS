@@ -169,6 +169,27 @@ namespace AGNOS
     /* std::cout << "test: mesh info " << std::endl; */
     m_mesh.print_info();
 
+
+    // warning for nonlinear problems
+    bool hasNonlinearSystem = false;
+    for(unsigned int i=0; i<m_equation_systems->n_systems(); i++)
+    {
+      if (m_equation_systems->get_system(i).system_type() ==
+          "NonlinearImplicit")
+      {
+        hasNonlinearSystem = true;
+        break;
+      }
+    }
+
+    if (hasNonlinearSystem && !this->m_resolveAdjoint)
+    {
+      if(this->m_comm->rank() == 0 )
+        std::cout <<" WARNING: "
+          << "You may want to set resolveAdjoint = true for nonlinear "
+          << "problems.  " << std::endl;
+    }
+
     //------ initialize data structures
     m_equation_systems->init();
     /* std::cout << "test: ES info " << std::endl; */
