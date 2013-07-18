@@ -83,7 +83,18 @@ namespace AGNOS
           = m_solutionSurrogate->evaluate(names, integrationPoints[i] );
 
         m_primalData.push_back( surrogateEvaluations["primal"] );
-        m_adjointData.push_back( surrogateEvaluations["adjoint"] );
+
+        if ( this->m_physics->resolveAdjoint() )
+        {
+          /* std::cout << "test: resolving adjoint " << std::endl; */
+          m_adjointData.push_back(
+              this->m_physics->solveAdjoint(
+                integrationPoints[i],
+                m_primalData[i] )
+              );
+        }
+        else
+          m_adjointData.push_back( surrogateEvaluations["adjoint"] );
       }
       
       
@@ -102,7 +113,9 @@ namespace AGNOS
         this->m_physics->resetSolution( );
 
       this->m_physics->setPrimalSolution( m_primalData[currentIndex] );
+
       this->m_physics->setAdjointSolution( m_adjointData[currentIndex] );
+
 
       /* std::cout << "m_primalData.size(): " << m_primalData[currentIndex].size() */
       /*                                    << std::endl; */

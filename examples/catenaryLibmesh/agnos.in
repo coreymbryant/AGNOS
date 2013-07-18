@@ -1,5 +1,5 @@
 [driver]
-maxIter = '18'
+maxIter = '1'
 []
 
 [parameters]

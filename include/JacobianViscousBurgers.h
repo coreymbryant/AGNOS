@@ -163,13 +163,9 @@ namespace AGNOS{
         for (unsigned int qp=0; qp<qrule.n_points(); qp++)
           {
             Number u = 0;
-            Gradient grad_u;
 
             for (unsigned int i=0; i<phi.size(); i++)
-            {
               u      += phi[i][qp]*X(dof_indices[i]);
-              grad_u += dphi[i][qp]*X(dof_indices[i]);
-            }
 
 
             for (unsigned int i=0; i<phi.size(); i++)
@@ -178,7 +174,7 @@ namespace AGNOS{
                     // mu(du_x,v_x)
                       mu * (dphi[j][qp] * dphi[i][qp] )       // mu(du_x,v_x)
                     // -1/2 (du - 2 u du , v_x)
-                    - 0.5 * (phi[j][qp] - 2. * u * phi[j][qp] * dphi[i][qp](0) )
+                    - 0.5 * phi[j][qp] * (1. - 2. * u) * dphi[i][qp](0) 
                   );
           }
         

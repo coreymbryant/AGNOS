@@ -27,6 +27,8 @@ maxRefineSteps ='15'
 
 nNonlinearSteps='15'
 nonlinearTolerance='1.e-3'
+
+resolveAdjoint = true
 []
 
 
