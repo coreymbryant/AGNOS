@@ -41,6 +41,13 @@ echo GRINS......................... : $GRINS_PREFIX
 #echo HDF5.......................... : $HDF5_PREFIX
 #echo GSL........................... : $GSL_PREFIX
 #echo GLPK.......................... : $GLPK_PREFIX
+echo
+echo Optional Packages:
+echo '  'cppunit.......................... : $enablecppunit
+  if (test "x$enablecppunit" = "xyes"); then
+  echo '     'CPPUNIT_CFLAGS................ : $CPPUNIT_CFLAGS
+  echo '     'CPPUNIT_LIBS.................. : $CPPUNIT_LIBS
+  fi
 
 echo
 echo '-------------------------------------------------------------------------------'
