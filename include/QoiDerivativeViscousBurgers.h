@@ -128,8 +128,7 @@ namespace AGNOS
           // integrate the test functions (i) against the trial functions (j).
           for(unsigned int i=0; i<phi.size(); i++)
           {
-            Qe(i) += JxW[qp]*phi[i][qp]
-              * sqrt(100./(3.14159)) * std::exp( -100. * pow(x-0.5,2) );
+            Qe(i) += JxW[qp]*phi[i][qp] ;
           }
         }
 
