@@ -68,6 +68,7 @@ namespace AGNOS
 
       virtual void setParameterValues( const T_S& parameterValues ) = 0;
 
+
     protected:
       const Communicator*   m_comm; //< global comm (not libmesh object specific)
       const GetPot&               m_input;
@@ -88,6 +89,7 @@ namespace AGNOS
       PhysicsQoi<T_S>*                m_qoi;
       PhysicsQoiDerivative<T_S>*      m_qoiDerivative;
       libMesh::QoISet*                m_qois;
+
 
       virtual void _constructMesh( ) = 0;
       virtual void _initializeSystem( ) = 0;
@@ -119,6 +121,10 @@ namespace AGNOS
     m_numberHRefinements = physicsInput("physics/numberHRefinements",0);
     m_numberPRefinements = physicsInput("physics/numberPRefinements",1);
     m_maxRefineSteps  = physicsInput("physics/maxRefineSteps",1);
+
+    // other options
+    this->m_resolveAdjoint =
+      physicsInput("physics/resolveAdjoint",false);
   }
 
 /********************************************//**
@@ -388,12 +394,32 @@ namespace AGNOS
       libMesh::NumericVector<double>& computedAdjointSolution 
         = m_system->get_adjoint_solution( ) ;
 
-      T_P imageValue( computedAdjointSolution.size() );
-      for (unsigned int i=0; i< computedAdjointSolution.size(); i++)
-        imageValue(i) = computedAdjointSolution(i);
+      /* std::cout << "test: computedAdjointSolution.size(): " << */
+      /*   computedAdjointSolution.size() << std::endl; */
+      /* for (unsigned int i=0; i < m_system->n_active_dofs(); i++) */
+      /* { */
+      /*   std::cout << "adjoint(" << i << ")=" */ 
+      /*     << computedAdjointSolution(i) */
+      /*     << std::endl; */
+      /* } */
+
+      // get dof indices
+      m_system->local_dof_indices( 0, dofIndices);
+      dofIt = dofIndices.begin();
+
+      /* std::cout << "test:      dofIndices.size(): " << */
+      /*   dofIndices.size() << std::endl; */
+
+      T_P imageValue(dofIndices.size());
+      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      {
+        /* std::cout << "adjoint(dof)(" << i << ")=" */ 
+        /*   << computedAdjointSolution(*dofIt) */
+        /*   << std::endl; */
+        imageValue(i) = computedAdjointSolution(*dofIt);
+      }
 
 
-      
       // Don't bother projecting the solution; we'll restore from backup
       // after coarsening
       m_system->project_solution_on_reinit() = false;
@@ -500,8 +526,12 @@ namespace AGNOS
       /*   << m_system->solution->size() << std::endl; */
       
       // set solution to provided value
-      for (unsigned int i=0; i<m_system->solution->size(); i++)
-        m_system->solution->set(i, primalSolution(i) );
+      std::set<libMesh::dof_id_type> dofIndices;
+      m_system->local_dof_indices( 0, dofIndices);
+      std::set<libMesh::dof_id_type>::iterator dofIt 
+        = dofIndices.begin();
+      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+        m_system->solution->set(*dofIt, primalSolution(i) );
       m_system->solution->close();
       m_system->update();
 
@@ -606,17 +636,22 @@ namespace AGNOS
         m_system->add_adjoint_solution(0);
       }
     
-      // set adjoint solutions
+      // set solution to provided value
       libMesh::NumericVector<libMesh::Number>* adjSolution 
         = &( m_system->get_adjoint_solution(0) ) ;
       // shouldn't need to do this
       /* adjSolution->clear(); */
       /* adjSolution->init(adjointSolution.size()); */
-      for (unsigned int i=0; i<adjSolution->size(); i++)
-        adjSolution->set(i, adjointSolution(i) );
+
+      m_system->local_dof_indices( 0, dofIndices);
+      dofIt = dofIndices.begin();
+      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+        adjSolution->set(*dofIt, adjointSolution(i) );
+      m_system->solution->close();
       adjSolution->close();
       m_system->set_adjoint_already_solved(true);
       m_system->update();
+
 
       /* std::cout << "test: estimateError() post set adjiont" << std::endl; */
 

@@ -214,6 +214,8 @@ namespace AGNOS
       T_S evalPoint(2);
       evalPoint(0) = 0.5;
       evalPoint(1) = 0.5;
+      /* T_S evalPoint(1); */
+      /* evalPoint(0) = 1.5; */
       T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
       T_P qoiValue = m_myPhysics->evaluateQoi( evalPoint, solutionVec ) ;
 

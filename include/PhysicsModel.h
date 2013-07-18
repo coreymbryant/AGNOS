@@ -69,6 +69,7 @@ namespace AGNOS
       void resetSolution( );
 
       bool useUniformRefinement();
+      bool resolveAdjoint();
       
     protected:
 
@@ -80,6 +81,10 @@ namespace AGNOS
       T_P* m_meanErrorIndicator;
 
       bool m_useUniformRefinement;
+      
+      // for nonlinear problems we need to resolve the adjoint at each
+      // parameterValue in TotalErrorFunction 
+      bool m_resolveAdjoint;
 
       
   }; // PhysicsModel class
@@ -91,6 +96,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsModel<T_S,T_P>::PhysicsModel( )
+  : m_resolveAdjoint(false),m_useUniformRefinement(true)
   {
     m_primalSolution  = NULL;
     m_adjointSolution = NULL;
@@ -98,7 +104,6 @@ namespace AGNOS
     m_errorEstimate = NULL;
     m_errorIndicators = NULL;
 
-    m_useUniformRefinement =  true ;
   }
 
 /********************************************//**
@@ -272,6 +277,16 @@ namespace AGNOS
       exit(1);
       return;
     }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  bool PhysicsModel<T_S,T_P>::resolveAdjoint()
+  {
+    return m_resolveAdjoint;
+  }
+
 }
 
 #endif //PHYSICS_MODEL_H
