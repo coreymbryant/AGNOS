@@ -160,10 +160,16 @@ namespace AGNOS
     m_mesh_refinement->coarsen_threshold()          = 1e-5;
     m_mesh_refinement->max_h_level()                = 15;
     
+    std::cout << "test: mesh info " << std::endl;
+    m_mesh.print_info();
 
     //------ initialize data structures
     m_equation_systems->init();
+    std::cout << "test: ES info " << std::endl;
+    m_equation_systems->print_info();
     std::cout << "test: post init " << std::endl;
+    std::cout << "test: default solver package: " 
+      << libMesh::default_solver_package() << std::endl;
 
   }
 
@@ -196,7 +202,7 @@ namespace AGNOS
       // solve system
       this->setParameterValues( parameterValue );
       std::cout << "test: pre reinit" << std::endl;
-      m_system->reinit();
+      m_system->init();
       std::cout << "test: pre solve" << std::endl;
       m_system->solve();
 
@@ -205,7 +211,8 @@ namespace AGNOS
       m_system->local_dof_indices( 0, dofIndices);
 
       T_P imageValue(dofIndices.size());
-      std::set<libMesh::dof_id_type>::iterator dofIt = dofIndices.begin();
+      std::set<libMesh::dof_id_type>::iterator dofIt 
+        = dofIndices.begin();
       for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
       {
         imageValue(i) =  m_system->current_solution(*dofIt) ;
