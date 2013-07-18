@@ -1,5 +1,5 @@
 [driver]
-maxIter = '1'
+maxIter = '12'
 []
 
 [parameters]
@@ -11,7 +11,7 @@ maxs = '1.0 1.0'
 
 [adaptive]
 refinePhysical = true
-refineSurrogate = true
+refineSurrogate = false
 []
 
 [physics]
@@ -20,7 +20,7 @@ min = '-10.0'
 max = '10.0'
 
 n = '4'
-useUniformRefinement = false
+useUniformRefinement = true
 numberHRefinements = '1'
 numberPRefinements = '0'
 maxRefineSteps ='15'
@@ -28,14 +28,14 @@ maxRefineSteps ='15'
 nNonlinearSteps='15'
 nonlinearTolerance='1.e-3'
 
-resolveAdjoint = true
+resolveAdjoint = false
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '1'
-errorOrder = '2'
+order = '0'
+errorOrder = '1'
 []
 
 [output]

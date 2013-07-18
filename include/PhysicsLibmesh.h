@@ -398,7 +398,7 @@ namespace AGNOS
 
 
       // Rebuild the rhs with the projected primal solution
-      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, false);
+      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, true);
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
@@ -641,7 +641,7 @@ namespace AGNOS
               m_system->get_dof_map().get_send_list());
 
       // Rebuild the rhs with the projected primal solution
-      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, false);
+      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, true);
       NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
       projected_residual.close();
 
