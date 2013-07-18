@@ -185,9 +185,9 @@ namespace AGNOS
     if (hasNonlinearSystem && !this->m_resolveAdjoint)
     {
       if(this->m_comm->rank() == 0 )
-        std::cout <<" WARNING: "
+        std::cout << std::endl << " WARNING: "
           << "You may want to set resolveAdjoint = true for nonlinear "
-          << "problems.  " << std::endl;
+          << "problems.  \n" << std::endl;
     }
 
     //------ initialize data structures
