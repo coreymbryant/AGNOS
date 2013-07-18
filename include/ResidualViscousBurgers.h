@@ -201,25 +201,30 @@ namespace AGNOS{
             if(elem->neighbor(s) == NULL)
             {
               Point p = elem->point(s);
+              Point midPoint = Point((m_min+m_max)/2.0);
+
+              /* std::cout << "       p: " << p << std::endl; */
+              /* std::cout << "midPoint: " << midPoint << std::endl; */
+              
 
               // get solution at this point
               // FIXME: technically only true for interpolating basis
               Number u = X(dof_indices[s]);
 
               // if its left boundary
-              if (p < Point((m_min+m_min)/2.0) )
+              if (p < midPoint )
               {
-                Re(s) += penalty * ( 
-                    u  - (0.5 * ( 1 + std::tanh( m_min / 4. / 1.0) ) )
-                    );
+                double uMinus = (0.5 * ( 1 + std::tanh( m_min / 4. / 1.0) ) );
+                /* std::cout << "uMinus = " << uMinus << std::endl; */
+                Re(s) += penalty * ( u  - uMinus);
               }
 
               // if its right boundary
-              if (elem->point(s) > Point((m_min+m_min)/2.0) )
+              if (p > midPoint )
               {
-                Re(s) += penalty * (  
-                    u - (0.5 * ( 1 + std::tanh( m_max / 4. / 1.0) ) )
-                    );
+                double uPlus = (0.5 * ( 1 + std::tanh( m_max / 4. / 1.0) ) );
+                /* std::cout << "uPlus = " << uPlus << std::endl; */
+                Re(s) += penalty * (  u - uPlus);
               }
             }
           }
