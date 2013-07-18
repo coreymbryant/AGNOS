@@ -75,16 +75,6 @@ namespace AGNOS
     m_nonlinearSteps      = physicsInput("physics/nNonlinearSteps",15);
     m_nonlinearTolerance  = physicsInput("physics/nonlinearTolerance",1.e-3);
 
-    if (!this->m_resolveAdjoint)
-    {
-      if(comm.rank() == 0 )
-        std::cout <<" WARNING: "
-          << "Adjoint should be resolved at each integration point "
-          << "for TotalError surrogate. Setting m_resolveAdjoint=true."
-          << std::endl;
-
-      this->m_resolveAdjoint = true;
-    }
 
     this->init( );
   }
