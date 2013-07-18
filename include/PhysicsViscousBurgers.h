@@ -15,9 +15,12 @@
 #include "libmesh/edge_edge2.h"
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/nonlinear_implicit_system.h"
+#include "libmesh/petsc_nonlinear_solver.h"
 
 namespace AGNOS
 {
+
+
   /********************************************//**
    * \brief Basic 1D Burger's PhysicsModel class
    *
@@ -40,6 +43,7 @@ namespace AGNOS
     protected:
       PhysicsJacobian<T_S>*           m_physicsJacobian;
       PhysicsResidual<T_S>*           m_physicsResidual;
+
 
       double          m_min;
       double          m_max;
@@ -104,24 +108,31 @@ namespace AGNOS
     this->m_equation_systems 
       = new libMesh::EquationSystems(this->m_mesh);
 
-    // local system pointer to set up Nonlinear specific settings
-    NonlinearImplicitSystem* system = new NonlinearImplicitSystem( 
-        *this->m_equation_systems, "Burgers", 0);
+    // add system and set parent pointer 
+    this->m_system = 
+      &( this->m_equation_systems->add_system(
+            "NonlinearImplicit","Burgers") );
 
     // add variable (first order)
-    system->add_variable("u",FIRST);
+    this->m_system->add_variable("u",FIRST);
 
     //---- set up nonlinear solver
+    // TODO do we need this?
     // initalize the nonlinear solver
+    /* this->m_equation_systems->template */
+    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
+    
     // provide pointer to residual object
     m_physicsResidual = new ResidualViscousBurgers<T_S>( );
-    system->nonlinear_solver->jacobian_object = m_physicsJacobian;
+    this->m_equation_systems->template
+      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->residual_object 
+      = m_physicsResidual;
 
     // provide pointer to jacobian object
     m_physicsJacobian = new JacobianViscousBurgers<T_S>( );
-    system->nonlinear_solver->residual_object = m_physicsResidual;
-
-    this->m_system = system;
+    this->m_equation_systems->template
+      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->jacobian_object
+      = m_physicsJacobian ;
 
     // QoISet
     this->m_qois = new libMesh::QoISet;
@@ -153,8 +164,6 @@ namespace AGNOS
       m_physicsJacobian->setParameterValues( parameterValues );
       return;
     }
-
-
 
 }
 

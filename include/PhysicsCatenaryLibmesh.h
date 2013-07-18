@@ -139,7 +139,7 @@ namespace AGNOS
    ***********************************************/
   template<class T_S, class T_P>
     void PhysicsCatenaryLibmesh<T_S,T_P>::setParameterValues( 
-        T_S parameterValues ) 
+        const T_S& parameterValues ) 
     {
       m_physicsAssembly->setParameterValues( parameterValues );
       return;
