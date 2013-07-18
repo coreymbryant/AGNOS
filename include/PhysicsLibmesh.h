@@ -160,17 +160,17 @@ namespace AGNOS
     m_mesh_refinement->coarsen_threshold()          = 1e-5;
     m_mesh_refinement->max_h_level()                = 15;
     
-    std::cout << "test: mesh info " << std::endl;
+    /* std::cout << "test: mesh info " << std::endl; */
     m_mesh.print_info();
 
     //------ initialize data structures
     m_equation_systems->init();
-    std::cout << "test: ES info " << std::endl;
+    /* std::cout << "test: ES info " << std::endl; */
     m_equation_systems->print_info();
-    std::cout << "test: solver info " << std::endl;
-    std::cout << "test: post init " << std::endl;
-    std::cout << "test: default solver package: " 
-      << libMesh::default_solver_package() << std::endl;
+    /* std::cout << "test: solver info " << std::endl; */
+    /* std::cout << "test: post init " << std::endl; */
+    /* std::cout << "test: default solver package: " */ 
+      /* << libMesh::default_solver_package() << std::endl; */
 
   }
 
@@ -198,13 +198,13 @@ namespace AGNOS
         const T_S& parameterValue  
         )
     {
-      std::cout << "test: solvePrimal begin" << std::endl;
-      std::cout << "test:       solution.size(): " <<
-        m_system->solution->size() << std::endl;
-      std::cout << "test:               n_dofs(): " <<
-        m_system->n_dofs() << std::endl;
-      std::cout << "test:        n_active_dofs(): " <<
-        m_system->n_active_dofs() << std::endl;
+      /* std::cout << "test: solvePrimal begin" << std::endl; */
+      /* std::cout << "test:       solution.size(): " << */
+      /*   m_system->solution->size() << std::endl; */
+      /* std::cout << "test:               n_dofs(): " << */
+      /*   m_system->n_dofs() << std::endl; */
+      /* std::cout << "test:        n_active_dofs(): " << */
+      /*   m_system->n_active_dofs() << std::endl; */
 
       // solve system
       this->setParameterValues( parameterValue );
@@ -213,44 +213,44 @@ namespace AGNOS
       /* std::cout << "test: pre solve" << std::endl; */
       m_system->solve();
 
-      std::cout << "test:       solution.size(): " <<
-        m_system->solution->size() << std::endl;
-      std::cout << "test:               n_dofs(): " <<
-        m_system->n_dofs() << std::endl;
-      std::cout << "test:        n_active_dofs(): " <<
-        m_system->n_active_dofs() << std::endl;
+      /* std::cout << "test:       solution.size(): " << */
+      /*   m_system->solution->size() << std::endl; */
+      /* std::cout << "test:               n_dofs(): " << */
+      /*   m_system->n_dofs() << std::endl; */
+      /* std::cout << "test:        n_active_dofs(): " << */
+      /*   m_system->n_active_dofs() << std::endl; */
 
-      std::cout << "test: final residual:" << std::endl;
-        m_equation_systems->template get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->print_converged_reason() ;
+      /* std::cout << "test: final residual:" << std::endl; */
+      /*   m_equation_systems->template get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->print_converged_reason() ; */
 
       // convert solution to T_P framework
       std::set<libMesh::dof_id_type> dofIndices;
       m_system->local_dof_indices( 0, dofIndices);
 
-      std::cout << "test:      dofIndices.size(): " <<
-        dofIndices.size() << std::endl;
-      std::cout << "test:               n_dofs(): " <<
-        m_system->n_dofs() << std::endl;
-      std::cout << "test:        n_active_dofs(): " <<
-        m_system->n_active_dofs() << std::endl;
-      std::cout << "test:        n_local _dofs(): " <<
-        m_system->n_local_dofs() << std::endl;
+      /* std::cout << "test:      dofIndices.size(): " << */
+      /*   dofIndices.size() << std::endl; */
+      /* std::cout << "test:               n_dofs(): " << */
+      /*   m_system->n_dofs() << std::endl; */
+      /* std::cout << "test:        n_active_dofs(): " << */
+      /*   m_system->n_active_dofs() << std::endl; */
+      /* std::cout << "test:        n_local _dofs(): " << */
+      /*   m_system->n_local_dofs() << std::endl; */
 
-      for (unsigned int i=0; i < m_system->n_active_dofs(); i++)
-      {
-        std::cout << "solution(" << i << ")=" 
-          << m_system->current_solution(i)
-          << std::endl;
-      }
+      /* for (unsigned int i=0; i < m_system->n_active_dofs(); i++) */
+      /* { */
+      /*   std::cout << "solution(" << i << ")=" */ 
+      /*     << m_system->current_solution(i) */
+      /*     << std::endl; */
+      /* } */
 
       T_P imageValue(dofIndices.size());
       std::set<libMesh::dof_id_type>::iterator dofIt 
         = dofIndices.begin();
       for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
       {
-        std::cout << "solution(dof)(" << i << ")=" 
-          << m_system->current_solution(*dofIt)
-          << std::endl;
+        /* std::cout << "solution(dof)(" << i << ")=" */ 
+        /*   << m_system->current_solution(*dofIt) */
+        /*   << std::endl; */
         imageValue(i) =  m_system->current_solution(*dofIt) ;
       }
 
@@ -266,7 +266,7 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      std::cout << "test: solveAdjoint begin" << std::endl;
+      /* std::cout << "test: solveAdjoint begin" << std::endl; */
 
       /* std::cout << " test: pre set parameter values " << std::endl; */
       this->setParameterValues(parameterValue);
@@ -275,14 +275,14 @@ namespace AGNOS
       
       m_system->update();
 
-      std::cout << "test:       solution.size(): " <<
-        m_system->solution->size() << std::endl;
-      std::cout << "test:               n_dofs(): " <<
-        m_system->n_dofs() << std::endl;
-      std::cout << "test:        n_active_dofs(): " <<
-        m_system->n_active_dofs() << std::endl;
-      std::cout << "test: primalSolution.size(): " <<
-        primalSolution.size() << std::endl;
+      /* std::cout << "test:       solution.size(): " << */
+      /*   m_system->solution->size() << std::endl; */
+      /* std::cout << "test:               n_dofs(): " << */
+      /*   m_system->n_dofs() << std::endl; */
+      /* std::cout << "test:        n_active_dofs(): " << */
+      /*   m_system->n_active_dofs() << std::endl; */
+      /* std::cout << "test: primalSolution.size(): " << */
+      /*   primalSolution.size() << std::endl; */
 
       // set solution to provided value
       std::set<libMesh::dof_id_type> dofIndices;
@@ -292,7 +292,7 @@ namespace AGNOS
       for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
         m_system->solution->set(*dofIt, primalSolution(i) );
       m_system->solution->close();
-      std::cout << "test: post setPrimal" << std::endl;
+      /* std::cout << "test: post setPrimal" << std::endl; */
 
       // An EquationSystems reference will be convenient.
       EquationSystems& es = m_system->get_equation_systems();
