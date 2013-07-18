@@ -59,7 +59,7 @@ namespace AGNOS{
         NonlinearImplicitSystem &S
         )
   {
-    std::cout << "test: jacobian begin" << std::endl;
+    /* std::cout << "test: jacobian begin" << std::endl; */
     // define viscosity based on current parameter values
     double mu = 1. + 0.62 * (this->m_paramValues(0)) 
       + 0.36 * (this->m_paramValues(1))  ;

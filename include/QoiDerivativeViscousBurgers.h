@@ -58,7 +58,7 @@ namespace AGNOS
       // reference to mesh
       const libMesh::MeshBase& mesh = this->m_es.get_mesh();
       const unsigned int dim = mesh.mesh_dimension();
-      libMesh::System& system = this->m_es.get_system("1D");
+      libMesh::System& system = this->m_es.get_system("Burgers");
 
       // dofs map
       const libMesh::DofMap& dof_map = system.get_dof_map();

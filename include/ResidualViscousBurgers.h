@@ -60,7 +60,7 @@ namespace AGNOS{
         NonlinearImplicitSystem &S
         )
     { 
-      std::cout << "test: residual begin" << std::endl;
+      /* std::cout << "test: residual begin" << std::endl; */
 
       // define viscosity based on current parameter values
       double mu = 1. + 0.62 * (this->m_paramValues(0)) 
