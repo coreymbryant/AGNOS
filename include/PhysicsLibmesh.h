@@ -1014,13 +1014,13 @@ namespace AGNOS
 
       
       //TODO input options to control type of refinement
-      m_mesh_refinement->flag_elements_by_error_tolerance (error_per_cell);            
+      /* m_mesh_refinement->flag_elements_by_error_tolerance (error_per_cell); */            
       /* m_mesh_refinement->flag_elements_by_error_fraction (error_per_cell); */             
-      /* m_mesh_refinement->flag_elements_by_elem_fraction (error_per_cell); */              
+      m_mesh_refinement->flag_elements_by_elem_fraction (error_per_cell);              
                    
       //TODO input options to control whether we coarsen as well
-      /* m_mesh_refinement->refine_and_coarsen_elements(); */
-      m_mesh_refinement->refine_elements();
+      m_mesh_refinement->refine_and_coarsen_elements();
+      /* m_mesh_refinement->refine_elements(); */
 
 
       m_equation_systems->reinit();

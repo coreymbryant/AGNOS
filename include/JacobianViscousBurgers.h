@@ -24,8 +24,9 @@ namespace AGNOS{
       void setSystemData( const GetPot& input ) ;
 
     protected:
-      double m_min;
-      double m_max;
+      double          m_L;
+      double          m_uMinus;
+      double          m_uPlus;
   
   };
 
@@ -44,8 +45,9 @@ namespace AGNOS{
         const GetPot& input
         )
     { 
-      m_min = input("physics/min",-10.);
-      m_max = input("physics/max",10.);
+      m_L                 = input("physics/L",10.);
+      m_uMinus                 = input("physics/uMinus",1.);
+      m_uPlus                 = input("physics/uPlus",0.);
       return;
     }
 
