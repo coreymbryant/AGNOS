@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
 
   GetPot inputfile( argv[1] );
 
+  //TODO group communicators when requested 
+  
   MPI_Comm myComm;
   int mpiSplit =  
     MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm);

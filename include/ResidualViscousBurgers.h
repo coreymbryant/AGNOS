@@ -24,8 +24,9 @@ namespace AGNOS{
       void setSystemData( const GetPot& input ) ;
 
     protected:
-      double m_min;
-      double m_max;
+      double          m_L;
+      double          m_uMinus;
+      double          m_uPlus;
       
   
   };
@@ -45,8 +46,9 @@ namespace AGNOS{
         const GetPot& input
         )
     { 
-      m_min = input("physics/min",-10.);
-      m_max = input("physics/max",10.);
+      m_L                 = input("physics/L",10.);
+      m_uMinus                 = input("physics/uMinus",1.);
+      m_uPlus                 = input("physics/uPlus",0.);
       return;
     }
 
@@ -201,7 +203,7 @@ namespace AGNOS{
             if(elem->neighbor(s) == NULL)
             {
               Point p = elem->point(s);
-              Point midPoint = Point((m_min+m_max)/2.0);
+              Point midPoint =  0.;
 
               /* std::cout << "       p: " << p << std::endl; */
               /* std::cout << "midPoint: " << midPoint << std::endl; */
@@ -214,17 +216,14 @@ namespace AGNOS{
               // if its left boundary
               if (p < midPoint )
               {
-                double uMinus = (0.5 * ( 1 + std::tanh( m_min / 4. / 1.0) ) );
                 /* std::cout << "uMinus = " << uMinus << std::endl; */
-                Re(s) += penalty * ( u  - uMinus);
+                Re(s) += penalty * ( u  - m_uMinus );
               }
 
               // if its right boundary
               if (p > midPoint )
               {
-                double uPlus = (0.5 * ( 1 + std::tanh( m_max / 4. / 1.0) ) );
-                /* std::cout << "uPlus = " << uPlus << std::endl; */
-                Re(s) += penalty * (  u - uPlus);
+                Re(s) += penalty * (  u - m_uPlus );
               }
             }
           }

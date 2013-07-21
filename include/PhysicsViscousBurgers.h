@@ -45,8 +45,9 @@ namespace AGNOS
       PhysicsResidual<T_S>*           m_physicsResidual;
 
 
-      double          m_min;
-      double          m_max;
+      double          m_L;
+      double          m_uMinus;
+      double          m_uPlus;
 
       // solver settings
       unsigned int    m_nonlinearTolerance;
@@ -70,10 +71,11 @@ namespace AGNOS
       const GetPot&             physicsInput
       ) : PhysicsLibmesh<T_S,T_P>(comm,physicsInput)
   {
-    m_min                 = physicsInput("physics/min",-10.);
-    m_max                 = physicsInput("physics/max",10.);
+    m_L                 = physicsInput("physics/L",10.);
+    m_uMinus                 = physicsInput("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*m_L / 4. / 1.0) ) ));
+    m_uPlus                 = physicsInput("physics/uPlus",(0.5 * ( 1 + std::tanh( m_L / 4. / 1.0) ) ) );
     m_nonlinearSteps      = physicsInput("physics/nNonlinearSteps",15);
-    m_nonlinearTolerance  = physicsInput("physics/nonlinearTolerance",1.e-3);
+    m_nonlinearTolerance  = physicsInput("physics/nonlinearTolerance",1.e-9);
 
 
     this->init( );
@@ -94,7 +96,7 @@ namespace AGNOS
   void PhysicsViscousBurgers<T_S,T_P>::_constructMesh( )
   {
     libMesh::MeshTools::Generation::build_line(
-        this->m_mesh,this->m_n,m_min,m_max,EDGE3);
+        this->m_mesh,this->m_n,-1.*m_L,m_L,EDGE3);
 
     return;
   }
@@ -126,7 +128,7 @@ namespace AGNOS
     // TODO set from input file ?
     // set solver settings
     this->m_equation_systems->parameters.template set<Real>
-      ("nonlinear solver relative residual tolerance") = 1.e-12;
+      ("nonlinear solver relative residual tolerance") = m_nonlinearTolerance;
     this->m_equation_systems->parameters.template set<Real>
       ("nonlinear solver absolute residual tolerance") = 1.e-35;
     this->m_equation_systems->parameters.template set<Real>
