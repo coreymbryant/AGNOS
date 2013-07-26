@@ -3,11 +3,6 @@
 #define DRIVER_H
 
 #include "agnosDefines.h"
-#include "PseudoSpectralTensorProduct.h"
-/* #include "PseudoSpectralMonteCarlo.h" */
-/* #include "PseudoSpectralSparseGrid.h" */
-
-
 
 
 namespace AGNOS
@@ -26,7 +21,7 @@ namespace AGNOS
 
       virtual ~Driver( );
 
-      virtual void run( ) = 0 ;
+      void run( ) ;
 
       void printSolutionData( std::ostream& out ) ;
       void printSurrogateSettings( std::ostream& out ) ;
@@ -35,9 +30,12 @@ namespace AGNOS
       void printSettings( ) ;
       void printSolution( unsigned int iteration=1 ) ;
 
-    protected:
-      const Communicator* m_comm;
 
+    protected:
+      virtual void _buildPhysics( const GetPot& input );
+      virtual void _buildSurrogate( const GetPot& input );
+
+      const Communicator* m_comm;
 
       // DRIVER VARIABLES
       unsigned int m_maxIter;
@@ -57,6 +55,11 @@ namespace AGNOS
       std::vector<unsigned int> m_errorOrder;
       SurrogateModel<T_S,T_P>*  m_surrogate;
       SurrogateModel<T_S,T_P>*  m_errorSurrogate;
+      
+      // PHYSICS VARIABLES
+      PhysicsModel<T_S,T_P>*                              m_physics;
+      std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_physicsFunctions ;
+      std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_errorFunctions ;
 
       // OUTPUT VARIABLES
       std::string               m_outputFilename; 
@@ -82,6 +85,7 @@ namespace AGNOS
     
     // DRIVER SETTINGS
     m_maxIter = input("driver/maxIter",1);
+
     
     // ADAPTIVE SETTINGS
     // TODO adaptive settings
@@ -99,33 +103,14 @@ namespace AGNOS
           input("parameters/mins",-1.0,i),
           input("parameters/maxs", 1.0,i)
           );
+    
+    // BUILD PHYSICS
+    _buildPhysics( input );
+    
 
     // SURROGATE MODEL SETTINGS
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_order.push_back( input("surrogateModel/order", 0, i) ) ;
-    // TODO make this a functino like we have in matlab code
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i], i) ) ;
+    _buildSurrogate( input );
 
-    std::string surrType  = 
-      input("surrogateModel/type","PseudoSpectralTensorProduct");
-
-    if (surrType == "PseudoSpectralTensorProduct")
-      m_surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
-    else if (surrType == "PseudoSpectralSparseGrid")
-      m_surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
-    else if (surrType == "PseudoSpectralMonteCarlo")
-      m_surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
-    else if (surrType == "Collocation")
-      m_surrogateType =  COLLOCATION ;
-    else
-    {
-      std::cerr << "unrecognized SurrogateModelType " 
-        << surrType << std::endl;
-      exit(1);
-    }
-
-    
 
     // OUTPUT DATA SETTINGS
     m_outputFilename      = input("output/filename","cout");
@@ -151,10 +136,372 @@ namespace AGNOS
   Driver::~Driver( )
   {
 
-    /* delete m_comm; */
+    delete m_physics;
+    delete m_comm;
     /* delete m_surrogate; */
     /* delete m_errorSurrogate; */
   }
+
+
+/********************************************//**
+ * \brief build physics model from default classes.
+ * Can be overidden to include new physicsModel classes.
+ * 
+ ***********************************************/
+  void Driver::_buildPhysics( const GetPot& input)
+  {
+    //TODO make more general 
+    // deal with parallel issue
+    std::string physicsName = input("physics/type","");
+    if ( physicsName == "viscousBurgers" )
+      m_physics = new AGNOS::PhysicsViscousBurgers<T_S,T_P>( *m_comm, input );
+    else if ( physicsName == "catenaryLibmesh" )
+      m_physics = new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( *m_comm, input );
+    else if ( physicsName == "catenary" )
+      m_physics = new AGNOS::PhysicsCatenary<T_S,T_P>(
+          input("physics/forcing",-10.0) );
+    else
+    {
+      std::cerr << " ERROR: unrecognized physics type: " << physicsName
+        << "\n"
+        << "please choose an appropriate physics type "
+        << "(or implememnt it yourself) \n"
+        << std::endl;
+      exit(1);
+    }
+
+    return ;
+  }
+
+/********************************************//**
+ * \brief build surrogateModel
+ * Can be overidden to include new surrogateModel classes.
+ * 
+ ***********************************************/
+  void Driver::_buildSurrogate( const GetPot& input)
+  {
+
+    for (unsigned int i=0; i < m_paramDim; i++)
+      m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+    // TODO make this a functino like we have in matlab code
+    // i.e. incremental order increase
+    for (unsigned int i=0; i < m_paramDim; i++)
+      m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1, i) ) ;
+
+    std::string surrType  = 
+      input("surrogateModel/type","PseudoSpectralTensorProduct");
+
+    if (surrType == "PseudoSpectralTensorProduct")
+      m_surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
+    else if (surrType == "PseudoSpectralSparseGrid")
+      m_surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
+    else if (surrType == "PseudoSpectralMonteCarlo")
+      m_surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
+    else if (surrType == "Collocation")
+      m_surrogateType =  COLLOCATION ;
+    else
+    {
+      std::cerr << " ERROR: unrecognized SurrogateModelType " 
+        << surrType << std::endl;
+      exit(1);
+    }
+    
+    // primal solution
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "primal", 
+          new PhysicsFunctionPrimal<T_S,T_P>( m_physics ) ) 
+        );
+
+    // adjoint solution
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "adjoint", 
+          new PhysicsFunctionAdjoint<T_S,T_P>( m_physics ) ) 
+        ); 
+
+    // qoi evaluation
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "qoi", 
+          new PhysicsFunctionQoi<T_S,T_P>( m_physics ) ) 
+        ); 
+    
+    // error estimate
+    m_physicsFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "error", 
+          new PhysicsFunctionError<T_S,T_P>( m_physics ) ) 
+        ); 
+
+    // error indicators if needed
+    if ( ! m_physics->useUniformRefinement() )
+    {
+      m_physicsFunctions.insert( 
+          std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+            "indicators", 
+            new PhysicsFunctionIndicators<T_S,T_P>( m_physics ) ) 
+          ); 
+    }
+
+
+    // type specific setup
+    switch( m_surrogateType )
+    {
+      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
+        {
+
+          m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
+              m_comm,
+              m_physicsFunctions, 
+              m_parameters, 
+              m_order  );
+
+          break;
+        }
+      case(PSEUDO_SPECTRAL_SPARSE_GRID):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(PSEUDO_SPECTRAL_MONTE_CARLO):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(COLLOCATION):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+    }
+    
+
+    // ----- ERROR SURROGATE
+    //
+    m_errorFunctions.insert( 
+        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
+          "error", 
+          new PhysicsFunctionTotalError<T_S,T_P>( 
+            m_physics, m_surrogate ) 
+          ) 
+        ); 
+
+    // type specific setup
+    switch( m_surrogateType )
+    {
+      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
+        {
+
+          m_errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
+              m_comm,
+              m_errorFunctions, 
+              m_parameters, 
+              m_errorOrder  );
+
+          break;
+        }
+      case(PSEUDO_SPECTRAL_SPARSE_GRID):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(PSEUDO_SPECTRAL_MONTE_CARLO):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+      case(COLLOCATION):
+        {
+          std::cerr 
+            << " this SurrogateModelType is not yet implemented\n" ;
+          exit(1);
+          break;
+        }
+    }
+
+    return;
+  }
+
+/********************************************//**
+ * \brief an initial driver run routine for testing
+ * 
+ ***********************************************/
+  void Driver::run( )
+  {
+
+    // print out settings
+    printSettings();
+    
+    // build initial approximation
+    m_surrogate->build();
+    
+    // build error surrogate
+    m_errorSurrogate->build();
+
+    
+    // print out first iteration if requested
+    if (this->m_outputIterations && (this->m_comm->rank() == 0) )
+    {
+      std::cout << "\n writing results to: " << this->m_outputFilename
+        << " (iter = " << 1 << " )"
+       << std::endl;
+      std::cout << std::endl;
+      printSolution(1);
+    }
+    
+      // evaluate QoI
+      T_S evalPoint(2);
+      evalPoint(0) = 0.5;
+      evalPoint(1) = 0.5;
+      /* T_S evalPoint(1); */
+      /* evalPoint(0) = 1.5; */
+      T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
+      T_P qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ;
+
+      T_P l2normofphyerror = m_surrogate->l2Norm("error");
+      T_P l2normoftotalerror = m_errorSurrogate->l2Norm("error");
+      double normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+
+    if (this->m_comm->rank() == 0)
+    {
+
+      std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
+      std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
+      std::cout << "| phyErrorNorm-totalErrorNorm | = " <<
+        std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl;
+      std::cout << "normDiff = " << normDiff << std::endl;
+
+      std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
+    }
+
+    // refine approximation
+    for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
+    {
+      if (this->m_comm->rank() == 0) 
+        std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
+      
+
+      // if physical error dominates and we are allowed to refine physical
+      // solution
+      if ( 
+          ( m_refinePhysical && (l2normofphyerror(0) >= normDiff) ) 
+          ||
+          ( m_refinePhysical && !m_refineSurrogate )
+          )
+      {
+        if (this->m_comm->rank() == 0) 
+          std::cout << "    refining physical solution " << std::endl;
+        
+        // if using uniform refinement we won't have error indicators in the
+        // surrogate model (by design)
+        if ( m_physicsFunctions.count("indicators") == 0 )
+          m_physics->refine( );
+        else
+        {
+          // retrieve first coefficient (i.e. the mean) of error inidcators
+          T_P errorIndicators = (m_surrogate->mean())["indicators"];
+          
+          m_physics->refine( errorIndicators );
+        }
+        if (this->m_comm->rank() == 0) 
+          std::cout << "-------------------------------------\n " ;
+
+        m_surrogate->build();
+        m_errorSurrogate->build();
+      }
+
+
+      // if surrogate error dominates and we are allowed to refine surrogate
+      // model
+      if ( 
+          ( m_refineSurrogate && (l2normofphyerror(0) < normDiff) ) 
+          ||
+          ( m_refineSurrogate && !m_refinePhysical ) 
+          )
+      {
+        if (this->m_comm->rank() == 0) 
+        {
+          std::cout << "    refining surrogate model " << std::endl;
+          std::cout << "-------------------------------------\n " ;
+        }
+        m_surrogate->refine( );
+        m_errorSurrogate->refine( );
+      }
+
+
+
+
+
+      if (this->m_outputIterations && (this->m_comm->rank() == 0) )
+      {
+        std::cout << "\n writing results to: " << this->m_outputFilename
+          << " (iter = " << iter << " )"
+          << std::endl;
+        std::cout << std::endl;
+        printSolution(iter);
+      }
+
+      this->m_comm->barrier();
+
+      solutionVec = m_surrogate->evaluate("primal", evalPoint );
+      qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ;
+
+      l2normofphyerror = m_surrogate->l2Norm("error");
+      l2normoftotalerror = m_errorSurrogate->l2Norm("error");
+      normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+
+      if (this->m_comm->rank() == 0)
+      {
+
+        std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
+        std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
+        /* std::cout << "| phyErrorNorm-totalErrorNorm | = " << */
+        /* std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; */
+        std::cout << "normDiff = " << normDiff << std::endl;
+
+        std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
+      }
+
+      
+      /* // evaluate QoI */
+      /* T_S evalPoint(1); */
+      /* evalPoint(0) = 1.5; */
+      /* T_P solutionVec = m_surrogate->evaluate("primal", evalPoint ); */
+      /* T_P qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ; */
+      /* if (this->m_comm->rank() == 0) */
+      /* { */
+      /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
+      /* } */
+    }
+    
+    // output whatever user asks for
+    if (this->m_comm->rank() == 0)
+    {
+      std::cout << "\n writing final results to: " << this->m_outputFilename
+        << std::endl;
+      std::cout << std::endl;
+    }
+      printSolution(m_maxIter);
+
+
+
+
+
+
+    return;
+  }
+    
 
 /********************************************//**
  * \brief 
@@ -296,13 +643,8 @@ namespace AGNOS
     return;
   }
 
-    
+
 }
-
-
-
-
-
 #endif // DRIVER_H
 
 

@@ -27,7 +27,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 noinst_PROGRAMS = viscousBurgers
 
 viscousBurgers_SOURCES = \
-									 runViscousBurgers.C \
 									 $(top_srcdir)/src/agnos.C
+
 
 MAINTAINERCLEANFILES = Makefile.in testFile.dat
