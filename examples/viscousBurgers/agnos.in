@@ -1,3 +1,7 @@
+[parallel]
+physicsNodeSize = 2
+[]
+
 [driver]
 maxIter = '8'
 []
