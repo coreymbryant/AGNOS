@@ -18,6 +18,12 @@ typedef libMesh::DenseVector<double> T_S ;
 typedef libMesh::Parallel::Communicator Communicator;
 
 
+#include "PseudoSpectralTensorProduct.h"
+#include "PhysicsFunction.h"
+#include "PhysicsFunctionTotalError.h"
+#include "PhysicsViscousBurgers.h"
+#include "PhysicsCatenary.h"
+#include "PhysicsCatenaryLibmesh.h"
 
 
 namespace AGNOS{
