@@ -303,6 +303,7 @@ namespace AGNOS
       this->m_comm->barrier();
 
 
+      std::cout << "order:" << this->m_order[0] << std::endl;
       if( this->m_comm->rank() == 0)
         std::cout << "     --> Solving at " << m_nIntegrationPoints 
           << " integration points " << std::endl;
@@ -422,7 +423,7 @@ namespace AGNOS
         )
     {
 
-      /* std::cout << "test: computeContribution( ) beginning" << std::endl; */
+      std::cout << "test: computeContribution( ) beginning" << std::endl;
       
 
       std::map< std::string, T_P > contrib;
@@ -433,10 +434,11 @@ namespace AGNOS
       for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
       {
         
-        /* std::cout << "test: computeContribution( ) pre compute()" << std::endl; */
+        std::cout << "test: computeContribution( ) pre compute()" 
+          << id->first << std::endl;
         // get solution for this integration point
         id->second->compute( integrationPoint, solution );
-        /* std::cout << "test: computeContribution( ) post compute()" << std::endl; */
+        std::cout << "test: computeContribution( ) post compute()" << std::endl;
         solution.scale( integrationWeight );
         contrib.insert( std::pair< std::string, T_P >(
               id->first, solution  ) ); 
@@ -446,7 +448,7 @@ namespace AGNOS
 
 
 
-      /* std::cout << "test: computeContribution( ) ending" << std::endl; */
+      std::cout << "test: computeContribution( ) ending" << std::endl;
       return contrib;
     }
 

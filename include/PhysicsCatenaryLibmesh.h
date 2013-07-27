@@ -32,7 +32,7 @@ namespace AGNOS
 
     public:
       PhysicsCatenaryLibmesh( 
-          const Communicator&       comm,
+          const Communicator*       comm,
           const GetPot& input
           );
       ~PhysicsCatenaryLibmesh( );
@@ -60,7 +60,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsCatenaryLibmesh<T_S,T_P>::PhysicsCatenaryLibmesh(
-      const Communicator&       comm,
+      const Communicator*       comm,
       const GetPot&             physicsInput
       ) : PhysicsLibmesh<T_S,T_P>(comm,physicsInput)
   {
