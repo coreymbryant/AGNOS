@@ -40,6 +40,9 @@ namespace AGNOS
       virtual void computeData( std::vector<T_S> integrationPoints );
       virtual void setData( unsigned int currentIndex );
 
+
+      PhysicsModel<T_S,T_P>* physics( ) const { return m_physics; } ;
+
     protected:
       std::string m_name;
       PhysicsModel<T_S,T_P>* m_physics;
