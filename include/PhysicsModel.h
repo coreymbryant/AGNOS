@@ -14,6 +14,7 @@
 #define PHYSICS_MODEL_H
 
 #include "libmesh/error_vector.h"
+#include "libmesh/mesh.h"
 
 namespace AGNOS
 {
@@ -71,6 +72,8 @@ namespace AGNOS
 
       bool useUniformRefinement();
       bool resolveAdjoint();
+
+      virtual libMesh::Mesh getMesh( ) const { libMesh::Mesh mesh; return mesh; } ;
       
     protected:
 

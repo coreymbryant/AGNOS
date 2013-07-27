@@ -176,7 +176,12 @@ namespace AGNOS
     std::string physicsName = input("physics/type","");
     if ( physicsName == "viscousBurgers" )
     {
+
+      int physicsRank;
+      MPI_Comm_rank(m_physicsComm->get(), &physicsRank);
       std::cout << "rank: " << m_comm->rank() << std::endl;
+      std::cout << "physicsRank: " << physicsRank << std::endl;
+
       m_physics.push_back( 
           new AGNOS::PhysicsViscousBurgers<T_S,T_P>(input )
           );
@@ -391,8 +396,8 @@ namespace AGNOS
     // build initial approximation
     m_surrogate->build();
 
-    m_surrogateComm->barrier();
-    
+    /* m_physics[0]->getMesh().comm().barrier(); */
+
     // build error surrogate
     m_errorSurrogate->build();
 
@@ -465,6 +470,7 @@ namespace AGNOS
           std::cout << "-------------------------------------\n " ;
 
         m_surrogate->build();
+
 
         m_errorSurrogate->build();
       }
