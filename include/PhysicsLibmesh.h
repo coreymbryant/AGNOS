@@ -61,7 +61,7 @@ namespace AGNOS
       void refine (  ) ;
       void refine ( T_P& errorIndicators ) ;
       
-      libMesh::Mesh getMesh( ) ;
+      libMesh::Mesh getMesh( ) const ;
 
       void init( ) ;
 
@@ -73,7 +73,7 @@ namespace AGNOS
 
       // mesh and equation variables
       unsigned int    m_n;              // number of elements
-      libMesh::Mesh                   m_mesh; // mesh
+      libMesh::Mesh*                   m_mesh; // mesh
       libMesh::EquationSystems*       m_equation_systems;
       libMesh::System*                m_system;
       libMesh::MeshRefinement*        m_mesh_refinement;
@@ -110,6 +110,7 @@ namespace AGNOS
 
     //-------- get physics model settings
     std::cout << "\n-- Reading Physics model data\n";
+
     int worldRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
     std::cout << "worldRank:" << worldRank << std::endl;
@@ -154,7 +155,7 @@ namespace AGNOS
     m_system->attach_QOI_derivative_object( *m_qoiDerivative );
 
     // define mesh refinement object
-    m_mesh_refinement = new libMesh::MeshRefinement(m_mesh);
+    m_mesh_refinement = new libMesh::MeshRefinement(*m_mesh);
 
     // TODO read these from input file
     m_mesh_refinement->coarsen_by_parents()         = true;
@@ -173,7 +174,7 @@ namespace AGNOS
     m_estimator->number_p_refinements = m_numberPRefinements;
 
     /* std::cout << "test: mesh info " << std::endl; */
-    m_mesh.print_info();
+    m_mesh->print_info();
 
 
     // warning for nonlinear problems
@@ -213,6 +214,7 @@ namespace AGNOS
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
     delete m_equation_systems;
+    delete m_mesh;
     delete m_mesh_refinement;
     delete m_qoi;
     delete m_qoiDerivative;
@@ -278,7 +280,7 @@ namespace AGNOS
       }
 
       NumericVector<Number> * globalSolution;
-      globalSolution = NumericVector<Number>::build(m_mesh.comm()).release();
+      globalSolution = NumericVector<Number>::build(m_mesh->comm()).release();
       globalSolution->init(m_system->solution->size(), true, SERIAL);
       m_system->solution->localize(*globalSolution);
 
@@ -305,18 +307,20 @@ namespace AGNOS
     {
       std::cout << "test: solveAdjoint begin" << std::endl;
 
+      m_mesh->comm().barrier();
       // solve system
       this->setParameterValues( parameterValue );
 
       int rank, size;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       MPI_Comm_size(MPI_COMM_WORLD,&size);
-      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh.comm().rank() 
+      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh->comm().rank() 
         << std::endl;
-      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh.comm().size() 
+      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh->comm().size() 
         << std::endl;
 
 
+    m_equation_systems->print_info();
 
 
       // set solution to provided value
@@ -338,8 +342,14 @@ namespace AGNOS
       std::cout << "test: solution local size? " 
         << m_system->solution->local_size()
         << std::endl;
+      std::cout << "test: system n_vectors: "
+        << m_system->n_vectors()
+        << std::endl;
+      std::cout << "test: system n_matrices: "
+        << m_system->n_matrices()
+        << std::endl;
 
-      m_system->solution->print();
+      m_system->solution->print_global();
 
       // An EquationSystems reference will be convenient.
       System& system = const_cast<System&>(*m_system);
@@ -429,7 +439,7 @@ namespace AGNOS
 
 
       NumericVector<Number> * globalAdjoint;
-      globalAdjoint = NumericVector<Number>::build(m_mesh.comm()).release();
+      globalAdjoint = NumericVector<Number>::build(m_mesh->comm()).release();
       globalAdjoint->init(system.get_adjoint_solution(0).size(), true, SERIAL);
       system.get_adjoint_solution(0).localize(*globalAdjoint);
       system.update();
@@ -554,9 +564,9 @@ namespace AGNOS
       int rank, size;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       MPI_Comm_size(MPI_COMM_WORLD,&size);
-      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh.comm().rank() 
+      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh->comm().rank() 
         << std::endl;
-      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh.comm().size() 
+      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh->comm().size() 
         <<  std::endl;
 
 
@@ -984,14 +994,14 @@ namespace AGNOS
     void PhysicsLibmesh<T_S,T_P>::refine() 
     {
       std::cout << "  previous n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+        << m_mesh->n_active_elem() << std::endl;
 
       m_mesh_refinement->uniformly_refine(1);
 
       m_equation_systems->reinit();
 
       std::cout << "   refined n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+        << m_mesh->n_active_elem() << std::endl;
 
     }
 
@@ -1007,7 +1017,7 @@ namespace AGNOS
     {
 
       std::cout << "  previous n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+        << m_mesh->n_active_elem() << std::endl;
 
       libMesh::ErrorVector error_per_cell(errorIndicators.size());
       for(unsigned int i=0; i<errorIndicators.size();i++)
@@ -1028,7 +1038,7 @@ namespace AGNOS
       m_equation_systems->reinit();
 
       std::cout << "   refined n_active_elem(): " 
-        << m_mesh.n_active_elem() << std::endl;
+        << m_mesh->n_active_elem() << std::endl;
 
       return;
     }
@@ -1037,9 +1047,9 @@ namespace AGNOS
    * \brief 
    ***********************************************/
   template<class T_S,class T_P> 
-    libMesh::Mesh PhysicsLibmesh<T_S,T_P>::getMesh( )
+    libMesh::Mesh PhysicsLibmesh<T_S,T_P>::getMesh( ) const
     {
-      return m_mesh;
+      return *m_mesh;
     }
 
 

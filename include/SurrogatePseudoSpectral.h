@@ -334,7 +334,24 @@ namespace AGNOS
             evaluateBasis( this->m_indexSet, m_integrationPoints[intPtsStart +
               pt*this->m_comm->size()]) 
             );
+        for (id=this->m_solutionFunction.begin();
+            id!=this->m_solutionFunction.end(); id++)
+        {
+          std::cout << this->m_comm->rank() << "pre barrier " << id->first << std::endl;
+          id->second->physics()->getMesh().comm().barrier();
+          std::cout << this->m_comm->rank() << "post barrier " << id->first << std::endl;
+        }
         /* std::cout << "test: end of pt" << std::endl; */
+      }
+
+      this->m_comm->barrier();
+      std::cout << "test: end of all pt" << std::endl;
+      for (id=this->m_solutionFunction.begin();
+          id!=this->m_solutionFunction.end(); id++)
+      {
+        std::cout << this->m_comm->rank() << "pre barrier " << id->first << std::endl;
+        id->second->physics()->getMesh().comm().barrier();
+        std::cout << this->m_comm->rank() << "post barrier " << id->first << std::endl;
       }
 
       // need to know size of solution vector on all processes (in case some

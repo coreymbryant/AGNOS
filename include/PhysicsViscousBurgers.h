@@ -93,8 +93,10 @@ namespace AGNOS
   template<class T_S, class T_P>
   void PhysicsViscousBurgers<T_S,T_P>::_constructMesh( )
   {
+
+    this->m_mesh = new Mesh( Parallel::Communicator_World );
     libMesh::MeshTools::Generation::build_line(
-        this->m_mesh,this->m_n,-1.*m_L,m_L,EDGE3);
+        *this->m_mesh,this->m_n,-1.*m_L,m_L,EDGE3);
 
     return;
   }
@@ -107,7 +109,7 @@ namespace AGNOS
   {
     // define equation system
     this->m_equation_systems 
-      = new libMesh::EquationSystems(this->m_mesh);
+      = new libMesh::EquationSystems(*this->m_mesh);
 
     // add system and set parent pointer 
     this->m_system = 

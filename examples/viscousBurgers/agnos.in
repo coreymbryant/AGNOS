@@ -38,7 +38,7 @@ resolveAdjoint = true
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '1 1'
+order = '2 2'
 errorOrder = '1 1'
 []
 
