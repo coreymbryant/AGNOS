@@ -68,6 +68,7 @@ namespace AGNOS
 
       void resetSolution( );
 
+
       bool useUniformRefinement();
       bool resolveAdjoint();
       

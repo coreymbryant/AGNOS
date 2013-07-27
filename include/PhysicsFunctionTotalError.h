@@ -86,7 +86,7 @@ namespace AGNOS
 
         if ( this->m_physics->resolveAdjoint() )
         {
-          /* std::cout << "test: resolving adjoint " << std::endl; */
+          std::cout << "test: resolving adjoint " << std::endl;
           m_adjointData.push_back(
               this->m_physics->solveAdjoint(
                 integrationPoints[i],
