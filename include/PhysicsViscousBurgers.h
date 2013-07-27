@@ -33,7 +33,6 @@ namespace AGNOS
 
     public:
       PhysicsViscousBurgers( 
-          const Communicator&       comm,
           const GetPot& input
           );
       ~PhysicsViscousBurgers( );
@@ -67,9 +66,8 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
-      const Communicator&       comm,
       const GetPot&             physicsInput
-      ) : PhysicsLibmesh<T_S,T_P>(comm,physicsInput)
+      ) : PhysicsLibmesh<T_S,T_P>(physicsInput)
   {
     m_L                 = physicsInput("physics/L",10.);
     m_uMinus                 = physicsInput("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*m_L / 4. / 1.0) ) ));

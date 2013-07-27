@@ -2,34 +2,24 @@
 #include "agnosDefines.h"
 #include "Driver.h"
 
-void run ( const libMesh::Parallel::Communicator& comm, GetPot& input);
 
 int main(int argc, char* argv[])
 {
-
   if( argc < 2 )
   {
     std::cerr << "\n\t ERROR: must specify AGNOS input file.\n" << std::endl;
     exit(1);
   }
 
-
   MPI_Init(&argc,&argv);
-  const libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
+  libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
 
 
   GetPot inputfile( argv[1] );
 
-  //TODO group communicators when requested 
-  /* MPI_Comm myComm; */
-  /* int mpiSplit = */  
-  /*   MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm); */
-
   int physicsNodeSize = inputfile("parallel/physicsNodeSize",1);
-  std::cout << "physicsNodeSize:" << physicsNodeSize << std::endl;
+  /* std::cout << "physicsNodeSize:" << physicsNodeSize << std::endl; */
 
-  std::cout << "comm.size\%physicsNodeSize:" 
-    << comm.size()%physicsNodeSize << std::endl;
   if (comm.size()%physicsNodeSize)
   {
     std::cerr << "\n\t ERROR: total number of processors must be a multiple of "
@@ -40,76 +30,81 @@ int main(int argc, char* argv[])
 
   MPI_Comm physicsComm, driverComm;
   MPI_Group physicsGroup, globalGroup, driverGroup;
-  int rank, groupRank; 
+  int rank, physicsGroupRank, size; 
+
 
   // original group
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   MPI_Comm_group(MPI_COMM_WORLD,&globalGroup);
 
   // physics group
-  int group = comm.rank()/physicsNodeSize;
-  int nGroups = comm.size()/physicsNodeSize;
-  std::cout << "number of groups:" << nGroups << std::endl;
+  int group = rank/physicsNodeSize;
+  int nGroups = size/physicsNodeSize;
 
   int** groupRanks = new int*[nGroups];
   for (unsigned int i=0; i<nGroups; i++)
     groupRanks[i] = new int[physicsNodeSize];
 
-
-  for (unsigned int i=0;i<comm.size();i++)
+  for (unsigned int i=0;i<size;i++)
     groupRanks[i/physicsNodeSize][i%physicsNodeSize] = i;
-
-
-  std::cout << "-----------------------------\n" ;
-  for (unsigned int i=0;i<nGroups;i++)
-    for (unsigned int j=0;j<nGroups;j++)
-    std::cout << "groupRanks[" << i << "][" << j << "]:" 
-      << groupRanks[i][j] <<std::endl;
-    std::cout << "-----------------------------\n" ;
-
-  std::cout << "-----------------------------\n" ;
-    for (unsigned int j=0;j<nGroups;j++)
-    std::cout << "groupRanks[0][" << j << "]:" 
-      << groupRanks[0][j] <<std::endl;
-    std::cout << "-----------------------------\n" ;
-
-    groupRanks[0][0] = 0;
-    groupRanks[0][1] = 1;
-    groupRanks[1][0] = 2;
-    groupRanks[1][1] = 3;
-
 
   MPI_Group_incl(
       globalGroup, 
-      group,
+      physicsNodeSize,
       groupRanks[group],
       &physicsGroup);
-  int err = MPI_Barrier(MPI_COMM_WORLD);
-
-  MPI_Group_rank(physicsGroup, &groupRank);
-
-
+  MPI_Comm_create(MPI_COMM_WORLD, physicsGroup, &physicsComm);
+  MPI_Group_rank(physicsGroup, &physicsGroupRank);
 
 
   std::cout << "globalRank: " << rank 
     << " group: " << group
-    << " groupRank: " << groupRank 
+    << " groupRank: " << physicsGroupRank
+    << " groupRanks[][]: " << groupRanks[group][rank%physicsNodeSize] 
     << std::endl;
+    
+  int errCode = MPI_Barrier( MPI_COMM_WORLD );
+  int* driverRanks = new int[nGroups];
+  for (unsigned int i=0; i<nGroups; i++)
+    driverRanks[i] = groupRanks[i][0];
 
-  /* LibMeshInit libmesh_init(argc, argv, myComm); */
-  
+  MPI_Group_incl(
+      globalGroup, 
+      nGroups,
+      driverRanks,
+      &driverGroup);
+  MPI_Comm_create(MPI_COMM_WORLD, driverGroup, &driverComm);
+  MPI_Group_rank(driverGroup, &physicsGroupRank);
+  int driverGroupSize;
+
+  if ( rank%physicsNodeSize == 0)
+  {
+    MPI_Comm_size(driverComm,&driverGroupSize);
+    std::cout << "driverRank: " << rank 
+      << " physicsGroup: " << group
+      << " driverRank: " << physicsGroupRank
+      << " driverRanks[]: " << driverRanks[group] 
+      << std::endl;
+  }
+
+
+  LibMeshInit libmesh_init(argc, argv, physicsComm);
+
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+
   /* LibMeshInit libmesh_init(argc, argv); */
 
 
   //------- initialize driver
-  /* AGNOS::Driver agnos( comm, inputfile ); */
+  AGNOS::Driver agnos( comm, driverComm, physicsComm, inputfile);
 
   /* //------ run driver */
-  /* agnos.run( ); */
+  agnos.run( );
 
 
-  MPI_Finalize();
+  /* MPI_Finalize(); */
   return 0;
 }
 

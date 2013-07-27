@@ -17,7 +17,8 @@ namespace AGNOS
     public:
 
       Driver( );
-      Driver( const Communicator& comm, const GetPot& input );
+      Driver( Communicator& comm, 
+          MPI_Comm& surrogateComm, MPI_Comm& physicsComm, const GetPot& input );
 
       virtual ~Driver( );
 
@@ -35,7 +36,7 @@ namespace AGNOS
       virtual void _buildPhysics( const GetPot& input );
       virtual void _buildSurrogate( const GetPot& input );
 
-      const Communicator* m_comm;
+      Communicator* m_comm;
 
       // DRIVER VARIABLES
       unsigned int m_maxIter;
@@ -57,7 +58,7 @@ namespace AGNOS
       SurrogateModel<T_S,T_P>*  m_errorSurrogate;
       
       // PHYSICS VARIABLES
-      PhysicsModel<T_S,T_P>*                              m_physics;
+      std::vector<PhysicsModel<T_S,T_P>* >                m_physics;
       std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_physicsFunctions ;
       std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_errorFunctions ;
 
@@ -70,7 +71,14 @@ namespace AGNOS
       bool                      m_outputWeights       ;
       bool                      m_outputPoints        ;
       bool                      m_outputIndexSet      ;
+
+      // PARALLEL VARIABLES
+      Parallel::Communicator* m_physicsComm;
+      Parallel::Communicator* m_surrogateComm;
+      int m_physicsGroupRank;
   };
+
+
 
 
 /********************************************//**
@@ -78,10 +86,17 @@ namespace AGNOS
  * 
  ***********************************************/
   Driver::Driver( 
-      const Communicator& comm, 
+      Communicator& comm, 
+      MPI_Comm& surrogateComm,
+      MPI_Comm& physicsComm,
       const GetPot& input ) 
-    : m_comm(&comm)
+    : m_comm(&comm) 
   {
+
+    m_surrogateComm = new Parallel::Communicator(surrogateComm);
+    m_physicsComm = new Parallel::Communicator(physicsComm);
+    std::cout << "rank: " << m_comm->rank() <<  std::endl;
+
     
     // DRIVER SETTINGS
     m_maxIter = input("driver/maxIter",1);
@@ -136,10 +151,16 @@ namespace AGNOS
   Driver::~Driver( )
   {
 
-    delete m_physics;
-    delete m_comm;
+    for(unsigned int i=0; i < m_physics.size(); i++)
+      delete m_physics[i];
+    m_physics.clear();
+    /* delete m_comm; */
     /* delete m_surrogate; */
     /* delete m_errorSurrogate; */
+    /* for (unsigned int i=0; i<nGroups; i++) */
+    /*   delete groupRanks[i]; */
+    /* delete groupRanks; */
+
   }
 
 
@@ -154,12 +175,24 @@ namespace AGNOS
     // deal with parallel issue
     std::string physicsName = input("physics/type","");
     if ( physicsName == "viscousBurgers" )
-      m_physics = new AGNOS::PhysicsViscousBurgers<T_S,T_P>( *m_comm, input );
+    {
+      std::cout << "rank: " << m_comm->rank() << std::endl;
+      m_physics.push_back( 
+          new AGNOS::PhysicsViscousBurgers<T_S,T_P>(input )
+          );
+    }
     else if ( physicsName == "catenaryLibmesh" )
-      m_physics = new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( *m_comm, input );
+    {
+      /* m_physics.push_back( */
+      /*     new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( input ) */
+      /*     ); */
+    }
     else if ( physicsName == "catenary" )
-      m_physics = new AGNOS::PhysicsCatenary<T_S,T_P>(
-          input("physics/forcing",-10.0) );
+    {
+      m_physics.push_back(
+          new AGNOS::PhysicsCatenary<T_S,T_P>( input("physics/forcing",-10.0) )
+          );
+    }
     else
     {
       std::cerr << " ERROR: unrecognized physics type: " << physicsName
@@ -181,12 +214,24 @@ namespace AGNOS
   void Driver::_buildSurrogate( const GetPot& input)
   {
 
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+    int orderDim = input.vector_variable_size("surrogateModel/order");
+    int errorOrderDim = input.vector_variable_size("surrogateModel/errorOrder");
+
+    if (orderDim == 1)
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_order.push_back( input("surrogateModel/order", 0) ) ;
+    else
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+
     // TODO make this a functino like we have in matlab code
     // i.e. incremental order increase
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1, i) ) ;
+    if (errorOrderDim == 1)
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1) ) ;
+    else
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1, i) ) ;
 
     std::string surrType  = 
       input("surrogateModel/type","PseudoSpectralTensorProduct");
@@ -210,37 +255,37 @@ namespace AGNOS
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "primal", 
-          new PhysicsFunctionPrimal<T_S,T_P>( m_physics ) ) 
+          new PhysicsFunctionPrimal<T_S,T_P>( m_physics[0] ) ) 
         );
 
     // adjoint solution
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "adjoint", 
-          new PhysicsFunctionAdjoint<T_S,T_P>( m_physics ) ) 
+          new PhysicsFunctionAdjoint<T_S,T_P>( m_physics[0] ) ) 
         ); 
 
     // qoi evaluation
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "qoi", 
-          new PhysicsFunctionQoi<T_S,T_P>( m_physics ) ) 
+          new PhysicsFunctionQoi<T_S,T_P>( m_physics[0] ) ) 
         ); 
     
     // error estimate
     m_physicsFunctions.insert( 
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "error", 
-          new PhysicsFunctionError<T_S,T_P>( m_physics ) ) 
+          new PhysicsFunctionError<T_S,T_P>( m_physics[0] ) ) 
         ); 
 
     // error indicators if needed
-    if ( ! m_physics->useUniformRefinement() )
+    if ( ! m_physics[0]->useUniformRefinement() )
     {
       m_physicsFunctions.insert( 
           std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
             "indicators", 
-            new PhysicsFunctionIndicators<T_S,T_P>( m_physics ) ) 
+            new PhysicsFunctionIndicators<T_S,T_P>( m_physics[0] ) ) 
           ); 
     }
 
@@ -252,7 +297,7 @@ namespace AGNOS
         {
 
           m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              m_comm,
+              m_surrogateComm,
               m_physicsFunctions, 
               m_parameters, 
               m_order  );
@@ -289,7 +334,7 @@ namespace AGNOS
         std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
           "error", 
           new PhysicsFunctionTotalError<T_S,T_P>( 
-            m_physics, m_surrogate ) 
+            m_physics[0], m_surrogate ) 
           ) 
         ); 
 
@@ -300,7 +345,7 @@ namespace AGNOS
         {
 
           m_errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              m_comm,
+              m_surrogateComm,
               m_errorFunctions, 
               m_parameters, 
               m_errorOrder  );
@@ -345,6 +390,8 @@ namespace AGNOS
     
     // build initial approximation
     m_surrogate->build();
+
+    m_surrogateComm->barrier();
     
     // build error surrogate
     m_errorSurrogate->build();
@@ -367,7 +414,7 @@ namespace AGNOS
       /* T_S evalPoint(1); */
       /* evalPoint(0) = 1.5; */
       T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
-      T_P qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ;
+      T_P qoiValue = m_physics[0]->evaluateQoi( evalPoint, solutionVec ) ;
 
       T_P l2normofphyerror = m_surrogate->l2Norm("error");
       T_P l2normoftotalerror = m_errorSurrogate->l2Norm("error");
@@ -406,18 +453,19 @@ namespace AGNOS
         // if using uniform refinement we won't have error indicators in the
         // surrogate model (by design)
         if ( m_physicsFunctions.count("indicators") == 0 )
-          m_physics->refine( );
+          m_physics[0]->refine( );
         else
         {
           // retrieve first coefficient (i.e. the mean) of error inidcators
           T_P errorIndicators = (m_surrogate->mean())["indicators"];
           
-          m_physics->refine( errorIndicators );
+          m_physics[0]->refine( errorIndicators );
         }
         if (this->m_comm->rank() == 0) 
           std::cout << "-------------------------------------\n " ;
 
         m_surrogate->build();
+
         m_errorSurrogate->build();
       }
 
@@ -452,10 +500,10 @@ namespace AGNOS
         printSolution(iter);
       }
 
-      this->m_comm->barrier();
+      m_surrogateComm->barrier();
 
       solutionVec = m_surrogate->evaluate("primal", evalPoint );
-      qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ;
+      qoiValue = m_physics[0]->evaluateQoi( evalPoint, solutionVec ) ;
 
       l2normofphyerror = m_surrogate->l2Norm("error");
       l2normoftotalerror = m_errorSurrogate->l2Norm("error");

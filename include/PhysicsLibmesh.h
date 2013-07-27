@@ -33,7 +33,6 @@ namespace AGNOS
 
     public:
       PhysicsLibmesh( 
-          const Communicator& comm, //< global comm (not libmesh object specific)
           const GetPot&       input
           );
       ~PhysicsLibmesh( );
@@ -70,7 +69,6 @@ namespace AGNOS
 
 
     protected:
-      const Communicator*   m_comm; //< global comm (not libmesh object specific)
       const GetPot&               m_input;
 
       // mesh and equation variables
@@ -79,6 +77,7 @@ namespace AGNOS
       libMesh::EquationSystems*       m_equation_systems;
       libMesh::System*                m_system;
       libMesh::MeshRefinement*        m_mesh_refinement;
+      libMesh::AdjointRefinementEstimator* m_estimator;
 
       // refinement options
       unsigned int m_numberHRefinements;
@@ -104,13 +103,16 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::PhysicsLibmesh(
-      const Communicator&       comm,
       const GetPot&             physicsInput
-      ) : m_comm(&comm), m_input(physicsInput)
+      ) : m_input(physicsInput)
   {
+
+
     //-------- get physics model settings
-    if (comm.rank() == 0)
-      std::cout << "\n-- Reading Physics model data\n";
+    std::cout << "\n-- Reading Physics model data\n";
+    int worldRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+    std::cout << "worldRank:" << worldRank << std::endl;
 
     // read in mesh settings
     m_n               = physicsInput("physics/n",1);
@@ -133,16 +135,13 @@ namespace AGNOS
   template<class T_S, class T_P>
   void PhysicsLibmesh<T_S,T_P>::init( )
   {
-
     //-------- create libmesh mesh object
-    if (m_comm->rank() == 0)
-      std::cout << "\n-- Creating mesh\n";
+    std::cout << "\n-- Creating mesh\n";
     _constructMesh();
 
     
     //-------- create equation system
-    if (m_comm->rank() == 0)
-      std::cout << "\n-- Setting up equation system and refinement strategy.\n";
+    std::cout << "\n-- Setting up equation system and refinement strategy.\n";
     _initializeSystem();
 
 
@@ -166,6 +165,13 @@ namespace AGNOS
     m_mesh_refinement->coarsen_threshold()          = 1e-5;
     m_mesh_refinement->max_h_level()                = 15;
     
+    
+    // set up estimator
+    m_estimator = new AdjointRefinementEstimator;
+    m_estimator->qoi_set() = *m_qois; 
+    m_estimator->number_h_refinements = m_numberHRefinements;
+    m_estimator->number_p_refinements = m_numberPRefinements;
+
     /* std::cout << "test: mesh info " << std::endl; */
     m_mesh.print_info();
 
@@ -184,10 +190,9 @@ namespace AGNOS
 
     if (hasNonlinearSystem && !this->m_resolveAdjoint)
     {
-      if(this->m_comm->rank() == 0 )
-        std::cout << std::endl << " WARNING: "
-          << "You may want to set resolveAdjoint = true for nonlinear "
-          << "problems.  \n" << std::endl;
+      std::cout << std::endl << " WARNING: "
+        << "You may want to set resolveAdjoint = true for nonlinear "
+        << "problems.  \n" << std::endl;
     }
 
     //------ initialize data structures
@@ -233,13 +238,15 @@ namespace AGNOS
       /* std::cout << "test:        n_active_dofs(): " << */
       /*   m_system->n_active_dofs() << std::endl; */
 
+      m_system->solution->print_global();
       // solve system
       this->setParameterValues( parameterValue );
-      /* std::cout << "test: pre reinit" << std::endl; */
-      m_system->init();
-      /* std::cout << "test: pre solve" << std::endl; */
+      std::cout << "test: pre reinit" << std::endl;
+      m_equation_systems->reinit();
+      std::cout << "test: pre solve" << std::endl;
       m_system->solve();
 
+      m_system->solution->print_global();
       /* std::cout << "test:       solution.size(): " << */
       /*   m_system->solution->size() << std::endl; */
       /* std::cout << "test:               n_dofs(): " << */
@@ -251,8 +258,8 @@ namespace AGNOS
       /*   m_equation_systems->template get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->print_converged_reason() ; */
 
       // convert solution to T_P framework
-      std::set<libMesh::dof_id_type> dofIndices;
-      m_system->local_dof_indices( 0, dofIndices);
+      /* std::set<libMesh::dof_id_type> dofIndices; */
+      /* m_system->local_dof_indices( 0, dofIndices); */
 
       /* std::cout << "test:      dofIndices.size(): " << */
       /*   dofIndices.size() << std::endl; */
@@ -263,22 +270,25 @@ namespace AGNOS
       /* std::cout << "test:        n_local _dofs(): " << */
       /*   m_system->n_local_dofs() << std::endl; */
 
-      /* for (unsigned int i=0; i < m_system->n_active_dofs(); i++) */
-      /* { */
-      /*   std::cout << "solution(" << i << ")=" */ 
-      /*     << m_system->current_solution(i) */
-      /*     << std::endl; */
-      /* } */
-
-      T_P imageValue(dofIndices.size());
-      std::set<libMesh::dof_id_type>::iterator dofIt 
-        = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      for (unsigned int i=0; i < m_system->n_active_dofs(); i++)
       {
-        /* std::cout << "solution(dof)(" << i << ")=" */ 
-        /*   << m_system->current_solution(*dofIt) */
-        /*   << std::endl; */
-        imageValue(i) =  m_system->current_solution(*dofIt) ;
+        std::cout << "solution(" << i << ")=" 
+          << (*m_system->solution)(i)
+          << std::endl;
+      }
+
+      NumericVector<Number> * globalSolution;
+      globalSolution = NumericVector<Number>::build(m_mesh.comm()).release();
+      globalSolution->init(m_system->solution->size(), true, SERIAL);
+      m_system->solution->localize(*globalSolution);
+
+      T_P imageValue(globalSolution->size());
+      for (unsigned int i=0; i<imageValue.size(); i++)
+      {
+        std::cout << "globalSolution(" << i << ")=" 
+          << (*globalSolution)(i)
+          << std::endl;
+        imageValue(i) =  (*globalSolution)(i) ;
       }
 
       return imageValue;
@@ -293,67 +303,79 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
-      /* std::cout << "test: solveAdjoint begin" << std::endl; */
+      std::cout << "test: solveAdjoint begin" << std::endl;
 
-      /* std::cout << " test: pre set parameter values " << std::endl; */
-      this->setParameterValues(parameterValue);
+      // solve system
+      this->setParameterValues( parameterValue );
 
-      m_system->set_adjoint_already_solved(false);
-      
-      m_system->update();
+      int rank, size;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+      MPI_Comm_size(MPI_COMM_WORLD,&size);
+      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh.comm().rank() 
+        << std::endl;
+      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh.comm().size() 
+        << std::endl;
 
-      /* std::cout << "test:       solution.size(): " << */
-      /*   m_system->solution->size() << std::endl; */
-      /* std::cout << "test:               n_dofs(): " << */
-      /*   m_system->n_dofs() << std::endl; */
-      /* std::cout << "test:        n_active_dofs(): " << */
-      /*   m_system->n_active_dofs() << std::endl; */
-      /* std::cout << "test: primalSolution.size(): " << */
-      /*   primalSolution.size() << std::endl; */
+
+
 
       // set solution to provided value
-      std::set<libMesh::dof_id_type> dofIndices;
-      m_system->local_dof_indices( 0, dofIndices);
-      std::set<libMesh::dof_id_type>::iterator dofIt 
-        = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
-        m_system->solution->set(*dofIt, primalSolution(i) );
-      m_system->solution->close();
-      /* std::cout << "test: post setPrimal" << std::endl; */
+      std::vector<Number> prevSolution(m_system->n_dofs(),0.);
+      for(unsigned int i=0; i<prevSolution.size(); i++)
+        prevSolution[i] = primalSolution(i);
+      m_system->update_global_solution(prevSolution);
+
+      std::cout << "test: post setPrimal" << std::endl;
+      std::cout << "test: solution initialized? " 
+        << m_system->solution->initialized()
+        << std::endl;
+      std::cout << "test: solution closed? " 
+        << m_system->solution->closed()
+        << std::endl;
+      std::cout << "test: solution size? " 
+        << m_system->solution->size()
+        << std::endl;
+      std::cout << "test: solution local size? " 
+        << m_system->solution->local_size()
+        << std::endl;
+
+      m_system->solution->print();
 
       // An EquationSystems reference will be convenient.
-      EquationSystems& es = m_system->get_equation_systems();
+      System& system = const_cast<System&>(*m_system);
+      EquationSystems& es = system.get_equation_systems();
 
       // The current mesh
       MeshBase& mesh = es.get_mesh();
 
       // We'll want to back up all coarse grid vectors
       std::map<std::string, NumericVector<Number> *> coarse_vectors;
-      for (System::vectors_iterator vec = m_system->vectors_begin(); vec !=
-           m_system->vectors_end(); ++vec)
+      for (System::vectors_iterator vec = system.vectors_begin(); vec !=
+           system.vectors_end(); ++vec)
         {
-          /* std::cout << " var_name: " << vec->first << std::endl; */
+          std::cout << " var_name: " << vec->first << std::endl;
           // The (string) name of this vector
           const std::string& var_name = vec->first;
 
           if (var_name != "adjoint_solution0")
             coarse_vectors[var_name] = vec->second->clone().release();
         }
+
       // Back up the coarse solution and coarse local solution
       NumericVector<Number> * coarse_solution =
-        m_system->solution->clone().release();
+        system.solution->clone().release();
+      std::cout << "test: post solution clone" << std::endl;
 
       NumericVector<Number> * coarse_local_solution =
-        m_system->current_local_solution->clone().release();
-      // And make copies of the projected solution
-      NumericVector<Number> * projected_solution;
+        system.current_local_solution->clone().release();
+      std::cout << "test: post local solution clone" << std::endl;
 
       // And we'll need to temporarily change solution projection settings
       bool old_projection_setting;
-      old_projection_setting = m_system->project_solution_on_reinit();
+      old_projection_setting = system.project_solution_on_reinit();
 
       // Make sure the solution is projected when we refine the mesh
-      m_system->project_solution_on_reinit() = true;
+      system.project_solution_on_reinit() = true;
 
       // And it'll be best to avoid any repartitioning
       AutoPtr<Partitioner> old_partitioner = mesh.partitioner();
@@ -377,6 +399,7 @@ namespace AGNOS
 
       libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
+      std::cout << " test: pre reinit" << std::endl;
       for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_refine(1);
@@ -389,61 +412,44 @@ namespace AGNOS
           es.reinit();
         }
 
-      // Copy the projected coarse grid solutions, which will be
-      // overwritten by solve()
-      projected_solution = NumericVector<Number>::build(mesh.comm()).release();
-      projected_solution->init(m_system->solution->size(), true, SERIAL);
-      m_system->solution->localize(*projected_solution,
-              m_system->get_dof_map().get_send_list());
-
 
       // Rebuild the rhs with the projected primal solution
-      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, true);
-      NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
-      projected_residual.close();
-
+      (dynamic_cast<ImplicitSystem&>(system)).assembly(true, true);
 
       /* std::cout << " test: pre adjoint_solve " << std::endl; */
       // solve adjoint
-      m_system->adjoint_solve( );
-      m_system->set_adjoint_already_solved(true);
+      system.adjoint_solve( );
       /* std::cout << " 336:post adjoint_solve" << std::endl; */
       /* std::cout << " test: post adjoint_solve " << std::endl; */
 
 
       // convert solution to T_P
-      libMesh::NumericVector<double>& computedAdjointSolution 
-        = m_system->get_adjoint_solution( ) ;
+      std::cout << " test: post adjoint_solve " << std::endl;
+      system.get_adjoint_solution(0).print_global();
 
-      /* std::cout << "test: computedAdjointSolution.size(): " << */
-      /*   computedAdjointSolution.size() << std::endl; */
-      /* for (unsigned int i=0; i < m_system->n_active_dofs(); i++) */
-      /* { */
-      /*   std::cout << "adjoint(" << i << ")=" */ 
-      /*     << computedAdjointSolution(i) */
-      /*     << std::endl; */
-      /* } */
 
-      // get dof indices
-      m_system->local_dof_indices( 0, dofIndices);
-      dofIt = dofIndices.begin();
+      NumericVector<Number> * globalAdjoint;
+      globalAdjoint = NumericVector<Number>::build(m_mesh.comm()).release();
+      globalAdjoint->init(system.get_adjoint_solution(0).size(), true, SERIAL);
+      system.get_adjoint_solution(0).localize(*globalAdjoint);
+      system.update();
 
-      /* std::cout << "test:      dofIndices.size(): " << */
-      /*   dofIndices.size() << std::endl; */
-
-      T_P imageValue(dofIndices.size());
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      T_P imageValue(system.n_active_dofs());
+      for (unsigned int i=0; i<imageValue.size(); i++)
       {
-        /* std::cout << "adjoint(dof)(" << i << ")=" */ 
-        /*   << computedAdjointSolution(*dofIt) */
-        /*   << std::endl; */
-        imageValue(i) = computedAdjointSolution(*dofIt);
+        std::cout << "globalAdjoint(" << i << ")=" 
+          << (*globalAdjoint)(i) 
+          << std::endl;
+        imageValue(i) = (*globalAdjoint)(i);
       }
+
+      std::cout << " test: post localize adjoint " << std::endl;
+      system.get_adjoint_solution(0).print_global();
 
 
       // Don't bother projecting the solution; we'll restore from backup
       // after coarsening
-      m_system->project_solution_on_reinit() = false;
+      system.project_solution_on_reinit() = false;
 
       // Uniformly coarsen the mesh, without projecting the solution
       libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
@@ -464,14 +470,13 @@ namespace AGNOS
       libmesh_assert_equal_to (n_coarse_elem, mesh.n_elem());
 
       // Restore old solutions and clean up the heap
-      m_system->project_solution_on_reinit() = old_projection_setting;
+      system.project_solution_on_reinit() = old_projection_setting;
 
       // Restore the coarse solution vectors and delete their copies
-      *m_system->solution = *coarse_solution;
+      *system.solution = *coarse_solution;
       delete coarse_solution;
-      *m_system->current_local_solution = *coarse_local_solution;
+      *system.current_local_solution = *coarse_local_solution;
       delete coarse_local_solution;
-      delete projected_solution;
 
       std::map<std::string, NumericVector<Number> *>::iterator vec;
       for (vec = coarse_vectors.begin(); vec != coarse_vectors.end(); ++vec)
@@ -479,7 +484,7 @@ namespace AGNOS
           // The (string) name of this vector
           const std::string& var_name = vec->first;
 
-          m_system->get_vector(var_name) = *coarse_vectors[var_name];
+          system.get_vector(var_name) = *coarse_vectors[var_name];
 
           coarse_vectors[var_name]->clear();
           delete coarse_vectors[var_name];
@@ -490,6 +495,7 @@ namespace AGNOS
       mesh.allow_renumbering(old_renumbering_setting);
 
 
+      system.update();
 
       /* std::cout << " test: solveAdjoint end " << std::endl; */
       return imageValue;
@@ -504,13 +510,17 @@ namespace AGNOS
         const T_P& primalSolution    
         )
     {
+      std::cout << " test: evaluateQoi beginning " << std::endl;
       this->setParameterValues(parameterValue);
       
       // set solution to provided value
-      for (unsigned int i=0; i<m_system->solution->size(); i++)
-        m_system->solution->set(i, primalSolution(i) );
-      m_system->solution->close();
-      m_system->update();
+      std::vector<Number> prevSolution(m_system->n_active_dofs(),0.);
+      for(unsigned int i=0; i<prevSolution.size(); i++)
+        prevSolution[i] = primalSolution(i);
+      m_system->update_global_solution(prevSolution);
+
+      std::cout << "test: post setPrimal" << std::endl;
+      m_system->solution->print_global();
 
       // evaluate QoI and get value
       m_system->assemble_qoi();
@@ -522,6 +532,8 @@ namespace AGNOS
         returnVec(i) = qoiValue[i];
 
 
+      m_system->update();
+      std::cout << " test: evaluateQoi end " << std::endl;
       return returnVec;
     }
 
@@ -535,69 +547,83 @@ namespace AGNOS
         const T_P& adjointSolution  
         )
     {
-      /* std::cout << "test: estimateError() beginning" << std::endl; */
+      std::cout << "test: estimateError() beginning" << std::endl;
       
-      m_system->set_adjoint_already_solved(false);
       this->setParameterValues(parameterValue);
 
-      /* std::cout << "test: estimateError() pre set solution" << std::endl; */
-      /* std::cout << "   primalSoution.size(): " << primalSolution.size() << */
-      /*                                             std::endl; */
-      /* std::cout << "   m_system->solution->size(): " */ 
-      /*   << m_system->solution->size() << std::endl; */
-      
+      int rank, size;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+      MPI_Comm_size(MPI_COMM_WORLD,&size);
+      std::cout << "rank:" << rank << " mesh.comm.rank:" << m_mesh.comm().rank() 
+        << std::endl;
+      std::cout << "size:" << size << " mesh.comm.size:" << m_mesh.comm().size() 
+        <<  std::endl;
+
+
+
+
+      std::cout << "test: estimateError() pre reinit" << std::endl;
+      /* m_system->reinit(); */
+
       // set solution to provided value
-      std::set<libMesh::dof_id_type> dofIndices;
-      m_system->local_dof_indices( 0, dofIndices);
-      std::set<libMesh::dof_id_type>::iterator dofIt 
-        = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
-        m_system->solution->set(*dofIt, primalSolution(i) );
-      m_system->solution->close();
-      m_system->update();
+      std::vector<Number> prevSolution(m_system->n_active_dofs(),0.);
+      for(unsigned int i=0; i<prevSolution.size(); i++)
+      {
+        std::cout << "prevSolution[" << i << "]= "
+          << primalSolution(i) << std::endl;
+        prevSolution[i] = primalSolution(i);
+      }
+      m_system->update_global_solution(prevSolution);
+      std::cout << "test: post setPrimal" << std::endl;
+      m_system->solution->print_global();
+      NumericVector<Number>* solution_vector = NULL;
 
-      /* std::cout << "test: estimateError() post set solution" << std::endl; */
-      
 
+      // start of actual error estimate routine
+      ErrorVector error_per_cell;
+      std::vector<Number> computed_global_QoI_errors;
+
+      // We have to break the rules here, because we can't refine a const System
+      System& system = const_cast<System&>(*m_system);
 
       // An EquationSystems reference will be convenient.
-      EquationSystems& es = m_system->get_equation_systems();
+      EquationSystems& es = system.get_equation_systems();
 
       // The current mesh
       MeshBase& mesh = es.get_mesh();
 
       // Resize the error_per_cell vector to be
       // the number of elements, initialized to 0.
-      libMesh::ErrorVector error_per_cell;
       error_per_cell.clear();
       error_per_cell.resize (mesh.max_elem_id(), 0.);
 
       // We'll want to back up all coarse grid vectors
       std::map<std::string, NumericVector<Number> *> coarse_vectors;
-      for (System::vectors_iterator vec = m_system->vectors_begin(); vec !=
-           m_system->vectors_end(); ++vec)
+      for (System::vectors_iterator vec = system.vectors_begin(); vec !=
+           system.vectors_end(); ++vec)
         {
           // The (string) name of this vector
           const std::string& var_name = vec->first;
+          std::cout << "var_name:" << var_name << std::endl;
 
-          if (var_name != "adjoint_solution0")
+          if (var_name != "adjoint_solution0" && var_name != "adjoint_rhs0")
             coarse_vectors[var_name] = vec->second->clone().release();
         }
+      std::cout << coarse_vectors.size() << std::endl;
       // Back up the coarse solution and coarse local solution
       NumericVector<Number> * coarse_solution =
-        m_system->solution->clone().release();
-
+        system.solution->clone().release();
       NumericVector<Number> * coarse_local_solution =
-        m_system->current_local_solution->clone().release();
+        system.current_local_solution->clone().release();
       // And make copies of the projected solution
       NumericVector<Number> * projected_solution;
 
       // And we'll need to temporarily change solution projection settings
       bool old_projection_setting;
-      old_projection_setting = m_system->project_solution_on_reinit();
+      old_projection_setting = system.project_solution_on_reinit();
 
       // Make sure the solution is projected when we refine the mesh
-      m_system->project_solution_on_reinit() = true;
+      system.project_solution_on_reinit() = true;
 
       // And it'll be best to avoid any repartitioning
       AutoPtr<Partitioner> old_partitioner = mesh.partitioner();
@@ -607,6 +633,14 @@ namespace AGNOS
       const bool old_renumbering_setting = mesh.allow_renumbering();
       mesh.allow_renumbering(false);
 
+      // Use a non-standard solution vector if necessary
+      if (solution_vector && solution_vector != system.solution.get())
+        {
+          NumericVector<Number> *newsol =
+            const_cast<NumericVector<Number>*> (solution_vector);
+          newsol->swap(*system.solution);
+          system.update();
+        }
 
 #ifndef NDEBUG
       // n_coarse_elem is only used in an assertion later so
@@ -617,10 +651,11 @@ namespace AGNOS
       // Uniformly refine the mesh
       MeshRefinement mesh_refinement(mesh);
 
-
-
       libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
 
+      // FIXME: this may break if there is more than one System
+      // on this mesh but estimate_error was still called instead of
+      // estimate_errors
       for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_refine(1);
@@ -636,65 +671,41 @@ namespace AGNOS
       // Copy the projected coarse grid solutions, which will be
       // overwritten by solve()
       projected_solution = NumericVector<Number>::build(mesh.comm()).release();
-      projected_solution->init(m_system->solution->size(), true, SERIAL);
-      m_system->solution->localize(*projected_solution,
-              m_system->get_dof_map().get_send_list());
+      projected_solution->init(system.solution->size(), true, SERIAL);
+      system.solution->localize(*projected_solution,
+              system.get_dof_map().get_send_list());
 
       // Rebuild the rhs with the projected primal solution
-      (dynamic_cast<ImplicitSystem&>(*m_system)).assembly(true, true);
-      NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(*m_system)).get_vector("RHS Vector");
+      (dynamic_cast<ImplicitSystem&>(system)).assembly(true, false);
+      NumericVector<Number> & projected_residual = (dynamic_cast<ExplicitSystem&>(system)).get_vector("RHS Vector");
       projected_residual.close();
 
-      /* std::cout << "test: estimateError() pre set adjiont" << std::endl; */
-
-
-      // check if system has adjoint_solution vector
-      //    this will fail if adjoint hasn't beend solved on this process yet.
-      //    For example if only needed for higher order error estimate.
-      if (!m_system->have_vector("adjoint_solution0"))
+      // set adjoint solution
+      NumericVector<Number>& adjoint_vector = system.get_adjoint_solution(0);
+      for(unsigned int i=0; i<adjoint_vector.size(); i++)
       {
-        // if not present initialize it
-        m_system->add_adjoint_solution(0);
+        std::cout << "adjoint_vector(" << i << ")=" 
+          << adjointSolution(i) << std::endl;
+        adjoint_vector.set(i, adjointSolution(i) );
       }
-    
-      // set solution to provided value
-      libMesh::NumericVector<libMesh::Number>* adjSolution 
-        = &( m_system->get_adjoint_solution(0) ) ;
-      // shouldn't need to do this
-      /* adjSolution->clear(); */
-      /* adjSolution->init(adjointSolution.size()); */
-
-      m_system->local_dof_indices( 0, dofIndices);
-      dofIt = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
-        adjSolution->set(*dofIt, adjointSolution(i) );
-      m_system->solution->close();
-      adjSolution->close();
-      m_system->set_adjoint_already_solved(true);
-      m_system->update();
-
-
-      /* std::cout << "test: estimateError() post set adjiont" << std::endl; */
-
+      adjoint_vector.close();
+      std::cout << "test: post set adjoint " << std::endl;
+      system.get_adjoint_solution(0).print_global();
 
       // Now that we have the refined adjoint solution and the projected primal solution,
       // we first compute the global QoI error estimate
 
       // Resize the computed_global_QoI_errors vector to hold the error estimates for each QoI
-      std::vector<Number> computed_global_QoI_errors;
-      computed_global_QoI_errors.resize(m_system->qoi.size());
+      computed_global_QoI_errors.resize(system.qoi.size());
 
       // Loop over all the adjoint solutions and get the QoI error
       // contributions from all of them
-      
-      
-      for (unsigned int j=0; j != m_system->qoi.size(); j++)
+      std::cout << "test: pre dot " << std::endl;
+      for (unsigned int j=0; j != system.qoi.size(); j++)
         {
-          computed_global_QoI_errors[j] = projected_residual.dot(m_system->get_adjoint_solution(j));
-          /* std::cout << "computed_global_QoI_errors = " << */
-          /*   computed_global_QoI_errors[j] << std::endl; */
+          computed_global_QoI_errors[j] = projected_residual.dot(system.get_adjoint_solution(j));
         }
-      /* std::cout << "test: estimateError() post compute error " << std::endl; */
+      std::cout << "test: post dot " << std::endl;
 
       // Done with the global error estimates, now construct the element wise error indicators
 
@@ -822,7 +833,7 @@ namespace AGNOS
       } // if (split_shared_dofs)
 
       // Get a DoF map, will be used to get the nodal dof_indices for each element
-      DofMap &dof_map = m_system->get_dof_map();
+      DofMap &dof_map = system.get_dof_map();
 
       // The global DOF indices, we will use these later on when we compute the element wise indicators
       std::vector<dof_id_type> dof_indices;
@@ -830,17 +841,17 @@ namespace AGNOS
       // Localize the global rhs and adjoint solution vectors (which might be shared on multiple processsors) onto a
       // local ghosted vector, this ensures each processor has all the dof_indices to compute an error indicator for
       // an element it owns
-      AutoPtr<NumericVector<Number> > localized_projected_residual = NumericVector<Number>::build(m_system->comm());
-      localized_projected_residual->init(m_system->n_dofs(), m_system->n_local_dofs(), m_system->get_dof_map().get_send_list(), false, GHOSTED);
-      projected_residual.localize(*localized_projected_residual, m_system->get_dof_map().get_send_list());
+      AutoPtr<NumericVector<Number> > localized_projected_residual = NumericVector<Number>::build(system.comm());
+      localized_projected_residual->init(system.n_dofs(), system.n_local_dofs(), system.get_dof_map().get_send_list(), false, GHOSTED);
+      projected_residual.localize(*localized_projected_residual, system.get_dof_map().get_send_list());
 
       // Each adjoint solution will also require ghosting; for efficiency we'll reuse the same memory
-      AutoPtr<NumericVector<Number> > localized_adjoint_solution = NumericVector<Number>::build(m_system->comm());
-      localized_adjoint_solution->init(m_system->n_dofs(), m_system->n_local_dofs(), m_system->get_dof_map().get_send_list(), false, GHOSTED);
+      AutoPtr<NumericVector<Number> > localized_adjoint_solution = NumericVector<Number>::build(system.comm());
+      localized_adjoint_solution->init(system.n_dofs(), system.n_local_dofs(), system.get_dof_map().get_send_list(), false, GHOSTED);
 
       // We will loop over each adjoint solution, localize that adjoint
       // solution and then loop over local elements
-      for (unsigned int i=0; i != m_system->qoi.size(); i++)
+      for (unsigned int i=0; i != system.qoi.size(); i++)
         {
           // Skip this QoI if not in the QoI Set
           if (m_qois->has_index(i))
@@ -848,7 +859,7 @@ namespace AGNOS
         // Get the weight for the current QoI
         Real error_weight = m_qois->weight(i);
 
-        (m_system->get_adjoint_solution(i)).localize(*localized_adjoint_solution, m_system->get_dof_map().get_send_list());
+        (system.get_adjoint_solution(i)).localize(*localized_adjoint_solution, system.get_dof_map().get_send_list());
 
         // Loop over elements
               MeshBase::const_element_iterator elem_it = mesh.active_local_elements_begin();
@@ -859,7 +870,7 @@ namespace AGNOS
             // Pointer to the element
             const Elem* elem = *elem_it;
 
-            // Go up number_h_refinements levels up to find the coarse parent
+            // Go up m_numberHRefinements levels up to find the coarse parent
             const Elem* coarse = elem;
 
             for (unsigned int j = 0; j != m_numberHRefinements; ++j)
@@ -886,6 +897,8 @@ namespace AGNOS
             // Multiply by the error weight for this QoI
                   local_contribution *= error_weight;
 
+                  // FIXME: we're throwing away information in the
+                  // --enable-complex case
             error_per_cell[e_id] += static_cast<ErrorVectorReal>
               (libmesh_real(local_contribution));
 
@@ -897,7 +910,7 @@ namespace AGNOS
 
       // Don't bother projecting the solution; we'll restore from backup
       // after coarsening
-      m_system->project_solution_on_reinit() = false;
+      system.project_solution_on_reinit() = false;
 
       // Uniformly coarsen the mesh, without projecting the solution
       libmesh_assert (m_numberHRefinements > 0 || m_numberPRefinements > 0);
@@ -905,11 +918,11 @@ namespace AGNOS
       for (unsigned int i = 0; i != m_numberHRefinements; ++i)
         {
           mesh_refinement.uniformly_coarsen(1);
+          // FIXME - should the reinits here be necessary? - RHS
           es.reinit();
         }
 
-      for (unsigned int i = 0; i !=
-          m_numberPRefinements; ++i)
+      for (unsigned int i = 0; i != m_numberPRefinements; ++i)
         {
           mesh_refinement.uniformly_p_coarsen(1);
           es.reinit();
@@ -919,22 +932,24 @@ namespace AGNOS
       libmesh_assert_equal_to (n_coarse_elem, mesh.n_elem());
 
       // Restore old solutions and clean up the heap
-      m_system->project_solution_on_reinit() = old_projection_setting;
+      system.project_solution_on_reinit() = old_projection_setting;
 
       // Restore the coarse solution vectors and delete their copies
-      *m_system->solution = *coarse_solution;
+      *system.solution = *coarse_solution;
       delete coarse_solution;
-      *m_system->current_local_solution = *coarse_local_solution;
+      *system.current_local_solution = *coarse_local_solution;
       delete coarse_local_solution;
       delete projected_solution;
 
-      std::map<std::string, NumericVector<Number> *>::iterator vec;
-      for (vec = coarse_vectors.begin(); vec != coarse_vectors.end(); ++vec)
+      std::cout << coarse_vectors.size() << std::endl;
+      for (System::vectors_iterator vec = coarse_vectors.begin(); vec !=
+       coarse_vectors.end(); ++vec)
         {
           // The (string) name of this vector
           const std::string& var_name = vec->first;
+          std::cout << "var_name:" << var_name << std::endl;
 
-          m_system->get_vector(var_name) = *coarse_vectors[var_name];
+          system.get_vector(var_name) = *coarse_vectors[var_name];
 
           coarse_vectors[var_name]->clear();
           delete coarse_vectors[var_name];
@@ -944,29 +959,19 @@ namespace AGNOS
       mesh.partitioner() = old_partitioner;
       mesh.allow_renumbering(old_renumbering_setting);
 
-
-      // computed_global_QoI_errors holds error estimate for each qoi
-      // error_per_cell holds error indicators
-      
-      // set errorIndicators if we need them for adaptive refinement
-      if (!this->m_useUniformRefinement)
-      {
-        this->m_errorIndicators = new T_P(error_per_cell.size());
-        for(unsigned int i=0; i<error_per_cell.size(); i++)
-          (*this->m_errorIndicators)(i) =  error_per_cell[i] ;
-
-        /* std::cout << "test: rank" << this->m_comm->rank() */ 
-        /*   << ": error_per_cell.size(): " << error_per_cell.size() << std::endl; */
-
-      }
+      //TODO
+      // save error indicators if needed
 
       // convert to return type
-      T_P errorEstimate(computed_global_QoI_errors.size());
+      std::cout << "computed_global_QoI_errors.size():" <<
+        computed_global_QoI_errors.size() << std::endl;
+      T_P errorEstimate( computed_global_QoI_errors.size() );
       for (unsigned int i=0; i<errorEstimate.size(); i++)
         errorEstimate(i) = computed_global_QoI_errors[i];
 
+      std::cout << "errorEstimate.size():" << errorEstimate.size() << std::endl;
 
-      /* std::cout << "test: estimateError() end" << std::endl; */
+      std::cout << "test: estimateError() end" << std::endl;
       return errorEstimate;
     }
 
@@ -978,17 +983,15 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::refine() 
     {
-      if ( this->m_comm->rank() == 0 )
-        std::cout << "  previous n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+      std::cout << "  previous n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
       m_mesh_refinement->uniformly_refine(1);
 
       m_equation_systems->reinit();
 
-      if ( this->m_comm->rank() == 0 )
-        std::cout << "   refined n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+      std::cout << "   refined n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
     }
 
@@ -1003,9 +1006,8 @@ namespace AGNOS
         ) 
     {
 
-      if ( this->m_comm->rank() == 0 )
-        std::cout << "  previous n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+      std::cout << "  previous n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
       libMesh::ErrorVector error_per_cell(errorIndicators.size());
       for(unsigned int i=0; i<errorIndicators.size();i++)
@@ -1025,9 +1027,8 @@ namespace AGNOS
 
       m_equation_systems->reinit();
 
-      if ( this->m_comm->rank() == 0 )
-        std::cout << "   refined n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+      std::cout << "   refined n_active_elem(): " 
+        << m_mesh.n_active_elem() << std::endl;
 
       return;
     }
