@@ -20,17 +20,19 @@ refineSurrogate = true
 
 [physics]
 type = 'viscousBurgers'
+#solutions = 'primal adjoint error qoi'
+solutions = 'primal adjoint error'
+
 min = '-10.0'
 max = '10.0'
-
 n = '4'
+nNonlinearSteps='15'
+nonlinearTolerance='1.e-9'
+
 useUniformRefinement = true
 numberHRefinements = '1'
 numberPRefinements = '0'
 maxRefineSteps ='15'
-
-nNonlinearSteps='15'
-nonlinearTolerance='1.e-9'
 
 resolveAdjoint = true
 []

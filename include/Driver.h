@@ -17,8 +17,7 @@ namespace AGNOS
     public:
 
       Driver( );
-      Driver( Communicator& comm, 
-          MPI_Comm& surrogateComm, MPI_Comm& physicsComm, const GetPot& input );
+      Driver( Communicator& comm, Communicator& physicsComm, const GetPot& input );
 
       virtual ~Driver( );
 
@@ -29,53 +28,48 @@ namespace AGNOS
       void printParameterSettings( std::ostream& out ) ;
       void printDriverSettings( std::ostream& out  ) ;
       void printSettings( ) ;
-      void printSolution( unsigned int iteration=1 ) ;
+      /* void printSolution( unsigned int iteration=1 ) ; */
 
 
     protected:
       virtual void _buildPhysics( const GetPot& input );
       virtual void _buildSurrogate( const GetPot& input );
 
-      Communicator* m_comm;
+      Communicator& _comm;
+      Communicator& _physicsComm;
 
       // DRIVER VARIABLES
-      unsigned int m_maxIter;
+      unsigned int _maxIter;
 
       // PARAMETERS VARIABLES
-      unsigned int              m_paramDim;
-      std::vector<Parameter*>   m_parameters;
+      unsigned int              _paramDim;
+      std::vector<Parameter*>   _parameters;
       
       // ADAPTIVE SETTINGS
       // TODO adaptive settings
-      bool m_refinePhysical;
-      bool m_refineSurrogate;
+      bool _refinePhysical;
+      bool _refineSurrogate;
 
       // SURROGATE VARIABLES
-      int                       m_surrogateType;
-      std::vector<unsigned int> m_order;
-      std::vector<unsigned int> m_errorOrder;
-      SurrogateModel<T_S,T_P>*  m_surrogate;
-      SurrogateModel<T_S,T_P>*  m_errorSurrogate;
+      int                       _surrogateType;
+      std::vector<unsigned int> _order;
+      std::vector<unsigned int> _errorOrder;
+      SurrogateModel<T_S>*  _surrogate;
+      SurrogateModel<T_S>*  _errorSurrogate;
       
       // PHYSICS VARIABLES
-      std::vector<PhysicsModel<T_S,T_P>* >                m_physics;
-      std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_physicsFunctions ;
-      std::map< std::string, PhysicsFunction<T_S,T_P>* >  m_errorFunctions ;
+      std::vector< PhysicsModel<T_S>* >                _physics;
 
       // OUTPUT VARIABLES
-      std::string               m_outputFilename; 
-      std::vector<std::string>  m_solutionsToPrint ;
-      bool                      m_outputIterations  ;
-      bool                      m_outputCoefficients  ;
-      bool                      m_outputErrorCoefficients  ;
-      bool                      m_outputWeights       ;
-      bool                      m_outputPoints        ;
-      bool                      m_outputIndexSet      ;
+      std::string               _outputFilename; 
+      std::vector<std::string>  _solutionsToPrint ;
+      bool                      _outputIterations  ;
+      bool                      _outputCoefficients  ;
+      bool                      _outputErrorCoefficients  ;
+      bool                      _outputWeights       ;
+      bool                      _outputPoints        ;
+      bool                      _outputIndexSet      ;
 
-      // PARALLEL VARIABLES
-      Parallel::Communicator* m_physicsComm;
-      Parallel::Communicator* m_surrogateComm;
-      int m_physicsGroupRank;
   };
 
 
@@ -87,33 +81,33 @@ namespace AGNOS
  ***********************************************/
   Driver::Driver( 
       Communicator& comm, 
-      MPI_Comm& surrogateComm,
-      MPI_Comm& physicsComm,
-      const GetPot& input ) 
-    : m_comm(&comm) 
+      Communicator& physicsComm,
+      const GetPot& input 
+      ) :
+    _comm(comm), _physicsComm(physicsComm) 
   {
 
-    m_surrogateComm = new Parallel::Communicator(surrogateComm);
-    m_physicsComm = new Parallel::Communicator(physicsComm);
-    std::cout << "rank: " << m_comm->rank() <<  std::endl;
+    if(DEBUG)
+      std::cout << "rank: " << _comm.rank() <<  std::endl;
+
 
     
     // DRIVER SETTINGS
-    m_maxIter = input("driver/maxIter",1);
+    _maxIter = input("driver/maxIter",1);
 
     
     // ADAPTIVE SETTINGS
     // TODO adaptive settings
-    m_refinePhysical = input("adaptive/refinePhysical",false);
-    m_refineSurrogate = input("adaptive/refineSurrogate",true);
+    _refinePhysical = input("adaptive/refinePhysical",false);
+    _refineSurrogate = input("adaptive/refineSurrogate",true);
     
     
     // PARAMETER SETTINGS
-    m_paramDim = input("parameters/dimension", 1);
+    _paramDim = input("parameters/dimension", 1);
 
-    m_parameters.resize(m_paramDim);
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_parameters[i] = new Parameter( 
+    _parameters.resize(_paramDim);
+    for (unsigned int i=0; i < _paramDim; i++)
+      _parameters[i] = new Parameter( 
           input("parameters/types",0,i),
           input("parameters/mins",-1.0,i),
           input("parameters/maxs", 1.0,i)
@@ -128,19 +122,19 @@ namespace AGNOS
 
 
     // OUTPUT DATA SETTINGS
-    m_outputFilename      = input("output/filename","cout");
+    _outputFilename      = input("output/filename","cout");
 
-    m_solutionsToPrint.resize( input.vector_variable_size("output/solutions") );
-    for (unsigned int i=0; i < m_solutionsToPrint.size(); i++)
-      m_solutionsToPrint[i] = input("output/solutions", " ",i);
+    _solutionsToPrint.resize( input.vector_variable_size("output/solutions") );
+    for (unsigned int i=0; i < _solutionsToPrint.size(); i++)
+      _solutionsToPrint[i] = input("output/solutions", " ",i);
 
-    m_outputIterations    = input("output/iterations",false);
+    _outputIterations    = input("output/iterations",false);
 
-    m_outputCoefficients  = input("output/coefficients",true);
-    m_outputErrorCoefficients  = input("output/errorCoefficients",true);
-    m_outputWeights       = input("output/weights",true);
-    m_outputPoints        = input("output/points",true);
-    m_outputIndexSet      = input("output/index_set",true);
+    _outputCoefficients  = input("output/coefficients",true);
+    _outputErrorCoefficients  = input("output/errorCoefficients",true);
+    _outputWeights       = input("output/weights",true);
+    _outputPoints        = input("output/points",true);
+    _outputIndexSet      = input("output/index_set",true);
 
   }
 
@@ -151,12 +145,12 @@ namespace AGNOS
   Driver::~Driver( )
   {
 
-    for(unsigned int i=0; i < m_physics.size(); i++)
-      delete m_physics[i];
-    m_physics.clear();
-    /* delete m_comm; */
-    /* delete m_surrogate; */
-    /* delete m_errorSurrogate; */
+    for(unsigned int i=0; i < _physics.size(); i++)
+      delete _physics[i];
+    _physics.clear();
+    /* delete _comm; */
+    /* delete _surrogate; */
+    /* delete _errorSurrogate; */
     /* for (unsigned int i=0; i<nGroups; i++) */
     /*   delete groupRanks[i]; */
     /* delete groupRanks; */
@@ -176,27 +170,24 @@ namespace AGNOS
     std::string physicsName = input("physics/type","");
     if ( physicsName == "viscousBurgers" )
     {
-
-      int physicsRank;
-      MPI_Comm_rank(m_physicsComm->get(), &physicsRank);
-      std::cout << "rank: " << m_comm->rank() << std::endl;
-      std::cout << "physicsRank: " << physicsRank << std::endl;
-
-      m_physics.push_back( 
-          new AGNOS::PhysicsViscousBurgers<T_S,T_P>(input )
+      if(DEBUG)
+        std::cout << "_buildPhysics() rank: " << _comm.rank() << std::endl;
+      _physics.push_back( 
+          new AGNOS::PhysicsViscousBurgers<T_S>(
+            _physicsComm, input )
           );
     }
     else if ( physicsName == "catenaryLibmesh" )
     {
-      /* m_physics.push_back( */
-      /*     new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( input ) */
+      /* _physics.push_back( */
+      /*     new AGNOS::PhysicsCatenaryLibmesh<T_S>( input ) */
       /*     ); */
     }
     else if ( physicsName == "catenary" )
     {
-      m_physics.push_back(
-          new AGNOS::PhysicsCatenary<T_S,T_P>( input("physics/forcing",-10.0) )
-          );
+      /* _physics.push_back( */
+      /*     new AGNOS::PhysicsCatenary<T_S>( input("physics/forcing",-10.0) ) */
+      /*     ); */
     }
     else
     {
@@ -223,32 +214,32 @@ namespace AGNOS
     int errorOrderDim = input.vector_variable_size("surrogateModel/errorOrder");
 
     if (orderDim == 1)
-      for (unsigned int i=0; i < m_paramDim; i++)
-        m_order.push_back( input("surrogateModel/order", 0) ) ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        _order.push_back( input("surrogateModel/order", 0) ) ;
     else
-      for (unsigned int i=0; i < m_paramDim; i++)
-        m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        _order.push_back( input("surrogateModel/order", 0, i) ) ;
 
     // TODO make this a functino like we have in matlab code
     // i.e. incremental order increase
     if (errorOrderDim == 1)
-      for (unsigned int i=0; i < m_paramDim; i++)
-        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1) ) ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        _errorOrder.push_back( input("surrogateModel/errorOrder", _order[i]+1) ) ;
     else
-      for (unsigned int i=0; i < m_paramDim; i++)
-        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1, i) ) ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        _errorOrder.push_back( input("surrogateModel/errorOrder", _order[i]+1, i) ) ;
 
     std::string surrType  = 
       input("surrogateModel/type","PseudoSpectralTensorProduct");
 
     if (surrType == "PseudoSpectralTensorProduct")
-      m_surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
+      _surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
     else if (surrType == "PseudoSpectralSparseGrid")
-      m_surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
+      _surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
     else if (surrType == "PseudoSpectralMonteCarlo")
-      m_surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
+      _surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
     else if (surrType == "Collocation")
-      m_surrogateType =  COLLOCATION ;
+      _surrogateType =  COLLOCATION ;
     else
     {
       std::cerr << " ERROR: unrecognized SurrogateModelType " 
@@ -256,56 +247,19 @@ namespace AGNOS
       exit(1);
     }
     
-    // primal solution
-    m_physicsFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "primal", 
-          new PhysicsFunctionPrimal<T_S,T_P>( m_physics[0] ) ) 
-        );
-
-    // adjoint solution
-    m_physicsFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "adjoint", 
-          new PhysicsFunctionAdjoint<T_S,T_P>( m_physics[0] ) ) 
-        ); 
-
-    // qoi evaluation
-    m_physicsFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "qoi", 
-          new PhysicsFunctionQoi<T_S,T_P>( m_physics[0] ) ) 
-        ); 
-    
-    // error estimate
-    m_physicsFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "error", 
-          new PhysicsFunctionError<T_S,T_P>( m_physics[0] ) ) 
-        ); 
-
-    // error indicators if needed
-    if ( ! m_physics[0]->useUniformRefinement() )
-    {
-      m_physicsFunctions.insert( 
-          std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-            "indicators", 
-            new PhysicsFunctionIndicators<T_S,T_P>( m_physics[0] ) ) 
-          ); 
-    }
 
 
     // type specific setup
-    switch( m_surrogateType )
+    switch( _surrogateType )
     {
       case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
         {
 
-          m_surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              m_surrogateComm,
-              m_physicsFunctions, 
-              m_parameters, 
-              m_order  );
+          _surrogate = new PseudoSpectralTensorProduct<T_S>(
+              _comm,
+              _physics[0], 
+              _parameters, 
+              _order  );
 
           break;
         }
@@ -333,52 +287,45 @@ namespace AGNOS
     }
     
 
-    // ----- ERROR SURROGATE
-    //
-    m_errorFunctions.insert( 
-        std::pair< std::string, PhysicsFunction<T_S,T_P>* >(
-          "error", 
-          new PhysicsFunctionTotalError<T_S,T_P>( 
-            m_physics[0], m_surrogate ) 
-          ) 
-        ); 
+    /* // ----- ERROR SURROGATE */
+    /* // */
 
-    // type specific setup
-    switch( m_surrogateType )
-    {
-      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
-        {
+    /* // type specific setup */
+    /* switch( _surrogateType ) */
+    /* { */
+    /*   case(PSEUDO_SPECTRAL_TENSOR_PRODUCT): */
+    /*     { */
 
-          m_errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              m_surrogateComm,
-              m_errorFunctions, 
-              m_parameters, 
-              m_errorOrder  );
+    /*       _errorSurrogate = new PseudoSpectralTensorProduct<T_S>( */
+    /*           _comm, */
+    /*           _physics[0], */ 
+    /*           _parameters, */ 
+    /*           _errorOrder  ); */
 
-          break;
-        }
-      case(PSEUDO_SPECTRAL_SPARSE_GRID):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(PSEUDO_SPECTRAL_MONTE_CARLO):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(COLLOCATION):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-    }
+    /*       break; */
+    /*     } */
+    /*   case(PSEUDO_SPECTRAL_SPARSE_GRID): */
+    /*     { */
+    /*       std::cerr */ 
+    /*         << " this SurrogateModelType is not yet implemented\n" ; */
+    /*       exit(1); */
+    /*       break; */
+    /*     } */
+    /*   case(PSEUDO_SPECTRAL_MONTE_CARLO): */
+    /*     { */
+    /*       std::cerr */ 
+    /*         << " this SurrogateModelType is not yet implemented\n" ; */
+    /*       exit(1); */
+    /*       break; */
+    /*     } */
+    /*   case(COLLOCATION): */
+    /*     { */
+    /*       std::cerr */ 
+    /*         << " this SurrogateModelType is not yet implemented\n" ; */
+    /*       exit(1); */
+    /*       break; */
+    /*     } */
+    /* } */
 
     return;
   }
@@ -394,159 +341,155 @@ namespace AGNOS
     printSettings();
     
     // build initial approximation
-    m_surrogate->build();
-
-    /* m_physics[0]->getMesh().comm().barrier(); */
+    _surrogate->build();
 
     // build error surrogate
-    m_errorSurrogate->build();
+    /* _errorSurrogate->build(); */
 
     
-    // print out first iteration if requested
-    if (this->m_outputIterations && (this->m_comm->rank() == 0) )
-    {
-      std::cout << "\n writing results to: " << this->m_outputFilename
-        << " (iter = " << 1 << " )"
-       << std::endl;
-      std::cout << std::endl;
-      printSolution(1);
-    }
+    /* // print out first iteration if requested */
+    /* if (this->_outputIterations && (_comm.rank() == 0) ) */
+    /* { */
+    /*   std::cout << "\n writing results to: " << this->_outputFilename */
+    /*     << " (iter = " << 1 << " )" */
+    /*    << std::endl; */
+    /*   std::cout << std::endl; */
+    /*   printSolution(1); */
+    /* } */
     
-      // evaluate QoI
-      T_S evalPoint(2);
-      evalPoint(0) = 0.5;
-      evalPoint(1) = 0.5;
-      /* T_S evalPoint(1); */
-      /* evalPoint(0) = 1.5; */
-      T_P solutionVec = m_surrogate->evaluate("primal", evalPoint );
-      T_P qoiValue = m_physics[0]->evaluateQoi( evalPoint, solutionVec ) ;
+    /*   // evaluate QoI */
+    /*   T_S evalPoint(2); */
+    /*   evalPoint(0) = 0.5; */
+    /*   evalPoint(1) = 0.5; */
+    /*   /1* T_S evalPoint(1); *1/ */
+    /*   /1* evalPoint(0) = 1.5; *1/ */
+    /*   T_P solutionVec = _surrogate->evaluate("primal", evalPoint ); */
+    /*   T_P qoiValue = _physics[0]->evaluateQoi( evalPoint, solutionVec ) ; */
 
-      T_P l2normofphyerror = m_surrogate->l2Norm("error");
-      T_P l2normoftotalerror = m_errorSurrogate->l2Norm("error");
-      double normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+    /*   T_P l2normofphyerror = _surrogate->l2Norm("error"); */
+    /*   T_P l2normoftotalerror = _errorSurrogate->l2Norm("error"); */
+    /*   double normDiff = _surrogate->l2NormDifference( *_errorSurrogate, "error"); */
 
-    if (this->m_comm->rank() == 0)
-    {
+    /* if (_comm.rank() == 0) */
+    /* { */
 
-      std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
-      std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
-      std::cout << "| phyErrorNorm-totalErrorNorm | = " <<
-        std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl;
-      std::cout << "normDiff = " << normDiff << std::endl;
+    /*   std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl; */
+    /*   std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl; */
+    /*   std::cout << "| phyErrorNorm-totalErrorNorm | = " << */
+    /*     std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; */
+    /*   std::cout << "normDiff = " << normDiff << std::endl; */
 
-      std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
-    }
+    /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
+    /* } */
 
-    // refine approximation
-    for (unsigned int iter=2; iter <= this->m_maxIter; iter++)
-    {
-      if (this->m_comm->rank() == 0) 
-        std::cout << "\n-------------  ITER " << iter << "  -------------\n " ;
+    /* // refine approximation */
+    /* for (unsigned int iter=2; iter <= this->_maxIter; iter++) */
+    /* { */
+    /*   if (_comm.rank() == 0) */ 
+    /*     std::cout << "\n-------------  ITER " << iter << "  -------------\n " ; */
       
 
-      // if physical error dominates and we are allowed to refine physical
-      // solution
-      if ( 
-          ( m_refinePhysical && (l2normofphyerror(0) >= normDiff) ) 
-          ||
-          ( m_refinePhysical && !m_refineSurrogate )
-          )
-      {
-        if (this->m_comm->rank() == 0) 
-          std::cout << "    refining physical solution " << std::endl;
+    /*   // if physical error dominates and we are allowed to refine physical */
+    /*   // solution */
+    /*   if ( */ 
+    /*       ( _refinePhysical && (l2normofphyerror(0) >= normDiff) ) */ 
+    /*       || */
+    /*       ( _refinePhysical && !m_refineSurrogate ) */
+    /*       ) */
+    /*   { */
+    /*     if (_comm.rank() == 0) */ 
+    /*       std::cout << "    refining physical solution " << std::endl; */
         
-        // if using uniform refinement we won't have error indicators in the
-        // surrogate model (by design)
-        if ( m_physicsFunctions.count("indicators") == 0 )
-          m_physics[0]->refine( );
-        else
-        {
-          // retrieve first coefficient (i.e. the mean) of error inidcators
-          T_P errorIndicators = (m_surrogate->mean())["indicators"];
+    /*     // if using uniform refinement we won't have error indicators in the */
+    /*     // surrogate model (by design) */
+    /*     if ( _physicsFunctions.count("indicators") == 0 ) */
+    /*       _physics[0]->refine( ); */
+    /*     else */
+    /*     { */
+    /*       // retrieve first coefficient (i.e. the mean) of error inidcators */
+    /*       T_P errorIndicators = (_surrogate->mean())["indicators"]; */
           
-          m_physics[0]->refine( errorIndicators );
-        }
-        if (this->m_comm->rank() == 0) 
-          std::cout << "-------------------------------------\n " ;
+    /*       _physics[0]->refine( errorIndicators ); */
+    /*     } */
+    /*     if (_comm.rank() == 0) */ 
+    /*       std::cout << "-------------------------------------\n " ; */
 
-        m_surrogate->build();
-
-
-        m_errorSurrogate->build();
-      }
+    /*     _surrogate->build(); */
 
 
-      // if surrogate error dominates and we are allowed to refine surrogate
-      // model
-      if ( 
-          ( m_refineSurrogate && (l2normofphyerror(0) < normDiff) ) 
-          ||
-          ( m_refineSurrogate && !m_refinePhysical ) 
-          )
-      {
-        if (this->m_comm->rank() == 0) 
-        {
-          std::cout << "    refining surrogate model " << std::endl;
-          std::cout << "-------------------------------------\n " ;
-        }
-        m_surrogate->refine( );
-        m_errorSurrogate->refine( );
-      }
+    /*     _errorSurrogate->build(); */
+    /*   } */
 
 
+    /*   // if surrogate error dominates and we are allowed to refine surrogate */
+    /*   // model */
+    /*   if ( */ 
+    /*       ( _refineSurrogate && (l2normofphyerror(0) < normDiff) ) */ 
+    /*       || */
+    /*       ( _refineSurrogate && !m_refinePhysical ) */ 
+    /*       ) */
+    /*   { */
+    /*     if (_comm.rank() == 0) */ 
+    /*     { */
+    /*       std::cout << "    refining surrogate model " << std::endl; */
+    /*       std::cout << "-------------------------------------\n " ; */
+    /*     } */
+    /*     _surrogate->refine( ); */
+    /*     _errorSurrogate->refine( ); */
+    /*   } */
 
 
 
-      if (this->m_outputIterations && (this->m_comm->rank() == 0) )
-      {
-        std::cout << "\n writing results to: " << this->m_outputFilename
-          << " (iter = " << iter << " )"
-          << std::endl;
-        std::cout << std::endl;
-        printSolution(iter);
-      }
 
-      m_surrogateComm->barrier();
 
-      solutionVec = m_surrogate->evaluate("primal", evalPoint );
-      qoiValue = m_physics[0]->evaluateQoi( evalPoint, solutionVec ) ;
+    /*   if (this->_outputIterations && (_comm.rank() == 0) ) */
+    /*   { */
+    /*     std::cout << "\n writing results to: " << this->_outputFilename */
+    /*       << " (iter = " << iter << " )" */
+    /*       << std::endl; */
+    /*     std::cout << std::endl; */
+    /*     printSolution(iter); */
+    /*   } */
 
-      l2normofphyerror = m_surrogate->l2Norm("error");
-      l2normoftotalerror = m_errorSurrogate->l2Norm("error");
-      normDiff = m_surrogate->l2NormDifference( *m_errorSurrogate, "error");
+    /*   solutionVec = _surrogate->evaluate("primal", evalPoint ); */
+    /*   qoiValue = _physics[0]->evaluateQoi( evalPoint, solutionVec ) ; */
 
-      if (this->m_comm->rank() == 0)
-      {
+    /*   l2normofphyerror = _surrogate->l2Norm("error"); */
+    /*   l2normoftotalerror = _errorSurrogate->l2Norm("error"); */
+    /*   normDiff = _surrogate->l2NormDifference( *_errorSurrogate, "error"); */
 
-        std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl;
-        std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl;
-        /* std::cout << "| phyErrorNorm-totalErrorNorm | = " << */
-        /* std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; */
-        std::cout << "normDiff = " << normDiff << std::endl;
+    /*   if (_comm.rank() == 0) */
+    /*   { */
 
-        std::cout << "\n Qoi = " << qoiValue(0) << std::endl;
-      }
+    /*     std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl; */
+    /*     std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl; */
+    /*     /1* std::cout << "| phyErrorNorm-totalErrorNorm | = " << *1/ */
+    /*     /1* std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; *1/ */
+    /*     std::cout << "normDiff = " << normDiff << std::endl; */
+
+    /*     std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
+    /*   } */
 
       
       /* // evaluate QoI */
       /* T_S evalPoint(1); */
       /* evalPoint(0) = 1.5; */
-      /* T_P solutionVec = m_surrogate->evaluate("primal", evalPoint ); */
-      /* T_P qoiValue = m_physics->evaluateQoi( evalPoint, solutionVec ) ; */
-      /* if (this->m_comm->rank() == 0) */
+      /* T_P solutionVec = _surrogate->evaluate("primal", evalPoint ); */
+      /* T_P qoiValue = _physics->evaluateQoi( evalPoint, solutionVec ) ; */
+      /* if (_comm.rank() == 0) */
       /* { */
       /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
       /* } */
-    }
+    /* } */
     
-    // output whatever user asks for
-    if (this->m_comm->rank() == 0)
-    {
-      std::cout << "\n writing final results to: " << this->m_outputFilename
-        << std::endl;
-      std::cout << std::endl;
-    }
-      printSolution(m_maxIter);
+    /* // output whatever user asks for */
+    /* if (_comm.rank() == 0) */
+    /* { */
+    /*   std::cout << "\n writing final results to: " << this->_outputFilename */
+    /*     << std::endl; */
+    /*   std::cout << std::endl; */
+    /* } */
+    /*   printSolution(_maxIter); */
 
 
 
@@ -566,7 +509,7 @@ namespace AGNOS
     out << "#====================================================" <<
       std::endl;
     out << "# Driver settings: " << std::endl;
-    out << "#    maxIter = " << m_maxIter << std::endl;
+    out << "#    maxIter = " << _maxIter << std::endl;
 
     out << std::endl;
     return;
@@ -581,24 +524,24 @@ namespace AGNOS
     out << "#====================================================" <<
       std::endl;
     out << "# Parameter settings: " << std::endl;
-    out << "#     dimension = " << m_paramDim << std::endl;
+    out << "#     dimension = " << _paramDim << std::endl;
     out << "#     order = " ;
-    for(unsigned int i=0; i < m_paramDim; i++)
-      out << m_order[i] << " " ;
+    for(unsigned int i=0; i < _paramDim; i++)
+      out << _order[i] << " " ;
     out << std::endl;
     out << "#     errorOrder = " ;
-    for(unsigned int i=0; i < m_paramDim; i++)
-      out << m_errorOrder[i] << " " ;
+    for(unsigned int i=0; i < _paramDim; i++)
+      out << _errorOrder[i] << " " ;
     out << std::endl;
 
     out << "#     mins = " ;
-    for (unsigned int i=0; i < m_paramDim; i++)
-      out << m_parameters[i]->min() << " " ;
+    for (unsigned int i=0; i < _paramDim; i++)
+      out << _parameters[i]->min() << " " ;
     out << std::endl;
 
     out << "#     maxs = " ;
-    for (unsigned int i=0; i < m_paramDim; i++)
-      out << m_parameters[i]->max() << " " ;
+    for (unsigned int i=0; i < _paramDim; i++)
+      out << _parameters[i]->max() << " " ;
     out << std::endl;
 
     out << std::endl;
@@ -618,26 +561,26 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printSolutionData( std::ostream& out ) 
-  {
-      if (m_outputCoefficients)
-        m_surrogate->printCoefficients( m_solutionsToPrint, out );
-      if (m_outputErrorCoefficients)
-      {
-        std::vector<std::string> errorSols;
-        errorSols.push_back("error");
-        m_errorSurrogate->printCoefficients( errorSols, out );
-      }
-      if (m_outputWeights)
-        m_surrogate->printIntegrationWeights( out );
-      if (m_outputPoints)
-        m_surrogate->printIntegrationPoints( out );
-      if (m_outputIndexSet)
-        m_surrogate->printIndexSet( out );
+/*   void Driver::printSolutionData( std::ostream& out ) */ 
+/*   { */
+/*       if (_outputCoefficients) */
+/*         _surrogate->printCoefficients( _solutionsToPrint, out ); */
+/*       if (_outputErrorCoefficients) */
+/*       { */
+/*         std::vector<std::string> errorSols; */
+/*         errorSols.push_back("error"); */
+/*         _errorSurrogate->printCoefficients( errorSols, out ); */
+/*       } */
+/*       if (_outputWeights) */
+/*         _surrogate->printIntegrationWeights( out ); */
+/*       if (_outputPoints) */
+/*         _surrogate->printIntegrationPoints( out ); */
+/*       if (_outputIndexSet) */
+/*         _surrogate->printIndexSet( out ); */
 
-    out << std::endl;
-    return;
-  }
+/*     out << std::endl; */
+/*     return; */
+/*   } */
 
 
 
@@ -648,7 +591,7 @@ namespace AGNOS
   {
 
     // set output steam
-    if (m_outputFilename == "cout" )
+    if (_outputFilename == "cout" )
     {
       printDriverSettings( std::cout  ) ;
       printParameterSettings( std::cout ) ;
@@ -657,7 +600,7 @@ namespace AGNOS
     else
     {
       std::ofstream out;
-      out.open( m_outputFilename.c_str() );
+      out.open( _outputFilename.c_str() );
 
       printDriverSettings( out  ) ;
       printParameterSettings( out ) ;
@@ -672,30 +615,30 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printSolution( unsigned int iteration ) 
-  {
-    // set output steam
-    if (m_outputFilename == "cout" )
-    {
-      std::cout << std::endl;
-      std::cout << "#====================================================\n" 
-         << "#      Solution data for ITER " << iteration << std::endl;
-      printSolutionData( std::cout ) ;
-    }
-    else
-    {
-      std::ofstream out;
-      out.open( m_outputFilename.c_str(), std::ofstream::out | std::ofstream::app );
+/*   void Driver::printSolution( unsigned int iteration ) */ 
+/*   { */
+/*     // set output steam */
+/*     if (_outputFilename == "cout" ) */
+/*     { */
+/*       std::cout << std::endl; */
+/*       std::cout << "#====================================================\n" */ 
+/*          << "#      Solution data for ITER " << iteration << std::endl; */
+/*       printSolutionData( std::cout ) ; */
+/*     } */
+/*     else */
+/*     { */
+/*       std::ofstream out; */
+/*       out.open( _outputFilename.c_str(), std::ofstream::out | std::ofstream::app ); */
 
-      out << std::endl;
-      out << "#====================================================\n" 
-         << "#       Solution data for ITER " << iteration << std::endl;
-      printSolutionData( out ) ;
+/*       out << std::endl; */
+/*       out << "#====================================================\n" */ 
+/*          << "#       Solution data for ITER " << iteration << std::endl; */
+/*       printSolutionData( out ) ; */
 
-      out.close( );
-    }
-    return;
-  }
+/*       out.close( ); */
+/*     } */
+/*     return; */
+/*   } */
 
 
 }
