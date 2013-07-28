@@ -12,7 +12,14 @@ int main(int argc, char* argv[])
   }
 
   MPI_Init(&argc,&argv);
-  libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
+
+  MPI_Comm comm_physics, driverComm;
+  MPI_Group physicsGroup, globalGroup, driverGroup;
+  int rank, physicsRank, driverRank, size; 
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
 
 
   GetPot inputfile( argv[1] );
@@ -20,7 +27,7 @@ int main(int argc, char* argv[])
   int physicsNodeSize = inputfile("parallel/physicsNodeSize",1);
   /* std::cout << "physicsNodeSize:" << physicsNodeSize << std::endl; */
 
-  if (comm.size()%physicsNodeSize)
+  if (size%physicsNodeSize)
   {
     std::cerr << "\n\t ERROR: total number of processors must be a multiple of "
       << "physicsNodeSize.\n" <<std::endl;
@@ -28,15 +35,7 @@ int main(int argc, char* argv[])
   }
 
 
-  MPI_Comm physicsComm, driverComm;
-  MPI_Group physicsGroup, globalGroup, driverGroup;
-  int rank, physicsGroupRank, size; 
-
-
   // original group
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-
   MPI_Comm_group(MPI_COMM_WORLD,&globalGroup);
 
   // physics group
@@ -55,16 +54,15 @@ int main(int argc, char* argv[])
       physicsNodeSize,
       groupRanks[group],
       &physicsGroup);
-  MPI_Comm_create(MPI_COMM_WORLD, physicsGroup, &physicsComm);
-  MPI_Group_rank(physicsGroup, &physicsGroupRank);
+  MPI_Comm_create(MPI_COMM_WORLD, physicsGroup, &comm_physics);
+  MPI_Group_rank(physicsGroup, &physicsRank);
 
-
-  std::cout << "globalRank: " << rank 
-    << " group: " << group
-    << " groupRank: " << physicsGroupRank
-    << " groupRanks[][]: " << groupRanks[group][rank%physicsNodeSize] 
+  std::cout << " rank:" << rank
+    << " group:" << group
+    << " groupRank:" << physicsRank
+    << " groupRanks[][]:" << groupRanks[group][rank%physicsNodeSize] 
     << std::endl;
-    
+
   int errCode = MPI_Barrier( MPI_COMM_WORLD );
   int* driverRanks = new int[nGroups];
   for (unsigned int i=0; i<nGroups; i++)
@@ -76,29 +74,58 @@ int main(int argc, char* argv[])
       driverRanks,
       &driverGroup);
   MPI_Comm_create(MPI_COMM_WORLD, driverGroup, &driverComm);
-  MPI_Group_rank(driverGroup, &physicsGroupRank);
+  MPI_Group_rank(driverGroup, &driverRank);
   int driverGroupSize;
 
   if ( rank%physicsNodeSize == 0)
   {
     MPI_Comm_size(driverComm,&driverGroupSize);
-    std::cout << "driverRank: " << rank 
-      << " physicsGroup: " << group
-      << " driverRank: " << physicsGroupRank
-      << " driverRanks[]: " << driverRanks[group] 
+    std::cout << " rank:" << rank 
+      << " physicsGroup:" << group
+      << " driverRank:" << driverRank
+      << " driverRanks[]:" << driverRanks[group] 
       << std::endl;
+    MPI_Comm_rank(driverComm,&rank);
   }
-
-
-  LibMeshInit libmesh_init(argc, argv, physicsComm);
 
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-  /* LibMeshInit libmesh_init(argc, argv); */
+  LibMeshInit libmesh_init(argc, argv, comm_physics);
 
+    
 
   //------- initialize driver
-  AGNOS::Driver agnos( comm, driverComm, physicsComm, inputfile);
+  libMesh::Parallel::Communicator comm(driverComm);
+  libMesh::Parallel::Communicator physicsComm(comm_physics);
+  AGNOS::Driver agnos( comm, physicsComm, inputfile);
+
+
+  //======================================
+  // using split comm instead
+
+  /* libMesh::Parallel::Communicator comm(MPI_COMM_WORLD); */
+  /* libMesh::Parallel::Communicator physicsComm; */
+
+  /* int color = rank / physicsNodeSize ; */
+  /* int key = rank % physicsNodeSize; */
+  /* std::cout << "rank/nodeSize:" << color << std::endl; */
+  /* std::cout << "rank\%nodeSize:" << key  << std::endl; */
+  /* comm.split( color, key, physicsComm ); */
+
+  /* std::cout << "commSize:" << comm.size() << std::endl; */
+  /* std::cout << "commRank:" << comm.rank() << std::endl; */
+  /* std::cout << "physicSize:" << physicsComm.size() << std::endl; */
+  /* std::cout << "physicsRank:" << physicsComm.rank() << std::endl; */
+
+  /* LibMeshInit libmesh_init(argc,argv, physicsComm.get() ); */
+
+  /* std::cout << "physicSize:" << physicsComm.size() << std::endl; */
+  /* std::cout << "physicsRank:" << physicsComm.rank() << std::endl; */
+
+  /* /1* libMesh::Parallel::Communicator newComm(MPI_COMM_WORLD); *1/ */
+  /* /1* AGNOS::Driver agnos( newComm, physicsComm.get() , inputfile); *1/ */
+
+
 
   /* //------ run driver */
   agnos.run( );
