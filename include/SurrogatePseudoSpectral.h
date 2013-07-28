@@ -18,62 +18,48 @@ namespace AGNOS
  * but it could be extended to other methods as well. Both isotropic and
  * non-isotropic polynomial orders are supported. 
  ***********************************************/
-  template<class T_S, class T_P>
-    class SurrogatePseudoSpectral : public SurrogateModel<T_S,T_P>
+  template<class T_S>
+    class SurrogatePseudoSpectral : public SurrogateModel<T_S>
   {
 
     public:
 
       // single physics function constructors
       SurrogatePseudoSpectral( 
-          const Communicator*               comm,
-          PhysicsFunction<T_S,T_P>*     solutionFunction,
-          const std::vector<Parameter*> parameters,
-          const unsigned int            order 
+          const Communicator&               comm,
+          PhysicsModel<T_S>*                physics,
+          const std::vector<Parameter*>     parameters,
+          const unsigned int                order 
           );
       SurrogatePseudoSpectral( 
-          const Communicator*               comm,
-          PhysicsFunction<T_S,T_P>*         solutionFunction,
+          const Communicator&               comm,
+          PhysicsModel<T_S>*                physics,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
-          );
-
-      // multiple physics function constructors
-      SurrogatePseudoSpectral( 
-          const Communicator*               comm,
-          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>                       parameters,
-          const unsigned int                                  order 
-          );
-      SurrogatePseudoSpectral( 
-          const Communicator*               comm,
-          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>                       parameters,
-          const std::vector<unsigned int>&                    order
           );
 
       virtual ~SurrogatePseudoSpectral( );
 
       void build( ) ;
-      std::map< std::string, T_P > computeContribution( 
-          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          T_S&                                                integrationPoint, 
-          double&                                             integrationWeight
+      std::map< std::string, NumericVector<Number>*  > computeContribution( 
+          PhysicsModel<T_S>*  physics,
+          T_S&                integrationPoint, 
+          double&             integrationWeight
           );
 
-      using SurrogateModel<T_S,T_P>::evaluate; 
-      std::map<std::string, T_P> evaluate( 
+      using SurrogateModel<T_S>::evaluate; 
+      std::map<std::string, std::vector<Number> > evaluate( 
           std::vector< std::string >  solutionNames,
           T_S&                        parameterValues 
           );
 
-      using SurrogateModel<T_S,T_P>::l2Norm;
-      std::map< std::string, T_P> l2Norm(
-        std::vector< std::string > solutionNames
-        );
-      double l2NormDifference(
-          SurrogateModel<T_S,T_P>& comparisonModel,
-          std::string solutionName );
+      /* using SurrogateModel<T_S>::l2Norm; */
+      /* std::map< std::string, NumericVector<Number> > l2Norm( */
+      /*   std::vector< std::string > solutionNames */
+      /*   ); */
+      /* double l2NormDifference( */
+      /*     SurrogateModel<T_S>& comparisonModel, */
+      /*     std::string solutionName ); */
 
       // Manipulators
       unsigned int              getNIntegrationPoints( ) const;
@@ -96,11 +82,11 @@ namespace AGNOS
 
     protected:
 
-      unsigned int              m_nIntegrationPoints;
-      std::vector<T_S>          m_integrationPoints ;
-      std::vector<double>       m_integrationWeights ;
+      unsigned int              _nIntegrationPoints;
+      std::vector<T_S>          _integrationPoints ;
+      std::vector<double>       _integrationWeights ;
 
-      std::vector< std::vector<unsigned int> > m_indexSet;
+      std::vector< std::vector<unsigned int> > _indexSet;
 
 
 
@@ -110,14 +96,14 @@ namespace AGNOS
 /********************************************//**
  * \brief Constructor for isotropic order
  ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const Communicator*               comm,
-        PhysicsFunction<T_S,T_P>* solutionFunction,
+  template<class T_S>
+    SurrogatePseudoSpectral<T_S>::SurrogatePseudoSpectral( 
+        const Communicator&               comm,
+        PhysicsModel<T_S>*                physics,
         const std::vector<Parameter*> parameters,
         const unsigned int order
         )
-      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
+      : SurrogateModel<T_S>(comm,physics,parameters,order) 
     {
     }
 
@@ -125,28 +111,14 @@ namespace AGNOS
 /********************************************//**
  * \brief Constructor for anisotropic order
  ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const Communicator*               comm,
-        PhysicsFunction<T_S,T_P>* solutionFunction,
+  template<class T_S>
+    SurrogatePseudoSpectral<T_S>::SurrogatePseudoSpectral( 
+        const Communicator&               comm,
+        PhysicsModel<T_S>*                physics,
         const std::vector<Parameter*> parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
-    {
-    }
-
-/********************************************//**
- * \brief Constructor for isotropic order
- ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const Communicator*               comm,
-        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*>                       parameters,
-        const unsigned int                                  order
-        )
-      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
+      : SurrogateModel<T_S>(comm,physics,parameters,order) 
     {
     }
 
@@ -154,53 +126,39 @@ namespace AGNOS
 /********************************************//**
  * \brief Constructor for anisotropic order
  ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const Communicator*               comm,
-        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*>                       parameters,
-        const std::vector<unsigned int>&                    order
-        )
-      : SurrogateModel<T_S,T_P>(comm,solutionFunction,parameters,order) 
-    {
-    }
-
-/********************************************//**
- * \brief Constructor for anisotropic order
- ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::~SurrogatePseudoSpectral( )
+  template<class T_S>
+    SurrogatePseudoSpectral<T_S>::~SurrogatePseudoSpectral( )
     {
     }
 
 /********************************************//**
  * \brief Get number of integration points
  ***********************************************/
-  template<class T_S, class T_P>
-    unsigned int SurrogatePseudoSpectral<T_S,T_P>::getNIntegrationPoints( )
+  template<class T_S>
+    unsigned int SurrogatePseudoSpectral<T_S>::getNIntegrationPoints( )
     const
   {
-    return m_nIntegrationPoints;
+    return _nIntegrationPoints;
   }
 
 /********************************************//**
  * \brief Get integration weights
  ***********************************************/
-  template<class T_S, class T_P>
-    std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::getIntegrationWeights( )
+  template<class T_S>
+    std::vector<double> SurrogatePseudoSpectral<T_S>::getIntegrationWeights( )
     const
   {
-    return m_integrationWeights;
+    return _integrationWeights;
   }
 
 /********************************************//**
  * \brief Get the current expansion order
  ***********************************************/
-  template<class T_S, class T_P>
-    std::vector<T_S> SurrogatePseudoSpectral<T_S,T_P>::getIntegrationPoints( )
+  template<class T_S>
+    std::vector<T_S> SurrogatePseudoSpectral<T_S>::getIntegrationPoints( )
     const
   {
-    return m_integrationPoints;
+    return _integrationPoints;
   }
 
 /********************************************//**
@@ -208,11 +166,11 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S, class T_P> 
+  template<class T_S> 
     const std::vector< std::vector< unsigned int> > 
-    SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
+    SurrogatePseudoSpectral<T_S>::getIndexSet( ) const
     {
-      return m_indexSet;
+      return _indexSet;
     }
 
 /********************************************//**
@@ -220,8 +178,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S, class T_P> 
-    std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::evaluateBasis( 
+  template<class T_S> 
+    std::vector<double> SurrogatePseudoSpectral<T_S>::evaluateBasis( 
         std::vector< std::vector< unsigned int > > indexSet,
         T_S& parameterValue 
         ) const
@@ -230,10 +188,10 @@ namespace AGNOS
       std::vector<double> basisValues( nTerms ,1.);
 
       for(unsigned int id=0; id < nTerms ; id++)
-        for(unsigned int dir=0; dir < this->m_dimension; dir++)
+        for(unsigned int dir=0; dir < this->_dimension; dir++)
         {
           basisValues[id] 
-            *= this->m_parameters[dir]->evalBasisPoly( 
+            *= this->_parameters[dir]->evalBasisPoly( 
                 indexSet[id][dir], parameterValue(dir) ) ;
         }
 
@@ -245,29 +203,30 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S, class T_P>
-    void SurrogatePseudoSpectral<T_S,T_P>::build( )
+  template<class T_S>
+    void SurrogatePseudoSpectral<T_S>::build( )
     {
       // This is separated from the routine that actually computes contribution
       // so that we can group surrogate models together later and wll that needs
       // to be defined is build routine based on computeContribution( )
       //
-      unsigned int totalNCoeff = this->m_totalNCoeff;
+      unsigned int totalNCoeff = this->_totalNCoeff;
       std::vector< std::vector<double> > polyValues;
       polyValues.reserve(totalNCoeff);
-      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
+
+      std::set<std::string>::iterator id;
       
       // output progress
-      if( this->m_comm->rank() == 0)
+      if( this->_comm.rank() == 0)
       {
         std::cout << std::endl;
         std::cout << " Starting build of surrogate model for: { " ;
-        for (id=this->m_solutionFunction.begin();
-            id!=this->m_solutionFunction.end(); id++)
+        for (id=this->_solutionNames.begin();
+            id!=this->_solutionNames.end(); id++)
         {
-          if (id!=this->m_solutionFunction.begin())
+          if (id!=this->_solutionNames.begin())
             std::cout << " , " ;
-          std::cout << id->first;
+          std::cout << *id;
         }
         std::cout << " }" << std::endl;
       }
@@ -276,150 +235,128 @@ namespace AGNOS
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
       unsigned int nPts  
-        =  m_nIntegrationPoints / this->m_comm->size()  
-        + ( this->m_comm->rank() < (m_nIntegrationPoints % this->m_comm->size() ) ) ;
-      unsigned int intPtsStart = std::min(this->m_comm->rank(), m_nIntegrationPoints-1);
+        =  _nIntegrationPoints / this->_comm.size()  
+        + ( this->_comm.rank() < (_nIntegrationPoints % this->_comm.size() ) ) ;
+      unsigned int intPtsStart = std::min(this->_comm.rank(), _nIntegrationPoints-1);
 
 
 
       // assign the appropriate coeff to each processor
       unsigned int nCoeffs  
-        =  totalNCoeff / this->m_comm->size()  
-        + ( this->m_comm->rank() < (totalNCoeff % this->m_comm->size() ) ) ;
-      unsigned int coeffStart = std::min(this->m_comm->rank(), totalNCoeff-1);
+        =  totalNCoeff / this->_comm.size()  
+        + ( this->_comm.rank() < (totalNCoeff % this->_comm.size() ) ) ;
+      unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
 
 
       // initiaize contribution vector
-      std::vector< std::map< std::string, T_P > > myContribs;
-      myContribs.reserve(nPts);
+      std::vector< std::map< std::string, NumericVector<Number>*  > > mySolutionVectors;
+      mySolutionVectors.reserve(nPts);
 
-      this->m_comm->barrier();
-      // compute necessary info for each solution function
-      for (id=this->m_solutionFunction.begin();
-          id!=this->m_solutionFunction.end(); id++)
-      {
-        id->second->computeData( m_integrationPoints );
-      }
-      this->m_comm->barrier();
+      this->_comm.barrier();
 
 
-      std::cout << "order:" << this->m_order[0] << std::endl;
-      if( this->m_comm->rank() == 0)
-        std::cout << "     --> Solving at " << m_nIntegrationPoints 
+      if(DEBUG)
+        std::cout << "order:" << this->_order[0] << std::endl;
+
+      if( this->_comm.rank() == 0)
+        std::cout << "     --> Solving at " << _nIntegrationPoints 
           << " integration points " << std::endl;
+
 
       // solve for my integration points
       for(unsigned int pt=0; pt < nPts; pt++)
       {
-        /* std::cout << "test: beginning of pt" << std::endl; */
-
-        // clear out old solutions
-        for (id=this->m_solutionFunction.begin();
-            id!=this->m_solutionFunction.end(); id++)
-        {
-          // set data for each solution function at this integration pt
-          id->second->setData( intPtsStart + pt*this->m_comm->size() );
-        }
-
-
-        /* std::cout << "test: pt (pre computeContribution)" << std::endl; */
         // compute the contribution
-        myContribs.push_back( computeContribution( 
-            this->m_solutionFunction,
-            m_integrationPoints[intPtsStart + pt*this->m_comm->size() ], 
-            m_integrationWeights[intPtsStart + pt*this->m_comm->size() ]
+        mySolutionVectors.push_back( computeContribution( 
+            this->_physics,
+            _integrationPoints[intPtsStart + pt*this->_comm.size() ], 
+            _integrationWeights[intPtsStart + pt*this->_comm.size() ]
             ) );
-        /* std::cout << "test: pt (post computeContribution)" << std::endl; */
+
         polyValues.push_back(
-            evaluateBasis( this->m_indexSet, m_integrationPoints[intPtsStart +
-              pt*this->m_comm->size()]) 
+            evaluateBasis( 
+              this->_indexSet, 
+              _integrationPoints[intPtsStart + pt*this->_comm.size()]
+              ) 
             );
-        for (id=this->m_solutionFunction.begin();
-            id!=this->m_solutionFunction.end(); id++)
-        {
-          std::cout << this->m_comm->rank() << "pre barrier " << id->first << std::endl;
-          id->second->physics()->getMesh().comm().barrier();
-          std::cout << this->m_comm->rank() << "post barrier " << id->first << std::endl;
-        }
-        /* std::cout << "test: end of pt" << std::endl; */
       }
 
-      this->m_comm->barrier();
-      std::cout << "test: end of all pt" << std::endl;
-      for (id=this->m_solutionFunction.begin();
-          id!=this->m_solutionFunction.end(); id++)
-      {
-        std::cout << this->m_comm->rank() << "pre barrier " << id->first << std::endl;
-        id->second->physics()->getMesh().comm().barrier();
-        std::cout << this->m_comm->rank() << "post barrier " << id->first << std::endl;
-      }
+      this->_comm.barrier();
 
       // need to know size of solution vector on all processes (in case some
       // don't have any work but will still be called in reduce operation)
-      unsigned int tempSize;
-      this->m_solSize.clear();
-      for (id=this->m_solutionFunction.begin();
-          id!=this->m_solutionFunction.end(); id++)
-      {
-        if (this->m_comm->rank() == 0)
-          tempSize = myContribs[0][id->first].size();
+      /* unsigned int tempSize; */
+      /* this->_solSize.clear(); */
+      /* for (id=this->_solutionFunction.begin(); */
+      /*     id!=this->_solutionFunction.end(); id++) */
+      /* { */
+      /*   if (this->_comm.rank() == 0) */
+      /*     tempSize = mySolutionVectors[0][id->first].size(); */
 
-        this->m_comm->broadcast(tempSize);
+      /*   this->_comm.broadcast(tempSize); */
 
-        this->m_solSize.insert( std::pair<std::string,unsigned int>(
-              id->first,tempSize ) );
+      /*   this->_solSize.insert( std::pair<std::string,unsigned int>( */
+      /*         id->first,tempSize ) ); */
 
-      }
-
-
+      /* } */
 
       // WAIT FOR ALL PROCESSES TO CATCH UP
-      this->m_comm->barrier();
-      if( this->m_comm->rank() == 0)
+      this->_comm.barrier();
+
+      if( this->_comm.rank() == 0)
         std::cout << "     --> Computing " << totalNCoeff << " coefficients" <<
           std::endl;
 
 
       // --------------
-      // compute my contribution to each coefficient
+      // sum my solutions weighted by polyValue
+      // localize so that we can send it to other groups
       // sum all processes contributions
       // save if its one of my coefficients
       // --------------
       
       // clear old coefficients
-      this->m_coefficients.clear();
+      this->_coefficients.clear();
 
       //-- loop through sols
-      for (id=this->m_solutionFunction.begin();
-          id!=this->m_solutionFunction.end(); id++)
+      for (id=this->_solutionNames.begin();
+          id!=this->_solutionNames.end(); ++id)
       {
         // temporary storage for my coefficients for this sol
-        std::vector<T_P> solCoefficientVectors;
+        std::vector< std::vector<Number> > solCoefficientVectors;
         solCoefficientVectors.reserve(nCoeffs);
 
         for (unsigned int c=0; c < totalNCoeff; c++)
         {
-          std::vector<double> sumContrib(this->m_solSize[id->first],0.);
-          
+          std::vector<Number> sendContrib;
+
+          NumericVector<Number>* myContrib =
+            mySolutionVectors[0][*id]->zero_clone().release();
+
           // compute current rank's contribution
           for(unsigned int pt=0; pt < nPts; pt++)
-            for(unsigned int i=0; i <  sumContrib.size(); i++)
-              sumContrib[i] += myContribs[pt][id->first](i) *
-                polyValues[pt][c];
+          {
+            NumericVector<Number>* temp =
+              mySolutionVectors[pt][*id]->clone().release();
+              temp->scale(polyValues[pt][c]);
+            myContrib->add( *temp );
+          }
+
+          myContrib->localize( sendContrib );
 
           // sum all contributions
-          this->m_comm->sum( sumContrib );
+          this->_comm.sum( sendContrib );
 
           // store if its one of mine
-          if ( (c % this->m_comm->size()) == this->m_comm->rank() )
-            solCoefficientVectors.push_back( T_P(sumContrib) ) ;
+          if ( (c % this->_comm.size()) == this->_comm.rank() )
+            solCoefficientVectors.push_back( sendContrib ) ;
 
         } // c
 
         if (solCoefficientVectors.size() > 0)
         {
-          this->m_coefficients.insert(
-              std::pair< std::string, std::vector<T_P> >(id->first,
+          this->_coefficients.insert(
+              std::pair< std::string, std::vector< std::vector<Number> > >(*id,
                 solCoefficientVectors) ) ;
         }
 
@@ -431,41 +368,39 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S, class T_P>
-    std::map< std::string, T_P >
-    SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
-        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        T_S&                                                integrationPoint, 
-        double&                                             integrationWeight
+  template<class T_S>
+    std::map< std::string, NumericVector<Number>*  >
+    SurrogatePseudoSpectral<T_S>::computeContribution(
+        PhysicsModel<T_S>*  physics,
+        T_S&                integrationPoint, 
+        double&             integrationWeight
         )
     {
 
-      std::cout << "test: computeContribution( ) beginning" << std::endl;
+      if(DEBUG)
+        std::cout << "test: computeContribution( ) beginning" << std::endl;
       
 
-      std::map< std::string, T_P > contrib;
-      T_P solution ;
+      std::map< std::string, NumericVector<Number>*  > contrib;
 
       
-      typename std::map< std::string, PhysicsFunction<T_S,T_P>* >::iterator id;
-      for (id=solutionFunction.begin(); id!=solutionFunction.end(); id++)
-      {
-        
-        std::cout << "test: computeContribution( ) pre compute()" 
-          << id->first << std::endl;
-        // get solution for this integration point
-        id->second->compute( integrationPoint, solution );
+      if(DEBUG)
+        std::cout << "test: computeContribution( ) pre compute()" << std::endl;
+
+      // get solution for this integration point
+      physics->compute( integrationPoint, contrib );
+
+      if(DEBUG)
         std::cout << "test: computeContribution( ) post compute()" << std::endl;
-        solution.scale( integrationWeight );
-        contrib.insert( std::pair< std::string, T_P >(
-              id->first, solution  ) ); 
 
-      }
-
+      std::set<std::string>::iterator id = this->_solutionNames.begin();
+      for(;id!=this->_solutionNames.end();++id)
+        contrib[*id]->scale( integrationWeight );
 
 
+      if(DEBUG)
+        std::cout << "test: computeContribution( ) ending" << std::endl;
 
-      std::cout << "test: computeContribution( ) ending" << std::endl;
       return contrib;
     }
 
@@ -473,43 +408,43 @@ namespace AGNOS
  * \brief 
  * 
  ***********************************************/
-  template<class T_S, class T_P>
-    std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
+  template<class T_S>
+    std::map<std::string, std::vector<Number> > SurrogatePseudoSpectral<T_S>::evaluate( 
         std::vector< std::string > solutionNames,
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
-      unsigned int totalNCoeff = this->m_totalNCoeff;
-      std::map< std::string, T_P> surrogateValue;
+      unsigned int totalNCoeff = this->_totalNCoeff;
+      std::map< std::string, std::vector<Number> > surrogateValue;
 
       // get polyValues
       std::vector<double> polyValues =
-        evaluateBasis(this->m_indexSet,parameterValues) ;
+        evaluateBasis(this->_indexSet,parameterValues) ;
 
       // get starting coeff for current rank
-      unsigned int coeffStart = std::min(this->m_comm->rank(), totalNCoeff-1);
+      unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
 
       // loop over all solutions requested
       for (unsigned int n=0; n < solutionNames.size(); n++)
       {
         std::string id = solutionNames[n];
 
-        std::vector<double> sumContrib(this->m_solSize[id],0.);
+        std::vector<Number> sendContrib(this->_coefficients[id][0].size(),0.);
 
-        for(unsigned int c=0; c < this->m_coefficients[id].size(); c++)
+        for(unsigned int c=0; c < this->_coefficients[id].size(); c++)
         {
           // compute current rank's contribution
-          for(unsigned int i=0; i < this->m_coefficients[id][c].size(); i++)
-            sumContrib[i] += this->m_coefficients[id][c](i) *
-              polyValues[coeffStart + c*(this->m_comm->size())];
+          for(unsigned int i=0; i < this->_coefficients[id][c].size(); i++)
+            sendContrib[i] += this->_coefficients[id][c][i] *
+              polyValues[coeffStart + c*(this->_comm.size())];
 
         } // coefficients
 
         // sum all contributions
-        this->m_comm->sum( sumContrib );
+        this->_comm.sum( sendContrib );
 
         surrogateValue.insert(
-            std::pair< std::string, T_P >(id, T_P(sumContrib) ) 
+            std::pair< std::string, std::vector<Number>  >(id, sendContrib ) 
             ) ;
 
       } // solNames
@@ -520,11 +455,11 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S,class T_P>
-  void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
+  template< class T_S>
+  void SurrogatePseudoSpectral<T_S>::printIntegrationPoints( 
       std::ostream& out ) const
   {
-    if (this->m_comm->rank() == 0)
+    if (this->_comm.rank() == 0)
     {
       out << std::endl;
       out << "#====================================================" <<
@@ -532,12 +467,12 @@ namespace AGNOS
       out << "# Integration points " << std::endl;
       out << "#----------------------------------------------------" <<
         std::endl;
-      for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
+      for(int ix=0; ix < _nIntegrationPoints ; ix++)  
       {
-        for(int iy=0; iy < this->m_dimension; iy++)
+        for(int iy=0; iy < this->_dimension; iy++)
         {
           out << std::scientific << std::setprecision(5) << std::setw(12)
-            << m_integrationPoints[ix](iy) << "  ";
+            << _integrationPoints[ix](iy) << "  ";
         }
         out << std::endl;
       }
@@ -551,10 +486,10 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S,class T_P>
-  void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationPoints( ) const
+  template< class T_S>
+  void SurrogatePseudoSpectral<T_S>::prettyPrintIntegrationPoints( ) const
   {
-    if (this->m_comm->rank() == 0)
+    if (this->_comm.rank() == 0)
     {
       std::cout << std::endl;
       std::cout << "====================================================" <<
@@ -564,19 +499,19 @@ namespace AGNOS
         std::endl;
       std::cout << "   \\ x        " << std::endl;
       std::cout << "    \\" ;
-      for(unsigned int dim=0; dim < this->m_dimension; dim++)
+      for(unsigned int dim=0; dim < this->_dimension; dim++)
         std::cout << std::setw(12) << "x_" << dim << " " ;
       std::cout << std::endl;
       std::cout << "  id \\  " << std::endl;
       std::cout << "----------------------------------------------------" <<
         std::endl;
-      for(int ix=0; ix < m_nIntegrationPoints ; ix++)  
+      for(int ix=0; ix < _nIntegrationPoints ; ix++)  
       {
         std::cout << std::setw(5) << ix << " |   ";
-        for(int iy=0; iy < this->m_dimension; iy++)
+        for(int iy=0; iy < this->_dimension; iy++)
         {
           std::cout << std::scientific << std::setprecision(5) << std::setw(12)
-            << m_integrationPoints[ix](iy) << "  ";
+            << _integrationPoints[ix](iy) << "  ";
         }
         std::cout << std::endl;
       }
@@ -590,11 +525,11 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S,class T_P>
-  void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationWeights( 
+  template< class T_S>
+  void SurrogatePseudoSpectral<T_S>::printIntegrationWeights( 
       std::ostream& out ) const
   {
-    if (this->m_comm->rank() == 0)
+    if (this->_comm.rank() == 0)
     {
       double sum = 0.0;
       out << std::endl;
@@ -603,10 +538,10 @@ namespace AGNOS
       out << "# Integration weights " << std::endl;
       out << "#----------------------------------------------------" <<
         std::endl;
-      for(int ip=0; ip < m_nIntegrationPoints; ip++){  
-        out << m_integrationWeights[ip] << "  ";
+      for(int ip=0; ip < _nIntegrationPoints; ip++){  
+        out << _integrationWeights[ip] << "  ";
         out << std::endl;
-        sum += m_integrationWeights[ip];
+        sum += _integrationWeights[ip];
       }
 
       out << std::endl;
@@ -622,10 +557,10 @@ namespace AGNOS
    *
    * 
    ***********************************************/
-    template<class T_S,class T_P>
-    void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationWeights( ) const
+    template< class T_S>
+    void SurrogatePseudoSpectral<T_S>::prettyPrintIntegrationWeights( ) const
     {
-      if (this->m_comm->rank() == 0)
+      if (this->_comm.rank() == 0)
       {
         double sum = 0.0;
         std::cout << std::endl;
@@ -634,11 +569,11 @@ namespace AGNOS
         std::cout << " Integration weights " << std::endl;
         std::cout << "----------------------------------------------------" <<
           std::endl;
-        for(int ip=0; ip < m_nIntegrationPoints; ip++){  
+        for(int ip=0; ip < _nIntegrationPoints; ip++){  
           std::cout << std::setw(5) << ip << "   |   ";
-          std::cout << m_integrationWeights[ip] << "  ";
+          std::cout << _integrationWeights[ip] << "  ";
           std::cout << std::endl;
-          sum += m_integrationWeights[ip];
+          sum += _integrationWeights[ip];
         }
 
         std::cout << std::endl;
@@ -652,10 +587,10 @@ namespace AGNOS
   /********************************************//**
    * \brief 
    ***********************************************/
-    template<class T_S, class T_P> 
-      void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
+    template<class T_S> 
+      void SurrogatePseudoSpectral<T_S>::printIndexSet( std::ostream& out ) const
       {
-        if (this->m_comm->rank() == 0)
+        if (this->_comm.rank() == 0)
         {
           out << std::endl;
           out << "#====================================================" <<
@@ -664,11 +599,11 @@ namespace AGNOS
           out << "#----------------------------------------------------" <<
           std::endl;
 
-          for (unsigned int i=0; i< m_indexSet.size(); i++)
+          for (unsigned int i=0; i< _indexSet.size(); i++)
           {
-            for (unsigned int j=0; j< m_indexSet[i].size(); j++)
+            for (unsigned int j=0; j< _indexSet[i].size(); j++)
             {
-              out << std::setw(5) << m_indexSet[i][j] << " " ;
+              out << std::setw(5) << _indexSet[i][j] << " " ;
             }
             out << std::endl;
           }
@@ -682,10 +617,10 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S, class T_P> 
-    void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIndexSet( ) const
+  template<class T_S> 
+    void SurrogatePseudoSpectral<T_S>::prettyPrintIndexSet( ) const
     {
-      if (this->m_comm->rank() == 0)
+      if (this->_comm.rank() == 0)
       {
         std::cout << std::endl;
         std::cout << "====================================================" <<
@@ -695,18 +630,18 @@ namespace AGNOS
         std::endl;
       std::cout << "   \\ dir      " << std::endl;
       std::cout << "    \\        " ;
-      for(unsigned int dim=0; dim < this->m_dimension; dim++)
+      for(unsigned int dim=0; dim < this->_dimension; dim++)
         std::cout << std::setw(4) << "xi_" << dim << " " ;
       std::cout << std::endl;
       std::cout << "  id \\  " << std::endl;
       std::cout << "----------------------------------------------------" <<
         std::endl;
-        for (unsigned int i=0; i< m_indexSet.size(); i++)
+        for (unsigned int i=0; i< _indexSet.size(); i++)
         {
         std::cout << std::setw(5) << i << "   |   ";
-          for (unsigned int j=0; j< m_indexSet[i].size(); j++)
+          for (unsigned int j=0; j< _indexSet[i].size(); j++)
           {
-            std::cout << std::setw(5) << m_indexSet[i][j] << " " ;
+            std::cout << std::setw(5) << _indexSet[i][j] << " " ;
           }
           std::cout << std::endl;
         }
@@ -718,149 +653,149 @@ namespace AGNOS
   /********************************************//**
    * \brief calculate l2 norm by integration
    ***********************************************/
-  template<class T_S, class T_P>
-    std::map< std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::l2Norm(
-        std::vector< std::string > solutionNames
-        )
-    {
+  /* template<class T_S> */
+  /*   std::map< std::string, NumericVector<Number> > SurrogatePseudoSpectral<T_S>::l2Norm( */
+  /*       std::vector< std::string > solutionNames */
+  /*       ) */
+  /*   { */
 
-      // initialize to zero
-      std::map< std::string, T_P> l2norm;
-      for (unsigned int n=0; n < solutionNames.size(); n++)
-      {
-        std::string id = solutionNames[n];
-        l2norm.insert( std::pair<std::string,T_P>(
-              id, T_P( std::vector<double>(this->m_solSize[id],0.) ) )
-            );
-      }
+  /*     // initialize to zero */
+  /*     std::map< std::string, NumericVector<Number> > l2norm; */
+  /*     for (unsigned int n=0; n < solutionNames.size(); n++) */
+  /*     { */
+  /*       std::string id = solutionNames[n]; */
+  /*       l2norm.insert( std::pair<std::string,NumericVector<Number> >( */
+  /*             id, NumericVector<Number> ( std::vector<double>(this->_solSize[id],0.) ) ) */
+  /*           ); */
+  /*     } */
 
-      //---------
-      //get integration points for higher order quad rule
-      std::vector<unsigned int> integrationOrder = this->m_order;
-      for(unsigned int i=0; i<integrationOrder.size();i++)
-        integrationOrder[i] += 2;
+  /*     //--------- */
+  /*     //get integration points for higher order quad rule */
+  /*     std::vector<unsigned int> integrationOrder = this->_order; */
+  /*     for(unsigned int i=0; i<integrationOrder.size();i++) */
+  /*       integrationOrder[i] += 2; */
 
-      QuadratureTensorProduct integrationQuadratureRule(
-          this->m_parameters, integrationOrder );
+  /*     QuadratureTensorProduct integrationQuadratureRule( */
+  /*         this->_parameters, integrationOrder ); */
 
-      unsigned int dimension = this->m_dimension;
-      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-      double** quadPoints = integrationQuadratureRule.getQuadPoints();
-      double* quadWeights = integrationQuadratureRule.getQuadWeights();
+  /*     unsigned int dimension = this->_dimension; */
+  /*     unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints(); */
+  /*     double** quadPoints = integrationQuadratureRule.getQuadPoints(); */
+  /*     double* quadWeights = integrationQuadratureRule.getQuadWeights(); */
 
 
 
-      //----------
-      // loop over quad points
-      for(unsigned int i=0; i<nQuadPoints; i++)
-      {
-        T_S paramValues(dimension);
-        for(unsigned int j=0; j<paramValues.size(); j++)
-          paramValues(j) = quadPoints[i][j];
+  /*     //---------- */
+  /*     // loop over quad points */
+  /*     for(unsigned int i=0; i<nQuadPoints; i++) */
+  /*     { */
+  /*       T_S paramValues(dimension); */
+  /*       for(unsigned int j=0; j<paramValues.size(); j++) */
+  /*         paramValues(j) = quadPoints[i][j]; */
 
-        std::map<std::string,T_P> pointValue 
-          = this->evaluate(solutionNames,paramValues);
-        for (unsigned int n=0; n < solutionNames.size(); n++)
-        {
-          std::string id = solutionNames[n];
-          for(unsigned int j=0; j<l2norm[id].size();j++)
-            l2norm[id](j) += pointValue[id](j) * pointValue[id](j) 
-              * quadWeights[i] ; 
-        }
+  /*       std::map<std::string,NumericVector<Number> > pointValue */ 
+  /*         = this->evaluate(solutionNames,paramValues); */
+  /*       for (unsigned int n=0; n < solutionNames.size(); n++) */
+  /*       { */
+  /*         std::string id = solutionNames[n]; */
+  /*         for(unsigned int j=0; j<l2norm[id].size();j++) */
+  /*           l2norm[id](j) += pointValue[id](j) * pointValue[id](j) */ 
+  /*             * quadWeights[i] ; */ 
+  /*       } */
 
-      } // end loop over quad points
+  /*     } // end loop over quad points */
 
       
-      // take square root
-      for (unsigned int n=0; n < solutionNames.size(); n++)
-      {
-        std::string id = solutionNames[n];
+  /*     // take square root */
+  /*     for (unsigned int n=0; n < solutionNames.size(); n++) */
+  /*     { */
+  /*       std::string id = solutionNames[n]; */
 
-        for(unsigned int j=0; j<l2norm[id].size();j++)
-          l2norm[id](j) =  std::sqrt( l2norm[id](j) );
-      }
+  /*       for(unsigned int j=0; j<l2norm[id].size();j++) */
+  /*         l2norm[id](j) =  std::sqrt( l2norm[id](j) ); */
+  /*     } */
 
 
-      return l2norm;
-    }
+  /*     return l2norm; */
+  /*   } */
 
 
   /********************************************//**
    * \brief 
    ***********************************************/
-  template<class T_S,class T_P>
-    double SurrogatePseudoSpectral<T_S,T_P>::l2NormDifference(
-        SurrogateModel<T_S,T_P>& comparisonModel,
-        std::string solutionName )
-    {
+  /* template< class T_S> */
+  /*   double SurrogatePseudoSpectral<T_S>::l2NormDifference( */
+  /*       SurrogateModel<T_S>& comparisonModel, */
+  /*       std::string solutionName ) */
+  /*   { */
 
-      // make sure solutionName is present in both models
-      // evaluate at integration points
-      //
-      //
-      // initialize to zero
-      double l2norm = 0;
+  /*     // make sure solutionName is present in both models */
+  /*     // evaluate at integration points */
+  /*     // */
+  /*     // */
+  /*     // initialize to zero */
+  /*     double l2norm = 0; */
 
-      if (this->m_solutionFunction.count(solutionName) == 0) 
-      {
-        std::cerr << "\n\t ERROR: requested solution name not present in "
-          << " base model of l2NormDifference( ... ). \n "
-          << std::endl;
-        exit(1);
-      }
-      if (comparisonModel.getSolutionNames().count(solutionName) == 0 )
-      {
-        std::cerr << "\n\t ERROR: requested solution name not present in "
-          << " comparison model of l2NormDifference( ... ). \n "
-          << std::endl;
-        exit(1);
-      }
+  /*     if (this->_solutionFunction.count(solutionName) == 0) */ 
+  /*     { */
+  /*       std::cerr << "\n\t ERROR: requested solution name not present in " */
+  /*         << " base model of l2NormDifference( ... ). \n " */
+  /*         << std::endl; */
+  /*       exit(1); */
+  /*     } */
+  /*     if (comparisonModel.getSolutionNames().count(solutionName) == 0 ) */
+  /*     { */
+  /*       std::cerr << "\n\t ERROR: requested solution name not present in " */
+  /*         << " comparison model of l2NormDifference( ... ). \n " */
+  /*         << std::endl; */
+  /*       exit(1); */
+  /*     } */
 
-      //---------
-      //get integration points for higher order quad rule
-      std::vector<unsigned int> integrationOrder = this->m_order;
-      std::vector<unsigned int> comparisonOrder 
-        = comparisonModel.getExpansionOrder() ;
-      for(unsigned int i=0; i<integrationOrder.size();i++)
-        integrationOrder[i] 
-          = std::max(integrationOrder[i],comparisonOrder[i]) 
-          + 2;
+  /*     //--------- */
+  /*     //get integration points for higher order quad rule */
+  /*     std::vector<unsigned int> integrationOrder = this->_order; */
+  /*     std::vector<unsigned int> comparisonOrder */ 
+  /*       = comparisonModel.getExpansionOrder() ; */
+  /*     for(unsigned int i=0; i<integrationOrder.size();i++) */
+  /*       integrationOrder[i] */ 
+  /*         = std::max(integrationOrder[i],comparisonOrder[i]) */ 
+  /*         + 2; */
 
-      QuadratureTensorProduct integrationQuadratureRule(
-          this->m_parameters, integrationOrder );
+  /*     QuadratureTensorProduct integrationQuadratureRule( */
+  /*         this->_parameters, integrationOrder ); */
 
-      unsigned int dimension = this->m_dimension;
-      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-      double** quadPoints = integrationQuadratureRule.getQuadPoints();
-      double* quadWeights = integrationQuadratureRule.getQuadWeights();
-
-
-
-      //----------
-      // loop over quad points
-      for(unsigned int i=0; i<nQuadPoints; i++)
-      {
-        T_S paramValues(dimension);
-        for(unsigned int j=0; j<paramValues.size(); j++)
-          paramValues(j) = quadPoints[i][j];
-
-        T_P diffVec = this->evaluate(solutionName,paramValues);
-        diffVec -= comparisonModel.evaluate(solutionName,paramValues);
+  /*     unsigned int dimension = this->_dimension; */
+  /*     unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints(); */
+  /*     double** quadPoints = integrationQuadratureRule.getQuadPoints(); */
+  /*     double* quadWeights = integrationQuadratureRule.getQuadWeights(); */
 
 
-        l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
-        /* l2norm += 1  * quadWeights[i] ; */ 
 
-      } // end loop over quad points
+  /*     //---------- */
+  /*     // loop over quad points */
+  /*     for(unsigned int i=0; i<nQuadPoints; i++) */
+  /*     { */
+  /*       T_S paramValues(dimension); */
+  /*       for(unsigned int j=0; j<paramValues.size(); j++) */
+  /*         paramValues(j) = quadPoints[i][j]; */
+
+  /*       NumericVector<Number>  diffVec = this->evaluate(solutionName,paramValues); */
+  /*       diffVec -= comparisonModel.evaluate(solutionName,paramValues); */
+
+
+  /*       l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; */ 
+  /*       /1* l2norm += 1  * quadWeights[i] ; *1/ */ 
+
+  /*     } // end loop over quad points */
 
       
-      // take square root
-      l2norm =  std::sqrt( l2norm );
+  /*     // take square root */
+  /*     l2norm =  std::sqrt( l2norm ); */
 
 
-      return l2norm;
+  /*     return l2norm; */
 
-    }
+  /*   } */
   
 }
 #endif // SURROGATE_PSEUDO_SPECTRAL_H
