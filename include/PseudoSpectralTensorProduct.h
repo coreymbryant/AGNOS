@@ -21,30 +21,18 @@ namespace AGNOS
     public:
 
       PseudoSpectralTensorProduct( 
-          const Communicator*               comm,
-          PhysicsFunction<T_S,T_P>*         solutionFunction,
+          const Communicator&               comm,
+          PhysicsModel<T_S,T_P>*                physics,
           const std::vector<Parameter*>     parameters,
           const unsigned int                order 
           );
       PseudoSpectralTensorProduct( 
-          const Communicator*               comm,
-          PhysicsFunction<T_S,T_P>*         solutionFunction,
+          const Communicator&               comm,
+          PhysicsModel<T_S,T_P>*                physics,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
           );
 
-      PseudoSpectralTensorProduct( 
-          const Communicator*               comm,
-          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>                       parameters,
-          const unsigned int                                  order 
-          );
-      PseudoSpectralTensorProduct( 
-          const Communicator*               comm,
-          std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-          const std::vector<Parameter*>                       parameters,
-          const std::vector<unsigned int>&                    order
-          );
       void initialize( ) ;
 
       ~PseudoSpectralTensorProduct( );
@@ -61,7 +49,7 @@ namespace AGNOS
           const unsigned int dim, 
           std::vector< std::vector<unsigned int> >& currentSet);
 
-      QuadratureRule* m_quadRule;
+      QuadratureRule* _quadRule;
 
 
   };
@@ -72,12 +60,12 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        const Communicator*               comm,
-        PhysicsFunction<T_S,T_P>* solutionFunction,
-        const std::vector<Parameter*> parameters,
+        const Communicator&               comm,
+        PhysicsModel<T_S,T_P>*                physics,
+        const std::vector<Parameter*>     parameters,
         const unsigned int order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,physics,parameters,order)
     {
       initialize();
     }
@@ -87,47 +75,16 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        const Communicator*               comm,
-        PhysicsFunction<T_S,T_P>* solutionFunction,
-        const std::vector<Parameter*> parameters,
+        const Communicator&               comm,
+        PhysicsModel<T_S,T_P>*                physics,
+        const std::vector<Parameter*>     parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
+      : SurrogatePseudoSpectral<T_S,T_P>(comm,physics,parameters,order)
     {
       initialize();
     }
 
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        const Communicator*               comm,
-        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*>                       parameters,
-        const unsigned int                                  order
-        )
-      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
-    {
-      initialize();
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        const Communicator*               comm,
-        std::map< std::string, PhysicsFunction<T_S,T_P>* >  solutionFunction,
-        const std::vector<Parameter*>                       parameters,
-        const std::vector<unsigned int>&                    order
-        )
-      : SurrogatePseudoSpectral<T_S,T_P>(comm,solutionFunction,parameters,order)
-    {
-      initialize();
-    }
 
 
 /********************************************//**
@@ -138,7 +95,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
     {
-      delete m_quadRule;
+      delete _quadRule;
     }
 
 /********************************************//**
@@ -149,35 +106,35 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PseudoSpectralTensorProduct<T_S,T_P>::initialize( )
     {
-      m_quadRule = 
-        new QuadratureTensorProduct( this->m_parameters, this->m_order);
+      _quadRule = 
+        new QuadratureTensorProduct( this->_parameters, this->_order);
 
-      this->m_nIntegrationPoints = ( m_quadRule->getNQuadPoints() );
+      this->_nIntegrationPoints = ( _quadRule->getNQuadPoints() );
 
-      this->m_integrationPoints.clear();
-      this->m_integrationWeights.clear();
-      this->m_integrationPoints.resize(   this->m_nIntegrationPoints );
-      this->m_integrationWeights.resize(  this->m_nIntegrationPoints );
+      this->_integrationPoints.clear();
+      this->_integrationWeights.clear();
+      this->_integrationPoints.resize(   this->_nIntegrationPoints );
+      this->_integrationWeights.resize(  this->_nIntegrationPoints );
 
-      double* quadWeights = m_quadRule->getQuadWeights() ;
-      this->m_integrationWeights.assign( quadWeights,
-          quadWeights+this->m_nIntegrationPoints  );
+      double* quadWeights = _quadRule->getQuadWeights() ;
+      this->_integrationWeights.assign( quadWeights,
+          quadWeights+this->_nIntegrationPoints  );
 
-      double** quadPoints = m_quadRule->getQuadPoints() ;
-      for (unsigned int point=0; point < this->m_nIntegrationPoints; point++)
+      double** quadPoints = _quadRule->getQuadPoints() ;
+      for (unsigned int point=0; point < this->_nIntegrationPoints; point++)
       {
-        this->m_integrationPoints[point] = T_P(this->m_dimension);
-        for (unsigned int dir=0; dir < this->m_dimension; dir++)
-          this->m_integrationPoints[point](dir) = quadPoints[point][dir] ;
+        this->_integrationPoints[point] = T_P(this->_dimension);
+        for (unsigned int dir=0; dir < this->_dimension; dir++)
+          this->_integrationPoints[point](dir) = quadPoints[point][dir] ;
       }
 
-      this->m_indexSet.clear();
-      this->m_indexSet.reserve( this->m_nIntegrationPoints );
+      this->_indexSet.clear();
+      this->_indexSet.reserve( this->_nIntegrationPoints );
 
-      recurIndexSet( this->m_dimension, this->m_indexSet );
+      recurIndexSet( this->_dimension, this->_indexSet );
 
-      this->m_totalNCoeff = this->m_indexSet.size();
-      this->m_coefficients.clear();
+      this->_totalNCoeff = this->_indexSet.size();
+      this->_coefficients.clear();
     }
 
 /********************************************//**
@@ -193,7 +150,7 @@ namespace AGNOS
 
       if (dim == 1) 
       {
-        for(unsigned int id=0; id < this->m_order[dim-1]+1; id++)
+        for(unsigned int id=0; id < this->_order[dim-1]+1; id++)
           currentSet.push_back( std::vector<unsigned int>(1,id) );
       }
 
@@ -202,7 +159,7 @@ namespace AGNOS
         recurIndexSet(dim-1,currentSet);
 
         int prevSize = currentSet.size();
-        currentSet.resize( prevSize * (this->m_order[dim-1]+1 ) );
+        currentSet.resize( prevSize * (this->_order[dim-1]+1 ) );
         // keep track of how many array elements are non-zero
         /* int prevSize = order[0]+1; */
         /* for(unsigned int i=0; i < dim-2; i++) */
@@ -210,11 +167,11 @@ namespace AGNOS
 
         for(int out=prevSize-1; out >= 0; out--)
         {
-          for(int in=this->m_order[dim-1]; in >= 0 ; in--)
+          for(int in=this->_order[dim-1]; in >= 0 ; in--)
           {
-            currentSet[(out)*(this->m_order[dim-1]+1) + in].reserve(dim);
-            currentSet[(out)*(this->m_order[dim-1]+1) + in] = currentSet[out];
-            currentSet[(out)*(this->m_order[dim-1]+1) + in].push_back(in);
+            currentSet[(out)*(this->_order[dim-1]+1) + in].reserve(dim);
+            currentSet[(out)*(this->_order[dim-1]+1) + in] = currentSet[out];
+            currentSet[(out)*(this->_order[dim-1]+1) + in].push_back(in);
           }
         }
       }
@@ -234,9 +191,9 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PseudoSpectralTensorProduct<T_S,T_P>::refine( )
     {
-      for(unsigned int i=0; i<this->m_dimension; i++)
+      for(unsigned int i=0; i<this->_dimension; i++)
       {
-        this->m_order[i]++;
+        this->_order[i]++;
       }
       this->initialize();
       this->build();
@@ -252,7 +209,7 @@ namespace AGNOS
     PseudoSpectralTensorProduct<T_S,T_P>::getQuadRule( )
     const 
     {
-      return this->m_quadRule ;
+      return this->_quadRule ;
     }
 
 
