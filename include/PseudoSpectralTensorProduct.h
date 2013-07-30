@@ -95,7 +95,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
     {
-      delete _quadRule;
+      /* delete _quadRule; */
     }
 
 /********************************************//**

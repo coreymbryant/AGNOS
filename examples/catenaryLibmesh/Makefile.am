@@ -24,7 +24,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 
 
-noinst_PROGRAMS = catenaryLibmesh
+bin_PROGRAMS = catenaryLibmesh
 
 catenaryLibmesh_SOURCES = \
 									 runCatenaryLibmesh.C \
