@@ -1,5 +1,5 @@
 [driver]
-maxIter = '8'
+maxIter = '1'
 []
 
 [parameters]
@@ -11,7 +11,7 @@ maxs = '1.0 1.0'
 
 [adaptive]
 refinePhysical = true
-refineSurrogate = true
+refineSurrogate = false
 []
 
 [physics]
@@ -19,23 +19,23 @@ type = 'viscousBurgers'
 min = '-10.0'
 max = '10.0'
 
-n = '4'
-useUniformRefinement = false
-numberHRefinements = '1'
-numberPRefinements = '0'
+n = '64'
+useUniformRefinement = true
+numberHRefinements = '0'
+numberPRefinements = '1'
 maxRefineSteps ='15'
 
 nNonlinearSteps='15'
 nonlinearTolerance='1.e-9'
 
-resolveAdjoint = false
+resolveAdjoint = true
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '0'
-errorOrder = '1'
+order = '0 0'
+errorOrder = '0 0'
 []
 
 [output]

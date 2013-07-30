@@ -16,6 +16,8 @@
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/nonlinear_implicit_system.h"
 #include "libmesh/petsc_nonlinear_solver.h"
+#include "libmesh/zero_function.h"
+#include "libmesh/dirichlet_boundaries.h"
 
 namespace AGNOS
 {
@@ -95,8 +97,9 @@ namespace AGNOS
   template<class T_S, class T_P>
   void PhysicsViscousBurgers<T_S,T_P>::_constructMesh( )
   {
+    this->m_mesh = new Mesh( this->m_comm );
     libMesh::MeshTools::Generation::build_line(
-        this->m_mesh,this->m_n,-1.*m_L,m_L,EDGE3);
+        *this->m_mesh,this->m_n,-1.*m_L,m_L,EDGE3);
 
     return;
   }
@@ -109,7 +112,7 @@ namespace AGNOS
   {
     // define equation system
     this->m_equation_systems 
-      = new libMesh::EquationSystems(this->m_mesh);
+      = new libMesh::EquationSystems(*this->m_mesh);
 
     // add system and set parent pointer 
     this->m_system = 
@@ -122,8 +125,8 @@ namespace AGNOS
     //---- set up nonlinear solver
     // TODO do we need this?
     // initalize the nonlinear solver
-    /* this->m_equation_systems->template */
-    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
+    this->m_equation_systems->template
+      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init();
 
     // TODO set from input file ?
     // set solver settings
@@ -168,6 +171,25 @@ namespace AGNOS
     this->m_qoiDerivative = new QoiDerivativeViscousBurgers<T_S>(
         *this->m_equation_systems, "Burgers");
     /* std::cout << "test: system initialized" << std::endl; */
+
+
+    // dirichlet BC
+    std::set<boundary_id_type> homogBoundaries;
+    homogBoundaries.insert(0);
+    std::set<boundary_id_type> constBoundaries;
+    constBoundaries.insert(1);
+
+    std::vector<unsigned int> variables(1);
+    variables[0] = 0;
+
+    ZeroFunction<> zf;
+    ConstFunction<Number> cf(1.0);
+
+    libMesh::DirichletBoundary homog_bc(homogBoundaries,variables,&zf);
+    libMesh::DirichletBoundary const_bc(constBoundaries,variables,&cf);
+    this->m_system->get_dof_map().add_dirichlet_boundary(homog_bc);
+    this->m_system->get_dof_map().add_dirichlet_boundary(const_bc);
+
   }
 
 

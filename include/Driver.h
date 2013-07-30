@@ -101,11 +101,24 @@ namespace AGNOS
           );
 
     // SURROGATE MODEL SETTINGS
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+    int orderDim = input.vector_variable_size("surrogateModel/order");
+    int errorOrderDim = input.vector_variable_size("surrogateModel/errorOrder");
+
+    if (orderDim == 1)
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_order.push_back( input("surrogateModel/order", 0) ) ;
+    else
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_order.push_back( input("surrogateModel/order", 0, i) ) ;
+
     // TODO make this a functino like we have in matlab code
-    for (unsigned int i=0; i < m_paramDim; i++)
-      m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i], i) ) ;
+    // i.e. incremental order increase
+    if (errorOrderDim == 1)
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1) ) ;
+    else
+      for (unsigned int i=0; i < m_paramDim; i++)
+        m_errorOrder.push_back( input("surrogateModel/errorOrder", m_order[i]+1, i) ) ;
 
     std::string surrType  = 
       input("surrogateModel/type","PseudoSpectralTensorProduct");

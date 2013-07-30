@@ -70,12 +70,12 @@ namespace AGNOS
 
 
     protected:
-      const Communicator*   m_comm; //< global comm (not libmesh object specific)
+      const Communicator&   m_comm; //< global comm (not libmesh object specific)
       const GetPot&               m_input;
 
       // mesh and equation variables
       unsigned int    m_n;              // number of elements
-      libMesh::Mesh                   m_mesh; // mesh
+      libMesh::Mesh*                  m_mesh; // mesh
       libMesh::EquationSystems*       m_equation_systems;
       libMesh::System*                m_system;
       libMesh::MeshRefinement*        m_mesh_refinement;
@@ -106,7 +106,7 @@ namespace AGNOS
   PhysicsLibmesh<T_S,T_P>::PhysicsLibmesh(
       const Communicator&       comm,
       const GetPot&             physicsInput
-      ) : m_comm(&comm), m_input(physicsInput)
+      ) : m_comm(comm), m_input(physicsInput)
   {
     //-------- get physics model settings
     if (comm.rank() == 0)
@@ -114,6 +114,7 @@ namespace AGNOS
 
     // read in mesh settings
     m_n               = physicsInput("physics/n",1);
+    std::cout << "n = " << m_n << std::endl;
 
     // read refinement options
     this->m_useUniformRefinement =
@@ -135,13 +136,13 @@ namespace AGNOS
   {
 
     //-------- create libmesh mesh object
-    if (m_comm->rank() == 0)
+    if (m_comm.rank() == 0)
       std::cout << "\n-- Creating mesh\n";
     _constructMesh();
 
     
     //-------- create equation system
-    if (m_comm->rank() == 0)
+    if (m_comm.rank() == 0)
       std::cout << "\n-- Setting up equation system and refinement strategy.\n";
     _initializeSystem();
 
@@ -155,7 +156,7 @@ namespace AGNOS
     m_system->attach_QOI_derivative_object( *m_qoiDerivative );
 
     // define mesh refinement object
-    m_mesh_refinement = new libMesh::MeshRefinement(m_mesh);
+    m_mesh_refinement = new libMesh::MeshRefinement(*m_mesh);
 
     // TODO read these from input file
     m_mesh_refinement->coarsen_by_parents()         = true;
@@ -167,7 +168,7 @@ namespace AGNOS
     m_mesh_refinement->max_h_level()                = 15;
     
     /* std::cout << "test: mesh info " << std::endl; */
-    m_mesh.print_info();
+    m_mesh->print_info();
 
 
     // warning for nonlinear problems
@@ -184,7 +185,7 @@ namespace AGNOS
 
     if (hasNonlinearSystem && !this->m_resolveAdjoint)
     {
-      if(this->m_comm->rank() == 0 )
+      if(this->m_comm.rank() == 0 )
         std::cout << std::endl << " WARNING: "
           << "You may want to set resolveAdjoint = true for nonlinear "
           << "problems.  \n" << std::endl;
@@ -225,7 +226,7 @@ namespace AGNOS
         const T_S& parameterValue  
         )
     {
-      /* std::cout << "test: solvePrimal begin" << std::endl; */
+      std::cout << "test: solvePrimal begin" << std::endl;
       /* std::cout << "test:       solution.size(): " << */
       /*   m_system->solution->size() << std::endl; */
       /* std::cout << "test:               n_dofs(): " << */
@@ -236,9 +237,15 @@ namespace AGNOS
       // solve system
       this->setParameterValues( parameterValue );
       /* std::cout << "test: pre reinit" << std::endl; */
-      m_system->init();
+      m_equation_systems->reinit();
       /* std::cout << "test: pre solve" << std::endl; */
+      m_system->assemble();
       m_system->solve();
+      m_system->update();
+      std::cout << "test: post solve " << std::endl;
+      m_system->solution->print_global();
+      m_system->current_local_solution->print_global();
+
 
       /* std::cout << "test:       solution.size(): " << */
       /*   m_system->solution->size() << std::endl; */
@@ -251,8 +258,8 @@ namespace AGNOS
       /*   m_equation_systems->template get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->print_converged_reason() ; */
 
       // convert solution to T_P framework
-      std::set<libMesh::dof_id_type> dofIndices;
-      m_system->local_dof_indices( 0, dofIndices);
+      /* std::set<libMesh::dof_id_type> dofIndices; */
+      /* m_system->local_dof_indices( 0, dofIndices); */
 
       /* std::cout << "test:      dofIndices.size(): " << */
       /*   dofIndices.size() << std::endl; */
@@ -270,17 +277,27 @@ namespace AGNOS
       /*     << std::endl; */
       /* } */
 
-      T_P imageValue(dofIndices.size());
-      std::set<libMesh::dof_id_type>::iterator dofIt 
-        = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      T_P imageValue(m_system->n_active_dofs());
+      for (unsigned int i=0; i < m_system->n_active_dofs(); i++)
       {
-        /* std::cout << "solution(dof)(" << i << ")=" */ 
-        /*   << m_system->current_solution(*dofIt) */
+        /* std::cout << "solution(" << i << ")=" */ 
+        /*   << (*m_system->solution)(i) */
         /*   << std::endl; */
-        imageValue(i) =  m_system->current_solution(*dofIt) ;
+        imageValue(i) = (*m_system->solution)(i) ;
       }
 
+      /* T_P imageValue(dofIndices.size()); */
+      /* std::set<libMesh::dof_id_type>::iterator dofIt */ 
+      /*   = dofIndices.begin(); */
+      /* for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++) */
+      /* { */
+      /*   /1* std::cout << "solution(dof)(" << i << ")=" *1/ */ 
+      /*   /1*   << m_system->current_solution(*dofIt) *1/ */
+      /*   /1*   << std::endl; *1/ */
+      /*   imageValue(i) =  m_system->current_solution(*dofIt) ; */
+      /* } */
+
+      std::cout << "test: solvePrimal end" << std::endl;
       return imageValue;
     }
 
@@ -312,14 +329,19 @@ namespace AGNOS
       /*   primalSolution.size() << std::endl; */
 
       // set solution to provided value
-      std::set<libMesh::dof_id_type> dofIndices;
-      m_system->local_dof_indices( 0, dofIndices);
-      std::set<libMesh::dof_id_type>::iterator dofIt 
-        = dofIndices.begin();
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
-        m_system->solution->set(*dofIt, primalSolution(i) );
-      m_system->solution->close();
+      /* std::set<libMesh::dof_id_type> dofIndices; */
+      /* m_system->local_dof_indices( 0, dofIndices); */
+      /* std::set<libMesh::dof_id_type>::iterator dofIt */ 
+      /*   = dofIndices.begin(); */
+      /* for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++) */
+      /*   m_system->solution->set(*dofIt, primalSolution(i) ); */
+      /* m_system->solution->close(); */
       /* std::cout << "test: post setPrimal" << std::endl; */
+
+      for(unsigned int i=0; i<primalSolution.size(); i++)
+        m_system->solution->set(i,primalSolution(i));
+      m_system->solution->close();
+      m_system->update();
 
       // An EquationSystems reference will be convenient.
       EquationSystems& es = m_system->get_equation_systems();
@@ -425,19 +447,19 @@ namespace AGNOS
       /* } */
 
       // get dof indices
-      m_system->local_dof_indices( 0, dofIndices);
-      dofIt = dofIndices.begin();
+      /* m_system->local_dof_indices( 0, dofIndices); */
+      /* dofIt = dofIndices.begin(); */
 
       /* std::cout << "test:      dofIndices.size(): " << */
       /*   dofIndices.size() << std::endl; */
 
-      T_P imageValue(dofIndices.size());
-      for (unsigned int i=0; dofIt != dofIndices.end(); ++dofIt, i++)
+      T_P imageValue(m_system->n_active_dofs());
+      for (unsigned int i=0; i<imageValue.size(); i++)
       {
         /* std::cout << "adjoint(dof)(" << i << ")=" */ 
         /*   << computedAdjointSolution(*dofIt) */
         /*   << std::endl; */
-        imageValue(i) = computedAdjointSolution(*dofIt);
+        imageValue(i) = computedAdjointSolution(i);
       }
 
 
@@ -691,8 +713,8 @@ namespace AGNOS
       for (unsigned int j=0; j != m_system->qoi.size(); j++)
         {
           computed_global_QoI_errors[j] = projected_residual.dot(m_system->get_adjoint_solution(j));
-          /* std::cout << "computed_global_QoI_errors = " << */
-          /*   computed_global_QoI_errors[j] << std::endl; */
+          std::cout << "computed_global_QoI_errors = " <<
+            computed_global_QoI_errors[j] << std::endl;
         }
       /* std::cout << "test: estimateError() post compute error " << std::endl; */
 
@@ -955,7 +977,7 @@ namespace AGNOS
         for(unsigned int i=0; i<error_per_cell.size(); i++)
           (*this->m_errorIndicators)(i) =  error_per_cell[i] ;
 
-        /* std::cout << "test: rank" << this->m_comm->rank() */ 
+        /* std::cout << "test: rank" << this->m_comm.rank() */ 
         /*   << ": error_per_cell.size(): " << error_per_cell.size() << std::endl; */
 
       }
@@ -978,17 +1000,17 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::refine() 
     {
-      if ( this->m_comm->rank() == 0 )
+      if ( this->m_comm.rank() == 0 )
         std::cout << "  previous n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+          << m_mesh->n_active_elem() << std::endl;
 
       m_mesh_refinement->uniformly_refine(1);
 
       m_equation_systems->reinit();
 
-      if ( this->m_comm->rank() == 0 )
+      if ( this->m_comm.rank() == 0 )
         std::cout << "   refined n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+          << m_mesh->n_active_elem() << std::endl;
 
     }
 
@@ -1003,9 +1025,9 @@ namespace AGNOS
         ) 
     {
 
-      if ( this->m_comm->rank() == 0 )
+      if ( this->m_comm.rank() == 0 )
         std::cout << "  previous n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+          << m_mesh->n_active_elem() << std::endl;
 
       libMesh::ErrorVector error_per_cell(errorIndicators.size());
       for(unsigned int i=0; i<errorIndicators.size();i++)
@@ -1019,15 +1041,15 @@ namespace AGNOS
       m_mesh_refinement->flag_elements_by_elem_fraction (error_per_cell);              
                    
       //TODO input options to control whether we coarsen as well
-      m_mesh_refinement->refine_and_coarsen_elements();
-      /* m_mesh_refinement->refine_elements(); */
+      /* m_mesh_refinement->refine_and_coarsen_elements(); */
+      m_mesh_refinement->refine_elements();
 
 
       m_equation_systems->reinit();
 
-      if ( this->m_comm->rank() == 0 )
+      if ( this->m_comm.rank() == 0 )
         std::cout << "   refined n_active_elem(): " 
-          << m_mesh.n_active_elem() << std::endl;
+          << m_mesh->n_active_elem() << std::endl;
 
       return;
     }
