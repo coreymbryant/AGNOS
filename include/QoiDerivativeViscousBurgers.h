@@ -67,8 +67,8 @@ namespace AGNOS
       libMesh::AutoPtr<FEBase> fe(FEBase::build(dim, fe_type));
 
       // quadrature
-      libMesh::QGauss qrule(dim,FOURTH);
-      fe->attach_quadrature_rule(&qrule);
+      AutoPtr<QBase> qrule (QBase::build("Gauss",dim, FOURTH) );
+      fe->attach_quadrature_rule(qrule.get());
 
       // references to jacobians
       const std::vector<libMesh::Real>& JxW = fe->get_JxW();
@@ -120,7 +120,7 @@ namespace AGNOS
 
 
         // Now loop over quadrature points to handle numerical integration
-        for(unsigned int qp=0; qp<qrule.n_points(); qp++)
+        for(unsigned int qp=0; qp<qrule->n_points(); qp++)
         {
            const Real x = q_point[qp](0);
 

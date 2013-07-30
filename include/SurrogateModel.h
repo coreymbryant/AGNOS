@@ -7,6 +7,7 @@
 
 #include "agnosDefines.h"
 #include "Parameter.h"
+#include "PhysicsModel.h"
 
 namespace AGNOS
 {

@@ -1,6 +1,6 @@
 include $(top_srcdir)/doxygen/aminclude.am
 
-AUTOMAKE_OPTIONS = foreign
+AUTOMAKE_OPTIONS = foreign 
 #ACLOCAL_AMFLAGS  = 
 
 SUBDIRS          = src test examples doxygen 

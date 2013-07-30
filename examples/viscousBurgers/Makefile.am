@@ -24,7 +24,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 
 
-noinst_PROGRAMS = viscousBurgers
+bin_PROGRAMS = viscousBurgers
 
 viscousBurgers_SOURCES = \
 									 $(top_srcdir)/src/agnos.C

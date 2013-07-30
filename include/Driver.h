@@ -2,10 +2,11 @@
 #ifndef DRIVER_H
 #define DRIVER_H
 
-#include "agnosDefines.h"
+/* #include "agnosDefines.h" */
 #include "PseudoSpectralTensorProduct.h"
 /* #include "PseudoSpectralMonteCarlo.h" */
 /* #include "PseudoSpectralSparseGrid.h" */
+#include "PhysicsViscousBurgers.h"
 
 
 
@@ -22,11 +23,11 @@ namespace AGNOS
     public:
 
       Driver( );
-      Driver( Communicator& comm, Communicator& physicsComm, const GetPot& input );
+      Driver( const Communicator& comm, const Communicator& physicsComm, const GetPot& input );
 
       virtual ~Driver( );
 
-      virtual void run( ) ;
+      void run( ) ;
 
       void printSolutionData( std::ostream& out ) ;
       void printSurrogateSettings( std::ostream& out ) ;
@@ -36,11 +37,11 @@ namespace AGNOS
       void printSolution( unsigned int iteration=1 ) ;
 
     protected:
-      virtual void _buildPhysics( const GetPot& input );
-      virtual void _buildSurrogate( const GetPot& input );
+      void _buildPhysics( const GetPot& input );
+      void _buildSurrogate( const GetPot& input );
 
-      Communicator& _comm;
-      Communicator& _physicsComm;
+      const Communicator& _comm;
+      const Communicator& _physicsComm;
 
 
       // DRIVER VARIABLES
@@ -82,14 +83,15 @@ namespace AGNOS
  * 
  ***********************************************/
   Driver::Driver( 
-      Communicator& comm, 
-      Communicator& physicsComm,
+      const Communicator& comm,
+      const Communicator& physicsComm,
       const GetPot& input 
-      ) : 
+      ) :
     _comm(comm), _physicsComm(physicsComm) 
   {
     if(DEBUG)
       std::cout << "rank: " << _comm.rank() <<  std::endl;
+
     
     // DRIVER SETTINGS
     _maxIter = input("driver/maxIter",1);
@@ -105,7 +107,7 @@ namespace AGNOS
 
     _parameters.resize(_paramDim);
     for (unsigned int i=0; i < _paramDim; i++)
-      _parameters[i] = new Parameter( 
+      _parameters[i] = new AGNOS::Parameter( 
           input("parameters/types",0,i),
           input("parameters/mins",-1.0,i),
           input("parameters/maxs", 1.0,i)
@@ -144,9 +146,9 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
-    for(unsigned int i=0; i < _physics.size(); i++)
-      delete _physics[i];
-    _physics.clear();
+    /* for(unsigned int i=0; i < _physics.size(); i++) */
+    /*   delete _physics[i]; */
+    /* _physics.clear(); */
 
     /* delete _comm; */
     /* delete _surrogate; */
