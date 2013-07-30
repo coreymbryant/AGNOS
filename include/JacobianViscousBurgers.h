@@ -46,8 +46,8 @@ namespace AGNOS{
         )
     { 
       m_L                 = input("physics/L",10.);
-      m_uMinus                 = input("physics/uMinus",1.);
-      m_uPlus                 = input("physics/uPlus",0.);
+    m_uMinus                 = input("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*m_L / 4. / 1.0) ) ));
+    m_uPlus                 = input("physics/uPlus",(0.5 * ( 1 + std::tanh( m_L / 4. / 1.0) ) ) );
       return;
     }
 
@@ -180,23 +180,23 @@ namespace AGNOS{
                   );
           }
         
-        // At this point the interior element integration has
-        // been completed.  However, we have not yet addressed
-        // boundary conditions.
-        // Define the penalty parameter used to enforce the BC's
-        double penalty = 1.e10;
+        /* // At this point the interior element integration has */
+        /* // been completed.  However, we have not yet addressed */
+        /* // boundary conditions. */
+        /* // Define the penalty parameter used to enforce the BC's */
+        /* double penalty = 1.e10; */
 
-        // Loop over the sides of this element. For a 1D element, the "sides"
-        // are defined as the nodes on each edge of the element, i.e. 1D elements
-        // have 2 sides.
-        for(unsigned int s=0; s<elem->n_sides(); s++)
-        {
-          // If this element has a NULL neighbor, then it is on the edge of the
-          // mesh and we need to enforce a boundary condition using the penalty
-          // method.
-          if(elem->neighbor(s) == NULL)
-            Ke(s,s) += penalty ;
-        }
+        /* // Loop over the sides of this element. For a 1D element, the "sides" */
+        /* // are defined as the nodes on each edge of the element, i.e. 1D elements */
+        /* // have 2 sides. */
+        /* for(unsigned int s=0; s<elem->n_sides(); s++) */
+        /* { */
+        /*   // If this element has a NULL neighbor, then it is on the edge of the */
+        /*   // mesh and we need to enforce a boundary condition using the penalty */
+        /*   // method. */
+        /*   if(elem->neighbor(s) == NULL) */
+        /*     Ke(s,s) += penalty ; */
+        /* } */
 
         dof_map.constrain_element_matrix (Ke, dof_indices);
 
