@@ -31,7 +31,7 @@ namespace AGNOS
     
     public: 
 
-      PhysicsModel( Parallel::Communicator& comm_in ) :
+      PhysicsModel( const Parallel::Communicator& comm_in ) :
         _communicator(comm_in)
       {
         _solutionNames.insert("simple");

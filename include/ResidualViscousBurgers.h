@@ -98,10 +98,10 @@ namespace AGNOS{
       AutoPtr<FEBase> fe (FEBase::build(dim, fe_type));
 
       // A 5th order Gauss quadrature rule for numerical integration.
-      QGauss qrule (dim, FIFTH);
+      AutoPtr<QBase> qrule (QBase::build("Gauss",dim, FIFTH) );
 
       // Tell the finite element object to use our quadrature rule.
-      fe->attach_quadrature_rule (&qrule);
+      fe->attach_quadrature_rule (qrule.get());
 
       // Here we define some references to cell-specific data that
       // will be used to assemble the linear system.
@@ -165,7 +165,7 @@ namespace AGNOS{
           // we multiply with the row-dependent part and add it to the element
           // residual.
 
-          for (unsigned int qp=0; qp<qrule.n_points(); qp++)
+          for (unsigned int qp=0; qp<qrule->n_points(); qp++)
             {
               Number u = 0;
               Gradient grad_u;

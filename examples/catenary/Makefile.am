@@ -24,7 +24,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 
 
-noinst_PROGRAMS = catenary
+bin_PROGRAMS = catenary
 
 catenary_SOURCES = \
 									 runCatenary.C \

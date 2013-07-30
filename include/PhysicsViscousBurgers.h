@@ -33,7 +33,7 @@ namespace AGNOS
 
     public:
       PhysicsViscousBurgers( 
-        Parallel::Communicator& comm_in, 
+        const Parallel::Communicator& comm_in, 
         const GetPot& input );
 
       ~PhysicsViscousBurgers( );
@@ -68,7 +68,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
-        Parallel::Communicator& comm_in, 
+        const Parallel::Communicator& comm_in, 
         const GetPot& input 
         ) :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
@@ -80,7 +80,7 @@ namespace AGNOS
     _nonlinearSteps      = input("physics/nNonlinearSteps",15);
     _nonlinearTolerance  = input("physics/nonlinearTolerance",1.e-9);
 
-    _init( );
+    this->_init( );
   }
 
 /********************************************//**
@@ -89,7 +89,7 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers( )
   {
-    delete _physicsResidual;
+    /* delete _physicsResidual; */
     delete _physicsJacobian;
   }
 
@@ -101,6 +101,7 @@ namespace AGNOS
   {
     //----------------------------------------------
     this->_mesh = new Mesh( this->_communicator );
+    /* /1* this->_mesh = new Mesh(  ); *1/ */
 
     libMesh::MeshTools::Generation::build_line(
         *this->_mesh, _n, -1.*_L, _L, EDGE3);
@@ -122,23 +123,23 @@ namespace AGNOS
     //---- set up nonlinear solver
     // TODO do we need this?
     // initalize the nonlinear solver
-    /* this->_equationSystems->template */
-    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
+    this->_equationSystems->template
+      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init();
 
-    //----------------------------------------------
-    // TODO set from input file ?
-    // set solver settings
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver relative residual tolerance") = _nonlinearTolerance;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver absolute residual tolerance") = 1.e-35;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver absolute step tolerance") = 1.e-12;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver relative step tolerance") = 1.e-12;
-    this->_equationSystems->parameters.template set<unsigned int>
-      ("nonlinear solver maximum iterations") = 50;
-    //----------------------------------------------
+    /* //---------------------------------------------- */
+    /* // TODO set from input file ? */
+    /* // set solver settings */
+    /* this->_equationSystems->parameters.template set<Real> */
+    /*   ("nonlinear solver relative residual tolerance") = _nonlinearTolerance; */
+    /* this->_equationSystems->parameters.template set<Real> */
+    /*   ("nonlinear solver absolute residual tolerance") = 1.e-35; */
+    /* this->_equationSystems->parameters.template set<Real> */
+    /*   ("nonlinear solver absolute step tolerance") = 1.e-12; */
+    /* this->_equationSystems->parameters.template set<Real> */
+    /*   ("nonlinear solver relative step tolerance") = 1.e-12; */
+    /* this->_equationSystems->parameters.template set<unsigned int> */
+    /*   ("nonlinear solver maximum iterations") = 50; */
+    /* //---------------------------------------------- */
     
 
     //----------------------------------------------
@@ -150,6 +151,7 @@ namespace AGNOS
       = _physicsResidual;
 
     // provide pointer to jacobian object
+    // THIS IS THE PROBLEM
     _physicsJacobian = new JacobianViscousBurgers<T_S>( );
     _physicsJacobian->setSystemData( this->_input );
     this->_equationSystems->template
@@ -183,7 +185,7 @@ namespace AGNOS
    * \brief 
    ***********************************************/
   template<class T_S, class T_P>
-    void PhysicsViscousBurgers<T_S,T_P>::setParameterValues( 
+    void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues( 
         const T_S& parameterValues ) 
     {
       _physicsResidual->setParameterValues( parameterValues );

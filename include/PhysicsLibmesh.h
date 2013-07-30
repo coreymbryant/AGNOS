@@ -32,7 +32,7 @@ namespace AGNOS
   {
 
     public:
-      PhysicsLibmesh( Parallel::Communicator& comm_in, const GetPot& input );
+      PhysicsLibmesh( const Parallel::Communicator& comm_in, const GetPot& input );
       ~PhysicsLibmesh( );
 
       void compute( 
@@ -70,8 +70,8 @@ namespace AGNOS
 
 
       // virtual functions for constructing and solving model
-      virtual void _init( ) = 0;
-      virtual void _setParameterValues( const T_S& parameterValues ) = 0;
+      virtual void _init( ) { };
+      virtual void _setParameterValues( const T_S& parameterValues ) { };
 
   };
 
@@ -83,7 +83,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::PhysicsLibmesh(
-      Parallel::Communicator& comm_in,
+      const Parallel::Communicator& comm_in,
       const GetPot&           input
       ) : 
     PhysicsModel<T_S,T_P>(comm_in),
@@ -165,14 +165,14 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-    delete _mesh;
-    delete _equationSystems;
-    delete _system;
-    delete _meshRefinement;
+    /* delete _mesh; */
+    /* delete _equationSystems; */
+    /* delete _system; */
+    /* delete _meshRefinement; */
 
-    delete _qoi;
-    delete _qoiDerivative;
-    delete _qois;
+    /* delete _qoi; */
+    /* delete _qoiDerivative; */
+    /* delete _qois; */
   }
 
 /********************************************//**
