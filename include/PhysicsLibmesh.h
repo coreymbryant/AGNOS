@@ -69,10 +69,15 @@ namespace AGNOS
       unsigned int _maxRefineSteps;
 
 
-      // virtual functions for constructing and solving model
-      virtual void _init( ) { };
-      virtual void _setParameterValues( const T_S& parameterValues ) { };
+      // derived PhysicsModel classes need to handle setting parameter values
+      virtual void _setParameterValues( const T_S& parameterValues ) = 0;
 
+      // build mesh refinement object (can be overidden in derived class)
+      virtual void _build_mesh_refinement();
+
+      // build error estimator object. Defaults to adjoint_residual_estimator 
+      // (can be overidden in derived class)
+      virtual void _build_error_estimator();
   };
 
 
@@ -90,9 +95,8 @@ namespace AGNOS
     _input(input)
   {
 
-
     if(DEBUG)
-      std::cout << "initialized:" << libMesh::initialized() << std::endl;
+      std::cout << "libMesh initialized?:" << libMesh::initialized() << std::endl;
 
 
     // -----------------------------------------------------------
@@ -108,36 +112,44 @@ namespace AGNOS
 
     // read refinement options
     _useUniformRefinement = input("physics/useUniformRefinement",true);
-    _numberHRefinements = input("physics/numberHRefinements",0);
-    _numberPRefinements = input("physics/numberPRefinements",1);
-    _maxRefineSteps  = input("physics/maxRefineSteps",1);
+    _numberHRefinements   = input("physics/numberHRefinements",0);
+    _numberPRefinements   = input("physics/numberPRefinements",1);
+    _maxRefineSteps       = input("physics/maxRefineSteps",1);
 
     // other options
-    _resolveAdjoint = input("physics/resolveAdjoint",false);
+    _resolveAdjoint       = input("physics/resolveAdjoint",false);
     // -----------------------------------------------------------
 
 
     // -----------------------------------------------------------
     // which solutions do we want to compute a surrogate for
     this->_solutionNames.clear( );
-    for(unsigned int i; i< input.vector_variable_size("physics/solutions"); i++)
+
+    for(unsigned int i=0; i<input.vector_variable_size("physics/solutions") ; i++)
       this->_solutionNames.insert( input("physics/solutions"," ",i) ) ;
+
+    // default to only primal solution
     if(this->_solutionNames.size() == 0)
       this->_solutionNames.insert("primal");
 
     if(DEBUG)
       std::cout << "solutionNames.size()" << this->_solutionNames.size() << std::endl;
     // -----------------------------------------------------------
-
-    // -----------------------------------------------------------
-    // initialize model
-    /* _init( ); */
-    // -----------------------------------------------------------
+    
 
 
-    // -----------------------------------------------------------
+
+  }
+  
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_build_mesh_refinement( )
+  {
     // set up mesh refinement object
-    _meshRefinement = new MeshRefinement(*_mesh);
+    _meshRefinement = new libMesh::MeshRefinement(*_mesh);
+    
     // TODO read these from input file?
     _meshRefinement->coarsen_by_parents()         = true;
     _meshRefinement->absolute_global_tolerance()  = 1e-6;
@@ -146,18 +158,22 @@ namespace AGNOS
     _meshRefinement->coarsen_fraction()           = 0.3;  
     _meshRefinement->coarsen_threshold()          = 1e-5;
     _meshRefinement->max_h_level()                = 15;
-    // -----------------------------------------------------------
-    
+  }
 
-    // -----------------------------------------------------------
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_build_error_estimator( )
+  {
     // set up error estimator object
     _errorEstimator = new AdjointRefinementEstimator; //TODO make this an option
     _errorEstimator->qoi_set() = *_qois; 
     _errorEstimator->number_h_refinements = _numberHRefinements;
     _errorEstimator->number_p_refinements = _numberPRefinements;
-    // -----------------------------------------------------------
 
   }
+    
 
 /********************************************//**
  * \brief 
