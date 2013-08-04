@@ -49,9 +49,14 @@ namespace AGNOS
       PhysicsJacobian<T_S>*           _physicsJacobian;
       PhysicsResidual<T_S>*           _physicsResidual;
 
-      // Initialization
-      void _init( );
       void _setParameterValues( const T_S& parameterValues ) ;
+      
+      // build mesh refinement object (can be overidden in derived class)
+      using PhysicsLibmesh<T_S,T_P>::_build_mesh_refinement;
+
+      // build error estimator object. Defaults to adjoint_residual_estimator 
+      // (can be overidden in derived class)
+      using PhysicsLibmesh<T_S,T_P>::_build_error_estimator;
 
       // solver settings
       unsigned int    _nonlinearTolerance;
@@ -73,36 +78,20 @@ namespace AGNOS
         ) :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
+
+    // read in parameters unique to this model
     _L      = input("physics/L",10.);
     _uMinus = input("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
     _uPlus  = input("physics/uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
 
+    // and some nonlinear solver parameters
     _nonlinearSteps      = input("physics/nNonlinearSteps",15);
     _nonlinearTolerance  = input("physics/nonlinearTolerance",1.e-9);
 
-    this->_init( );
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers( )
-  {
-    /* delete _physicsResidual; */
-    delete _physicsJacobian;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsViscousBurgers<T_S,T_P>::_init( )
-  {
     //----------------------------------------------
-    this->_mesh = new Mesh( this->_communicator );
-    /* /1* this->_mesh = new Mesh(  ); *1/ */
-
+    // construct a 1d mesh 
+    this->_mesh = new Mesh( this->_communicator , 1);
+    /* this->_mesh = new Mesh(  ); */
     libMesh::MeshTools::Generation::build_line(
         *this->_mesh, _n, -1.*_L, _L, EDGE3);
 
@@ -121,7 +110,7 @@ namespace AGNOS
 
     //----------------------------------------------
     //---- set up nonlinear solver
-    // TODO do we need this?
+    // TODO do we need to initialize ourselves
     // initalize the nonlinear solver
     this->_equationSystems->template
       get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init();
@@ -151,7 +140,6 @@ namespace AGNOS
       = _physicsResidual;
 
     // provide pointer to jacobian object
-    // THIS IS THE PROBLEM
     _physicsJacobian = new JacobianViscousBurgers<T_S>( );
     _physicsJacobian->setSystemData( this->_input );
     this->_equationSystems->template
@@ -161,14 +149,16 @@ namespace AGNOS
 
 
     //----------------------------------------------
-    // QoISet
+    // set up QoISet object 
     this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
     qoi_indices.push_back(0);
     this->_qois->add_indices(qoi_indices);
+
+    // weight the qois (in case we have more than 1)
     this->_qois->set_weight(0, 1.0);
                             
-    //pointer to qoi
+    //pointer to qoi_object
     this->_qoi = new QoiViscousBurgers<T_S>(
         *this->_equationSystems, "Burgers");
 
@@ -177,9 +167,29 @@ namespace AGNOS
     this->_qoiDerivative = new QoiDerivativeViscousBurgers<T_S>(
         *this->_equationSystems, "Burgers");
     //----------------------------------------------
+    
+    
+    //----------------------------------------------
+    // build mesh refinement object 
+    _build_mesh_refinement();
 
-    /* std::cout << "test: system initialized" << std::endl; */
+    // build error estimator object
+    _build_error_estimator();
+    //----------------------------------------------
+
+    std::cout << "test: system initialized" << std::endl;
   }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers( )
+  {
+    /* delete _physicsResidual; */
+    delete _physicsJacobian;
+  }
+
 
   /********************************************//**
    * \brief 

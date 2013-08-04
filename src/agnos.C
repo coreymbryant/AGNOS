@@ -13,18 +13,18 @@ int main(int argc, char* argv[])
   GetPot inputfile( argv[1] );
 
 
-  /* MPI_Init(&argc,&argv); */
-  /* libMesh::Parallel::Communicator comm(MPI_COMM_WORLD); */
+  MPI_Init(&argc,&argv);
+  libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
 
-  /* MPI_Comm myComm; */
-  /* int mpiSplit = */  
-  /*   MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm); */
+  MPI_Comm myComm;
+  int mpiSplit =  
+    MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm);
 
-  /* LibMeshInit libmesh_init(argc, argv, myComm); */
+  LibMeshInit libmesh_init(argc, argv, myComm);
   
-  /* libMesh::Parallel::Communicator physicsComm(myComm); */
+  libMesh::Parallel::Communicator physicsComm(myComm);
 
-  /* AGNOS::Driver agnos( comm, physicsComm, inputfile ); */
+  AGNOS::Driver agnos( comm, physicsComm, inputfile );
 
   /* agnos.run( ); */
   
