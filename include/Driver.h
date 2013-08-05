@@ -6,8 +6,8 @@
 #include "PseudoSpectralTensorProduct.h"
 /* #include "PseudoSpectralMonteCarlo.h" */
 /* #include "PseudoSpectralSparseGrid.h" */
-/* #include "PhysicsViscousBurgers.h" */
-/* #include "PhysicsModel.h" */
+#include "PhysicsViscousBurgers.h"
+#include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 
 
@@ -116,7 +116,7 @@ namespace AGNOS
           );
     
     // BUILD PHYSICS
-    /* _buildPhysics( input ); */
+    _buildPhysics( input );
     
 
     // SURROGATE MODEL SETTINGS
@@ -164,41 +164,41 @@ namespace AGNOS
  ***********************************************/
   void Driver::_buildPhysics( const GetPot& input)
   {
-    /* //TODO make more general */ 
-    /* // deal with parallel issue */
-    /* std::string physicsName = input("physics/type",""); */
-    /* if ( physicsName == "viscousBurgers" ) */
-    /* { */
-    /*   if(AGNOS_DEBUG) */
-    /*     std::cout << "_buildPhysics() rank: " << _comm.rank() << std::endl; */
-    /*   _physics.push_back( */ 
-    /*       new AGNOS::PhysicsViscousBurgers<T_S,T_P>( */
-    /*         _physicsComm, input ) */
-    /*       ); */
-    /* } */
-    /* else if ( physicsName == "catenaryLibmesh" ) */
-    /* { */
-    /*   /1* _physics.push_back( *1/ */
-    /*   /1*     new AGNOS::PhysicsCatenaryLibmesh<T_S>( input ) *1/ */
-    /*   /1*     ); *1/ */
-    /* } */
-    /* else if ( physicsName == "catenary" ) */
-    /* { */
-    /*   /1* _physics.push_back( *1/ */
-    /*   /1*     new AGNOS::PhysicsCatenary<T_S>( input("physics/forcing",-10.0) ) *1/ */
-    /*   /1*     ); *1/ */
-    /* } */
-    /* else */
-    /* { */
-    /*   std::cerr << " ERROR: unrecognized physics type: " << physicsName */
-    /*     << "\n" */
-    /*     << "please choose an appropriate physics type " */
-    /*     << "(or implememnt it yourself) \n" */
-    /*     << std::endl; */
-    /*   exit(1); */
-    /* } */
+    //TODO make more general 
+    // deal with parallel issue
+    std::string physicsName = input("physics/type","");
+    if ( physicsName == "viscousBurgers" )
+    {
+      if(AGNOS_DEBUG)
+        std::cout << "_buildPhysics() rank: " << _comm.rank() << std::endl;
+      _physics.push_back( 
+          new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
+            _physicsComm, input )
+          );
+    }
+    else if ( physicsName == "catenaryLibmesh" )
+    {
+      /* _physics.push_back( */
+      /*     new AGNOS::PhysicsCatenaryLibmesh<T_S>( input ) */
+      /*     ); */
+    }
+    else if ( physicsName == "catenary" )
+    {
+      /* _physics.push_back( */
+      /*     new AGNOS::PhysicsCatenary<T_S>( input("physics/forcing",-10.0) ) */
+      /*     ); */
+    }
+    else
+    {
+      std::cerr << " ERROR: unrecognized physics type: " << physicsName
+        << "\n"
+        << "please choose an appropriate physics type "
+        << "(or implememnt it yourself) \n"
+        << std::endl;
+      exit(1);
+    }
 
-    /* return ; */
+    return ;
   }
 
 /********************************************//**
