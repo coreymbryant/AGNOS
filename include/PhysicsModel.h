@@ -13,9 +13,6 @@
 #ifndef PHYSICS_MODEL_H
 #define PHYSICS_MODEL_H
 
-#include "agnosDefines.h"
-// libmesh includes
-#include "libmesh/parallel.h"
 
 namespace AGNOS
 {
@@ -31,7 +28,7 @@ namespace AGNOS
     
     public: 
 
-      PhysicsModel( const Parallel::Communicator& comm_in ) :
+      PhysicsModel( const Communicator& comm_in ) :
         _communicator(comm_in)
       {
         _solutionNames.insert("simple");
@@ -49,7 +46,7 @@ namespace AGNOS
         { return _solutionNames; }
       
     protected:
-      const Parallel::Communicator &_communicator;
+      const Communicator &_communicator;
       std::set<std::string> _solutionNames;
 
       
