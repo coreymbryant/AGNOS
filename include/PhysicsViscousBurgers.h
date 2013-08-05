@@ -5,21 +5,19 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "ResidualViscousBurgers.h"
-#include "JacobianViscousBurgers.h"
-#include "QoiViscousBurgers.h"
-#include "QoiDerivativeViscousBurgers.h"
+#include "BurgersSystem.h"
 
 // libmesh includes
 #include "libmesh/mesh_generation.h"
-#include "libmesh/edge_edge2.h"
+#include "libmesh/edge_edge3.h"
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/nonlinear_implicit_system.h"
 #include "libmesh/petsc_nonlinear_solver.h"
+#include "libmesh/newton_solver.h"
+#include "libmesh/steady_solver.h"
 
 namespace AGNOS
 {
-
 
   /********************************************//**
    * \brief Basic 1D Burger's PhysicsModel class
@@ -32,36 +30,31 @@ namespace AGNOS
   {
 
     public:
-      PhysicsViscousBurgers( 
-        const Parallel::Communicator& comm_in, 
-        const GetPot& input );
+      /** Constructor. Pass input file to provide setting to physics class */
+      PhysicsViscousBurgers( const Communicator& comm_in, const GetPot& input );
 
-      ~PhysicsViscousBurgers( );
+      /** Destructor */
+      /* virtual ~PhysicsViscousBurgers( ); */
 
-      void setParameterValues( const T_S& parameterValues ) ;
 
     protected:
+      /** Geometry and boundary data */
       double          _L;
       double          _uMinus;
       double          _uPlus;
-      int _n;
+      int             _nElem;
 
-      PhysicsJacobian<T_S>*           _physicsJacobian;
-      PhysicsResidual<T_S>*           _physicsResidual;
+      Number          _mu;
 
-      void _setParameterValues( const T_S& parameterValues ) ;
-      
-      // build mesh refinement object (can be overidden in derived class)
-      using PhysicsLibmesh<T_S,T_P>::_build_mesh_refinement;
-
-      // build error estimator object. Defaults to adjoint_residual_estimator 
-      // (can be overidden in derived class)
-      using PhysicsLibmesh<T_S,T_P>::_build_error_estimator;
-
-      // solver settings
+      /** solver settings */ 
       unsigned int    _nonlinearTolerance;
       unsigned int    _nonlinearSteps;
 
+
+      /** set parameter values */
+      virtual void _setParameterValues( const T_S& parameterValues ) ;
+
+      
 
   };
 
@@ -73,7 +66,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
-        const Parallel::Communicator& comm_in, 
+        const Communicator& comm_in, 
         const GetPot& input 
         ) :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
@@ -90,10 +83,15 @@ namespace AGNOS
 
     //----------------------------------------------
     // construct a 1d mesh 
-    this->_mesh = new Mesh( this->_communicator , 1);
-    /* this->_mesh = new Mesh(  ); */
+    this->_mesh = new Mesh(comm_in);
     libMesh::MeshTools::Generation::build_line(
-        *this->_mesh, _n, -1.*_L, _L, EDGE3);
+        *this->_mesh, _nElem, -1.*_L, _L, EDGE3);
+
+    /* Mesh newMesh(comm_in); */
+    /* libMesh::MeshTools::Generation::build_line( */
+    /*     newMesh, 4, -10., 10., EDGE3); */
+    /* this->_mesh = &newMesh; */
+
 
     // define equation system
     this->_equationSystems 
@@ -101,19 +99,25 @@ namespace AGNOS
 
     // add system and set parent pointer 
     this->_system = 
-      &( this->_equationSystems->add_system(
-            "NonlinearImplicit","Burgers") );
+      &( this->_equationSystems->template add_system<BurgersSystem>("Burgers") );
+    
+    // No transient time solver
+    this->_system->time_solver =
+        AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
 
-    // add variable (first order)
-    this->_system->add_variable("u",FIRST);
+    // Nonlinear solver options
+      NewtonSolver *solver = new NewtonSolver(*this->_system);
+      this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+
+    this->_equationSystems->init ();
     //----------------------------------------------
 
     //----------------------------------------------
     //---- set up nonlinear solver
     // TODO do we need to initialize ourselves
     // initalize the nonlinear solver
-    this->_equationSystems->template
-      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init();
+    /* this->_equationSystems->template */
+    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
 
     /* //---------------------------------------------- */
     /* // TODO set from input file ? */
@@ -132,23 +136,6 @@ namespace AGNOS
     
 
     //----------------------------------------------
-    // provide pointer to residual object
-    _physicsResidual = new ResidualViscousBurgers<T_S>( );
-    _physicsResidual->setSystemData( this->_input );
-    this->_equationSystems->template
-      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->residual_object 
-      = _physicsResidual;
-
-    // provide pointer to jacobian object
-    _physicsJacobian = new JacobianViscousBurgers<T_S>( );
-    _physicsJacobian->setSystemData( this->_input );
-    this->_equationSystems->template
-      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->jacobian_object
-      = _physicsJacobian ;
-    //----------------------------------------------
-
-
-    //----------------------------------------------
     // set up QoISet object 
     this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
@@ -157,51 +144,41 @@ namespace AGNOS
 
     // weight the qois (in case we have more than 1)
     this->_qois->set_weight(0, 1.0);
-                            
-    //pointer to qoi_object
-    this->_qoi = new QoiViscousBurgers<T_S>(
-        *this->_equationSystems, "Burgers");
-
-    // pointer to qoi derivative assembly
-    this->_system->qoi.resize(1);
-    this->_qoiDerivative = new QoiDerivativeViscousBurgers<T_S>(
-        *this->_equationSystems, "Burgers");
     //----------------------------------------------
-    
+
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre mesh_refinement " << std::endl;
     
     //----------------------------------------------
     // build mesh refinement object 
-    _build_mesh_refinement();
+    this->_buildMeshRefinement();
 
     // build error estimator object
-    _build_error_estimator();
+    this->_buildErrorEstimator();
     //----------------------------------------------
+
+    if (AGNOS_DEBUG)
+      std::cout << "test: post error estimator " << std::endl;
+    
+
+    this->_equationSystems->init ();
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre print info " << std::endl;
+
+    // Print information about the mesh and system to the screen.
+    this->_mesh->print_info();
+    this->_equationSystems->print_info();
 
     std::cout << "test: system initialized" << std::endl;
   }
 
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers( )
+
+  template<class T_S,class T_P>
+  void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues(
+    const T_S& parameterValues )
   {
-    /* delete _physicsResidual; */
-    delete _physicsJacobian;
   }
 
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-  template<class T_S, class T_P>
-    void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues( 
-        const T_S& parameterValues ) 
-    {
-      _physicsResidual->setParameterValues( parameterValues );
-      _physicsJacobian->setParameterValues( parameterValues );
-      return;
-    }
 
 }
 
