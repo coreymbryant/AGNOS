@@ -1,6 +1,9 @@
 
 #include "agnosDefines.h"
 #include "Driver.h"
+/* #include "libmesh/equation_systems.h" */
+/* #include "libmesh/mesh.h" */
+
 int main(int argc, char* argv[])
 {
 
@@ -10,11 +13,13 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
-  GetPot inputfile( argv[1] );
+  std::string file_name = argv[1];
+
+  GetPot inputfile( file_name);
 
 
   MPI_Init(&argc,&argv);
-  libMesh::Parallel::Communicator comm(MPI_COMM_WORLD);
+  Communicator comm(MPI_COMM_WORLD);
 
   MPI_Comm myComm;
   int mpiSplit =  
@@ -24,14 +29,14 @@ int main(int argc, char* argv[])
   
   libMesh::Parallel::Communicator physicsComm(myComm);
 
-  AGNOS::Driver agnos( comm, physicsComm, inputfile );
+  /* AGNOS::Driver agnos( comm, physicsComm, inputfile ); */
 
   /* agnos.run( ); */
   
   /* LibMeshInit libmesh_init(argc, argv); */
 
 
-  /* MPI_Finalize(); */
+  MPI_Finalize();
   return 0;
 }
 
