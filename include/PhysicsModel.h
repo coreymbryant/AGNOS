@@ -28,25 +28,34 @@ namespace AGNOS
     
     public: 
 
+      /** Default constructor for abastract base class. Default to
+       * solutionNames=["simple"] since we may not have primal, adjoint, qoi,
+       * etc. */
       PhysicsModel( const Communicator& comm_in ) :
         _communicator(comm_in)
       {
         _solutionNames.insert("simple");
       }
 
+      /** Destructor */
       virtual ~PhysicsModel( ){};  /**< Default destructor */
 
+      /** Function called by SurrogateModel to solve for requested solution
+       * vectors at each evaluation point in parameter space  */
       virtual void compute( 
           const T_S& paramVector, 
           std::map<std::string, T_P > solutionVectors 
           ) = 0;
 
+      /** Refinement methods for the physics model */
       virtual void refine( ) = 0;
       std::set<std::string> getSolutionNames( ) const
         { return _solutionNames; }
       
     protected:
+      /** communicator reference */
       const Communicator &_communicator;
+      /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
       std::set<std::string> _solutionNames;
 
       
