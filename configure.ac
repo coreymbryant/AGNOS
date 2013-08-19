@@ -9,7 +9,8 @@ AC_CONFIG_HEADER(config.h)
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET()
-AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+# AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
 AM_SILENT_RULES(yes)  # use silent rules where available - automake 1.11
 
 LT_INIT

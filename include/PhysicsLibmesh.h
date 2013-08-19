@@ -8,6 +8,7 @@
 #include "libmesh/fem_system.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/mesh.h"
+#include "libmesh/mesh_generation.h"
 #include "libmesh/adjoint_refinement_estimator.h"
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/nonlinear_solver.h"
@@ -53,8 +54,6 @@ namespace AGNOS
     protected:
       /** communicator reference */
       const Communicator&   _communicator;
-      /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
-      std::set<std::string> _solutionNames;
       /** reference to input file just incase its needed after initialization */
       const GetPot&         _input;
 
@@ -141,6 +140,10 @@ namespace AGNOS
     for(unsigned int i=0; i<input.vector_variable_size("physics/solutions") ; i++)
       this->_solutionNames.insert( input("physics/solutions"," ",i) ) ;
 
+    std::set<std::string>::iterator it = this->_solutionNames.begin();
+    for (; it!=this->_solutionNames.end(); ++it)
+      std::cout << "Name: " << *it << std::endl;
+
     // default to only primal solution
     if(this->_solutionNames.size() == 0)
       this->_solutionNames.insert("primal");
@@ -148,7 +151,6 @@ namespace AGNOS
     if(AGNOS_DEBUG)
       std::cout << "solutionNames.size()" << this->_solutionNames.size() << std::endl;
     // -----------------------------------------------------------
-
 
 
   }
@@ -193,14 +195,15 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-    /* delete _system; */
-    /* delete _equationSystems; */
-    /* delete _mesh; */
-    /* delete _meshRefinement; */
+    delete _system;
+    delete _equationSystems;
+    delete _mesh;
+    delete _meshRefinement;
+    delete _errorEstimator;
 
     /* delete _qoi; */
     /* delete _qoiDerivative; */
-    /* delete _qois; */
+    delete _qois;
   }
 
 /********************************************//**
@@ -222,13 +225,9 @@ namespace AGNOS
       // An EquationSystems reference will be convenient.
       FEMSystem& system = *_system;
       EquationSystems& es = system.get_equation_systems();
-      if(AGNOS_DEBUG)
-        es.print_info();
 
       // The current mesh
       MeshBase& mesh = es.get_mesh();
-      if(AGNOS_DEBUG)
-        mesh.print_info();
 
       // set parameter values
       this->_setParameterValues( paramVector );
@@ -251,12 +250,21 @@ namespace AGNOS
       // TODO if adjoint requested
       // TODO if error requested
       // TODO if errorIndicators requested
+      //
+      
+      system.adjoint_solve();
+      if(AGNOS_DEBUG)
+        system.get_adjoint_solution(0).print_global();
+      system.set_adjoint_already_solved(true);
       
       // We will declare an error vector for passing to the adjoint refinement error estimator
       ErrorVector QoI_elementwise_error;
       
       // Estimate the error in each element using the Adjoint Refinement estimator
       _errorEstimator->estimate_error(system, QoI_elementwise_error);
+
+      if(AGNOS_DEBUG)
+        std::cout << "post estimate_error" << std::endl;
 
       // save adjoint in solutionVectors
       std::vector<Number> adjointSolution ;
@@ -285,7 +293,7 @@ namespace AGNOS
         if(AGNOS_DEBUG)
           std::cout << "error_per_cell[" << i << "]:" <<
             QoI_elementwise_error[i] << std::endl;
-        errorIndicators(i) = QoI_elementwise_error[i];
+        errorIndicators(i) = std::abs(QoI_elementwise_error[i]);
       }
       solutionVectors.insert( 
           std::pair<std::string,T_P >(

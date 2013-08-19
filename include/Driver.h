@@ -150,11 +150,11 @@ namespace AGNOS
   {
     /* for(unsigned int i=0; i < _physics.size(); i++) */
     /*   delete _physics[i]; */
-    /* _physics.clear(); */
+    _physics.clear();
 
     /* delete _comm; */
-    /* delete _surrogate; */
-    /* delete _errorSurrogate; */
+    delete _surrogate;
+    delete _errorSurrogate;
   }
 
 /********************************************//**
