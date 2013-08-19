@@ -136,7 +136,9 @@ void BurgersSystem::init_data ()
 
   /* GetPot infile("burgers.in"); */
   /* exact_QoI[0] = infile("QoI_0", 0.0); */
-  _mu = 0.1;
+  // TODO set from input file
+  // TODO update using setParameters
+  _mu = 1.0;
   exact_QoI[0] = 5. + 0.5 * 4. * 0.1 * (log(cosh(10./4./_mu))) ;
 
   // Do the parent's initialization after variables are defined
