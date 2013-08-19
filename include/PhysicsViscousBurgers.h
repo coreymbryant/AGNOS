@@ -8,6 +8,7 @@
 #include "BurgersSystem.h"
 
 // libmesh includes
+#include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/edge_edge3.h"
 #include "libmesh/nonlinear_solver.h"
@@ -68,7 +69,8 @@ namespace AGNOS
   PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
         const Communicator& comm_in, 
         const GetPot& input 
-        ) :
+        ) 
+  :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
 
@@ -76,6 +78,7 @@ namespace AGNOS
     _L      = input("physics/L",10.);
     _uMinus = input("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
     _uPlus  = input("physics/uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
+    _nElem  = input("physics/nElem",4);
 
     // and some nonlinear solver parameters
     _nonlinearSteps      = input("physics/nNonlinearSteps",15);
@@ -83,15 +86,11 @@ namespace AGNOS
 
     //----------------------------------------------
     // construct a 1d mesh 
-    this->_mesh = new Mesh(comm_in);
+    this->_mesh = new libMesh::Mesh(this->_communicator,1);
+    /* libMesh::Mesh* mesh = new libMesh::Mesh(this->_communicator); */
     libMesh::MeshTools::Generation::build_line(
         *this->_mesh, _nElem, -1.*_L, _L, EDGE3);
-
-    /* Mesh newMesh(comm_in); */
-    /* libMesh::MeshTools::Generation::build_line( */
-    /*     newMesh, 4, -10., 10., EDGE3); */
-    /* this->_mesh = &newMesh; */
-
+    this->_mesh->print_info();
 
     // define equation system
     this->_equationSystems 
@@ -106,8 +105,31 @@ namespace AGNOS
         AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
 
     // Nonlinear solver options
+    {
       NewtonSolver *solver = new NewtonSolver(*this->_system);
       this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+
+      //TODO read in these setting?
+    solver->quiet                       = true;
+    solver->verbose                     = false;
+    /* solver->max_nonlinear_iterations    = param.max_nonlinear_iterations; */
+    /* solver->minsteplength               = param.min_step_length; */
+    /* solver->relative_step_tolerance     = param.relative_step_tolerance; */
+    /* solver->absolute_residual_tolerance = param.absolute_residual_tolerance; */
+    /* solver->relative_residual_tolerance = param.relative_residual_tolerance; */
+    /* solver->require_residual_reduction  = param.require_residual_reduction; */
+    /* solver->linear_tolerance_multiplier = param.linear_tolerance_multiplier; */
+    /* if (system.time_solver->reduce_deltat_on_diffsolver_failure) */
+    /*   { */
+	solver->continue_after_max_iterations = true;
+	solver->continue_after_backtrack_failure = true;
+      /* } */
+
+    // And the linear solver options
+    /* solver->max_linear_iterations       = param.max_linear_iterations; */
+    /* solver->initial_linear_tolerance    = param.initial_linear_tolerance; */
+    /* solver->minimum_linear_tolerance    = param.minimum_linear_tolerance; */
+    }
 
     this->_equationSystems->init ();
     //----------------------------------------------
@@ -166,7 +188,7 @@ namespace AGNOS
       std::cout << "test: pre print info " << std::endl;
 
     // Print information about the mesh and system to the screen.
-    this->_mesh->print_info();
+
     this->_equationSystems->print_info();
 
     std::cout << "test: system initialized" << std::endl;

@@ -19,7 +19,7 @@ type = 'viscousBurgers'
 min = '-10.0'
 max = '10.0'
 
-n = '4'
+nElem = '16'
 useUniformRefinement = false
 numberHRefinements = '1'
 numberPRefinements = '0'
