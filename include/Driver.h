@@ -7,6 +7,7 @@
 /* #include "PseudoSpectralMonteCarlo.h" */
 /* #include "PseudoSpectralSparseGrid.h" */
 #include "PhysicsViscousBurgers.h"
+#include "PhysicsCatenary.h"
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 
@@ -184,9 +185,10 @@ namespace AGNOS
     }
     else if ( physicsName == "catenary" )
     {
-      /* _physics.push_back( */
-      /*     new AGNOS::PhysicsCatenary<T_S>( input("physics/forcing",-10.0) ) */
-      /*     ); */
+      _physics.push_back(
+          new AGNOS::PhysicsCatenary<T_S,T_P>(
+            _physicsComm, input )
+          );
     }
     else
     {

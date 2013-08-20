@@ -40,7 +40,7 @@ namespace AGNOS
        * vectors at each evaluation point in parameter space  */
       void compute( 
           const T_S& paramVector, 
-          std::map<std::string, T_P > solutionVectors 
+          std::map<std::string, T_P >& solutionVectors 
           ) ;
 
       /** Refinement methods for the physics model */
@@ -102,8 +102,8 @@ namespace AGNOS
       const Communicator& comm_in,
       const GetPot&           input
       ) : 
-    PhysicsModel<T_S,T_P>(comm_in),
-    _input(input), _communicator(comm_in)
+    PhysicsModel<T_S,T_P>(comm_in,input),
+    _communicator(comm_in),_input(input)
   {
 
 
@@ -130,26 +130,6 @@ namespace AGNOS
 
     // other options
     _resolveAdjoint       = input("physics/resolveAdjoint",false);
-    // -----------------------------------------------------------
-
-
-    // -----------------------------------------------------------
-    // which solutions do we want to compute a surrogate for
-    this->_solutionNames.clear( );
-
-    for(unsigned int i=0; i<input.vector_variable_size("physics/solutions") ; i++)
-      this->_solutionNames.insert( input("physics/solutions"," ",i) ) ;
-
-    std::set<std::string>::iterator it = this->_solutionNames.begin();
-    for (; it!=this->_solutionNames.end(); ++it)
-      std::cout << "Name: " << *it << std::endl;
-
-    // default to only primal solution
-    if(this->_solutionNames.size() == 0)
-      this->_solutionNames.insert("primal");
-
-    if(AGNOS_DEBUG)
-      std::cout << "solutionNames.size()" << this->_solutionNames.size() << std::endl;
     // -----------------------------------------------------------
 
 
@@ -212,7 +192,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::compute(
         const T_S& paramVector,
-        std::map<std::string, T_P > solutionVectors 
+        std::map<std::string, T_P >& solutionVectors 
         ) 
     {
       if (AGNOS_DEBUG)

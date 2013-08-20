@@ -27,7 +27,6 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 bin_PROGRAMS = catenary
 
 catenary_SOURCES = \
-									 runCatenary.C \
 									 $(top_srcdir)/src/agnos.C
 
 MAINTAINERCLEANFILES = Makefile.in testFile.dat
