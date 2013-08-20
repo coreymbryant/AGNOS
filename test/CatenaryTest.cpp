@@ -11,10 +11,15 @@
 #include <assert.h>
 
 #include "agnosDefines.h"
+#undef AGNOS_DEBUG
+#define AGNOS_DEBUG 0
+
+
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
 
 #include "PhysicsCatenary.h"
+
 
 using namespace AGNOS;
 
@@ -35,9 +40,9 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
       new Parameter(UNIFORM, 1.0,3.0)
       ); 
 
-  PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( -10.0 );
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionPrimal<T_S,T_P>( myPhysics ) ;
+  const GetPot& inputfile("dummy.in");
+
+  PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>(comm,inputfile );
 
 BOOST_AUTO_TEST_CASE(Catenary_N0)
 {
@@ -46,8 +51,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics,
         myParameters, 
         myOrder  
         );
@@ -55,6 +60,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
   mySurrogate->build( );
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
+
+  std::cout << "primal coeff" << myCoeff["primal"][0].size() << std::endl;
 
   BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , -10.0/16.0, 1e-9 );
 
@@ -67,8 +74,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
   std::vector<unsigned int> myOrder(dimension,1);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -95,8 +102,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -137,8 +144,8 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );

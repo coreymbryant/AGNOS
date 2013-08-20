@@ -262,22 +262,31 @@ namespace AGNOS
       // solve for my integration points
       for(unsigned int pt=0; pt < nPts; pt++)
       {
-        /* std::cout << "test: beginning of pt" << std::endl; */
+        if (AGNOS_DEBUG)
+          std::cout << "test: beginning of pt" << std::endl;
 
 
-        /* std::cout << "test: pt (pre computeContribution)" << std::endl; */
+
+        if (AGNOS_DEBUG)
+          std::cout << "test: pt (pre computeContribution)" << std::endl;
+
         // compute the contribution
         myContribs.push_back( computeContribution( 
             this->_physics,
             _integrationPoints[intPtsStart + pt*this->_comm.size() ], 
             _integrationWeights[intPtsStart + pt*this->_comm.size() ]
             ) );
-        /* std::cout << "test: pt (post computeContribution)" << std::endl; */
+
+        if (AGNOS_DEBUG)
+          std::cout << "test: pt (post computeContribution)" << std::endl;
+
         polyValues.push_back(
             evaluateBasis( this->_indexSet, _integrationPoints[intPtsStart +
               pt*this->_comm.size()]) 
             );
-        /* std::cout << "test: end of pt" << std::endl; */
+
+        if (AGNOS_DEBUG)
+          std::cout << "test: end of pt" << std::endl;
       }
 
       // need to know size of solution vector on all processes (in case some
@@ -291,6 +300,10 @@ namespace AGNOS
           tempSize = myContribs[0][*id].size();
 
         this->_comm.broadcast(tempSize);
+
+        if(AGNOS_DEBUG)
+          std::cout << "surrogate build -- solSize[" << *id << "]:" <<
+            tempSize << std::endl;
 
         this->_solSize.insert( std::pair<std::string,unsigned int>(
               *id,tempSize ) );
@@ -369,23 +382,33 @@ namespace AGNOS
         )
     {
 
-      /* std::cout << "test: computeContribution( ) beginning" << std::endl; */
+      if (AGNOS_DEBUG)
+        std::cout << "test: computeContribution( ) beginning" << std::endl;
       
 
       std::map< std::string, T_P > contrib;
 
       
-      /* std::cout << "test: computeContribution( ) pre compute()" << std::endl; */
+      if (AGNOS_DEBUG)
+        std::cout << "test: computeContribution( ) pre compute()" << std::endl;
+
       // get solution for this integration point
       physics->compute( integrationPoint, contrib );
 
-      /* std::cout << "test: computeContribution( ) post compute()" << std::endl; */
+      if (AGNOS_DEBUG)
+      {
+        std::cout << "test: computeContribution( ) post compute()" << std::endl;
+        std::cout << "contrib['primal'].size():" << contrib["primal"].size() <<
+                                                    std::endl;
+      }
+
       std::set<std::string>::iterator id = this->_solutionNames.begin();
       for(;id!=this->_solutionNames.end();++id)
         contrib[*id].scale( integrationWeight );
 
 
-      /* std::cout << "test: computeContribution( ) ending" << std::endl; */
+      if (AGNOS_DEBUG)
+        std::cout << "test: computeContribution( ) ending" << std::endl;
       return contrib;
     }
 
