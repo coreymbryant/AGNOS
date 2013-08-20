@@ -1,6 +1,6 @@
 
 #include "agnosDefines.h"
-#include "DriverPhysics.h"
+#include "Driver.h"
 
 #include "PhysicsCatenary.h"
 
@@ -19,17 +19,10 @@
 void run ( const Communicator& comm, GetPot& input )
 {
 
-  AGNOS::PhysicsModel<T_S,T_P>* myPhysics = new AGNOS::PhysicsCatenary<T_S,T_P>( 
-      input("physics/forcing",-10.0) );
-
-
-  // this should be the same for any user 
-  // (unless DriverFunction is used)
-  AGNOS::DriverPhysics myDriver( comm, myPhysics, input );
+  AGNOS::Driver myDriver(comm,comm,input);
 
   myDriver.run( );
 
-  delete myPhysics;
 
   return;
 }

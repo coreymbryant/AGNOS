@@ -1,5 +1,5 @@
 [driver]
-maxIter = '5'
+maxIter = '1'
 []
 
 [parameters]
@@ -12,12 +12,14 @@ maxs = '3.0'
 [physics]
 type = 'catenary'
 forcing = '-10.0'
+
+solutions='primal adjoint qoi'
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '1 1 1 1 1 1 1 1 1 1'
+order = '1'
 []
 
 [output]
