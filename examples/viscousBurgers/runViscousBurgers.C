@@ -1,7 +1,6 @@
 
 #include "agnosDefines.h"
 #include "Driver.h"
-/* #include "DriverPhysics.h" */
 
 #include "PhysicsViscousBurgers.h"
 
@@ -32,5 +31,3 @@ void run ( const Communicator& comm, const GetPot& input )
 
   return;
 }
-
-

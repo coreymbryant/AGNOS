@@ -77,6 +77,9 @@ public:
 	}
     }
 
+
+  double _mu;
+
   protected:
   // System initialization
   virtual void init_data ();
@@ -89,9 +92,6 @@ public:
   virtual bool element_time_derivative (bool request_jacobian,
 					DiffContext &context);
 
-  // Constraint parts
-  virtual bool side_constraint (bool request_jacobian,
-				DiffContext &context);
 
   // Overloading the postprocess function
 
@@ -109,8 +109,6 @@ public:
 
 
   Number exact_solution (const Point&);
-
-  double _mu;
 
   // Variables to hold the computed QoIs
 
@@ -234,62 +232,6 @@ bool BurgersSystem::element_time_derivative (bool request_jacobian,
                 // -1/2 (du - 2 u du , v_x)
                 + 0.5 * phi[j][qp] * (1. - 2. * u) * dphi[i][qp](0)
               );
-    } // end of the quadrature point qp-loop
-
-  return compute_jacobian;
-}
-
-// Set Dirichlet bcs, side contributions to global stiffness matrix
-bool BurgersSystem::side_constraint (bool request_jacobian,
-				  DiffContext &context)
-{
-  // Are the jacobians specified analytically ?
-  bool compute_jacobian = request_jacobian && _analytic_jacobians;
-
-  FEMContext &c = libmesh_cast_ref<FEMContext&>(context);
-
-  // First we get some references to cell-specific data that
-  // will be used to assemble the linear system.
-  FEBase* side_fe = NULL;
-  c.get_side_fe( 0, side_fe );
-
-  // Element Jacobian * quadrature weights for interior integration
-  const std::vector<Real> &JxW = side_fe->get_JxW();
-
-  // Side basis functions
-  const std::vector<std::vector<Real> > &phi = side_fe->get_phi();
-
-  // Side Quadrature points
-  const std::vector<Point > &qside_point = side_fe->get_xyz();
-
-  // The number of local degrees of freedom in each variable
-  const unsigned int n_u_dofs = c.get_dof_indices(0).size();
-
-  // The subvectors and submatrices we need to fill:
-  DenseSubMatrix<Number> &K = c.get_elem_jacobian(0,0);
-  DenseSubVector<Number> &F = c.get_elem_residual(0);
-
-  unsigned int n_qpoints = c.get_side_qrule().n_points();
-
-  const Real penalty = 1./(TOLERANCE*TOLERANCE);
-
-  for (unsigned int qp=0; qp != n_qpoints; qp++)
-    {
-      // Compute the solution at the old Newton iterate
-      Number u = c.side_value(0, qp);
-
-      // We get the Dirichlet bcs from the exact solution
-      Number u_dirichlet = exact_solution (qside_point[qp]);
-
-      // The residual from the boundary terms, penalize non-zero temperature
-      for (unsigned int i=0; i != n_u_dofs; i++)
-        F(i) += JxW[qp] * penalty * ( u - u_dirichlet) * phi[i][qp];
-      if (compute_jacobian)
-        for (unsigned int i=0; i != n_u_dofs; i++)
-          for (unsigned int j=0; j != n_u_dofs; ++j)
-            // The analytic jacobian
-            K(i,j) += JxW[qp] * penalty * phi[i][qp] * phi[j][qp];
-
     } // end of the quadrature point qp-loop
 
   return compute_jacobian;
