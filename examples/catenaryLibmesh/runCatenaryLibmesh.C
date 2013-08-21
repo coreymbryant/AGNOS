@@ -1,6 +1,6 @@
 
 #include "agnosDefines.h"
-#include "DriverPhysics.h"
+#include "Driver.h"
 
 #include "PhysicsCatenaryLibmesh.h"
 
@@ -16,23 +16,18 @@
  * 
  ***********************************************/
 
-void run ( const Communicator& comm, GetPot& input )
+void run ( const Communicator& comm, const GetPot& input )
 {
 
-  AGNOS::PhysicsModel<T_S,T_P>* myPhysics = 
-    new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( 
-      comm, input );
+  AGNOS::Driver myDriver(comm,comm,input);
 
 
   // this should be the same for any user 
   // (unless DriverFunction is used)
-  AGNOS::DriverPhysics myDriver( comm, myPhysics, input );
+  /* AGNOS::DriverPhysics myDriver( comm, myPhysics, input ); */
 
   myDriver.run( );
 
-  delete myPhysics;
 
   return;
 }
-
-

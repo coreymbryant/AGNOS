@@ -5,15 +5,20 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "AssemblyCatenary.h"
-#include "QoiCatenary.h"
-#include "QoiDerivativeCatenary.h"
+#include "CatenarySystem.h"
 
 // libmesh includes
 #include "libmesh/mesh_generation.h"
 #include "libmesh/edge_edge2.h"
 #include "libmesh/linear_implicit_system.h"
+#include "libmesh/steady_solver.h"
+#include "libmesh/newton_solver.h"
+#include "libmesh/zero_function.h"
+#include "libmesh/const_function.h"
+#include "libmesh/dirichlet_boundaries.h"
+#include "libmesh/dof_map.h"
         
+
 
 namespace AGNOS
 {
@@ -31,27 +36,38 @@ namespace AGNOS
   {
 
     public:
-      PhysicsCatenaryLibmesh( 
-          const Communicator&       comm,
-          const GetPot& input
-          );
-      ~PhysicsCatenaryLibmesh( );
+      /** Constructor. Pass input file to provide setting to physics class */
+      PhysicsCatenaryLibmesh( const Communicator& comm_in, const GetPot& input );
+
+      /** destructor */
+      virtual ~PhysicsCatenaryLibmesh( );
 
       void setParameterValues( const T_S& parameterValues ) ;
 
     protected:
-      PhysicsAssembly<T_S>*           m_physicsAssembly;
+      /** Geometry and boundary data */
+      double          _min;
+      double          _max;
+      unsigned int    _nElem;
 
-      double          m_forcing;
-      double          m_min;
-      double          m_max;
+      double          _forcing;
 
-      void _initializeSystem( );
-      void _constructMesh( );
-
+      /** set parameter values */
+      virtual void _setParameterValues( const T_S& parameterValues ) ;
 
   };
 
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+  PhysicsCatenaryLibmesh<T_S,T_P>::~PhysicsCatenaryLibmesh( )
+  {
+    /* delete this->_system; */
+    /* delete this->_mesh; */
+    /* delete this->_qois; */
+    /* delete this->_equationSystems; */
+  }
 
 
 
@@ -60,89 +76,123 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsCatenaryLibmesh<T_S,T_P>::PhysicsCatenaryLibmesh(
-      const Communicator&       comm,
-      const GetPot&             physicsInput
-      ) : PhysicsLibmesh<T_S,T_P>(comm,physicsInput)
+        const Communicator& comm_in, 
+        const GetPot& input 
+      )
+  :
+    PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
-    m_min             = physicsInput("physics/min",0.);
-    m_max             = physicsInput("physics/max",1.);
-    m_forcing         = physicsInput("physics/forcing",-10.);
+    _min    = input("physics/min",0.);
+    _max    = input("physics/max",1.);
+    _nElem  = input("physics/nElem",4);
 
-    this->init( );
+    _forcing = input("physics/forcing",-10.);
+
     
-
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsCatenaryLibmesh<T_S,T_P>::~PhysicsCatenaryLibmesh( )
-  {
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsCatenaryLibmesh<T_S,T_P>::_constructMesh( )
-  {
+    /** construct mesh (line) */
+    this->_mesh = new libMesh::Mesh(this->_communicator,1);
     libMesh::MeshTools::Generation::build_line(
-        this->m_mesh,this->m_n,m_min,m_max,EDGE3);
+        *this->_mesh,this->_nElem,_min,_max,EDGE2);
+    this->_mesh->print_info();
 
-    return;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsCatenaryLibmesh<T_S,T_P>::_initializeSystem( )
-  {
-    // define equation system
-    this->m_equation_systems 
-      = new libMesh::EquationSystems(this->m_mesh);
-    this->m_system = &( 
-        this->m_equation_systems->add_system("LinearImplicit", "1D")
+    /** define equation system */
+    this->_equationSystems 
+      = new libMesh::EquationSystems(*this->_mesh);
+    this->_system = &( 
+        this->_equationSystems->template add_system<CatenarySystem>("Catenary")
         ) ;
 
-    // add variable (first order)
-    this->m_system->add_variable("u",FIRST);
+    if (AGNOS_DEBUG)
+      std::cout << "post add system" << std::endl;
+    
+    // No transient time solver
+    this->_system->time_solver =
+        AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
+    {
+      NewtonSolver *solver = new NewtonSolver(*this->_system);
+      this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      
+      //TODO read in these setting?
+      solver->quiet                       = true;
+      solver->verbose                     = false;
+      solver->max_nonlinear_iterations    = 1;
+      solver->continue_after_max_iterations = true;
+      solver->continue_after_backtrack_failure = true;
+    }
+    if (AGNOS_DEBUG)
+      std::cout << "post solver set up" << std::endl;
 
-    // provide pointer to assemly routine
-    m_physicsAssembly = new AssemblyCatenary<T_S>( 
-        *this->m_equation_systems, "1D");
-    m_physicsAssembly->setSystemData( this->m_input );
+    this->_equationSystems->init ();
+    /** set up boundary conditions */
+    std::set<boundary_id_type> minusBoundaries;
+    minusBoundaries.insert(0);
+    std::set<boundary_id_type> plusBoundaries;
+    plusBoundaries.insert(1);
 
-    // provide pointer to assemly routine
-    this->m_system->attach_assemble_object( *m_physicsAssembly );
+    std::vector<unsigned int> variables(1);
+    variables[0] = 0;
 
-    // QoISet
-    this->m_qois = new libMesh::QoISet;
+    ConstFunction<double> uPlus(0.0);
+    ConstFunction<double> uMinus(0.0);
+
+    libMesh::DirichletBoundary minus_bc(minusBoundaries,variables,&uMinus);
+    libMesh::DirichletBoundary plus_bc(plusBoundaries,variables,&uPlus);
+    this->_system->get_dof_map().add_dirichlet_boundary(minus_bc);
+    this->_system->get_dof_map().add_dirichlet_boundary(plus_bc);
+
+
+    if (AGNOS_DEBUG)
+      std::cout << "post BC set up" << std::endl;
+    /** initialize equation system */
+    this->_equationSystems->init ();
+    if (AGNOS_DEBUG)
+      std::cout << "post init system" << std::endl;
+    
+    //----------------------------------------------
+    // set up QoISet object 
+    this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
     qoi_indices.push_back(0);
-    this->m_qois->add_indices(qoi_indices);
-    this->m_qois->set_weight(0, 1.0);
-                            
-    //pointer to qoi
-    this->m_qoi = new QoiCatenary<T_S>(
-        *this->m_equation_systems, "1D");
+    this->_qois->add_indices(qoi_indices);
 
-    // pointer to qoi derivative assembly
-    this->m_system->qoi.resize(1);
-    this->m_qoiDerivative = new QoiDerivativeCatenary<T_S>(
-        *this->m_equation_systems, "1D");
+    // weight the qois (in case we have more than 1)
+    this->_qois->set_weight(0, 1.0);
+    //----------------------------------------------
+
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre mesh_refinement " << std::endl;
+    
+    //----------------------------------------------
+    // build mesh refinement object 
+    this->_buildMeshRefinement();
+
+    // build error estimator object
+    this->_buildErrorEstimator();
+    //----------------------------------------------
+
+    if (AGNOS_DEBUG)
+      std::cout << "test: post error estimator " << std::endl;
+    
+
+    this->_equationSystems->init ();
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre print info " << std::endl;
+
+    // Print information about the mesh and system to the screen.
+
+    this->_equationSystems->print_info();
+
+    std::cout << "test: system initialized" << std::endl;
   }
 
   /********************************************//**
    * \brief 
    ***********************************************/
   template<class T_S, class T_P>
-    void PhysicsCatenaryLibmesh<T_S,T_P>::setParameterValues( 
+    void PhysicsCatenaryLibmesh<T_S,T_P>::_setParameterValues( 
         const T_S& parameterValues ) 
     {
-      m_physicsAssembly->setParameterValues( parameterValues );
-      return;
+      static_cast<CatenarySystem*>(this->_system)->_coeff = parameterValues(0) ;
     }
 
 

@@ -27,7 +27,6 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 bin_PROGRAMS = catenaryLibmesh
 
 catenaryLibmesh_SOURCES = \
-									 runCatenaryLibmesh.C \
 									 $(top_srcdir)/src/agnos.C
 
 MAINTAINERCLEANFILES = Makefile.in testFile.dat

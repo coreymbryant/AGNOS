@@ -8,6 +8,7 @@
 /* #include "PseudoSpectralSparseGrid.h" */
 #include "PhysicsViscousBurgers.h"
 #include "PhysicsCatenary.h"
+#include "PhysicsCatenaryLibmesh.h"
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 
@@ -179,9 +180,9 @@ namespace AGNOS
     }
     else if ( physicsName == "catenaryLibmesh" )
     {
-      /* _physics.push_back( */
-      /*     new AGNOS::PhysicsCatenaryLibmesh<T_S>( input ) */
-      /*     ); */
+      _physics.push_back(
+          new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( _physicsComm, input )
+          );
     }
     else if ( physicsName == "catenary" )
     {

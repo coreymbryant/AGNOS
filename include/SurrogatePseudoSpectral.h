@@ -299,10 +299,14 @@ namespace AGNOS
         if (this->_comm.rank() == 0)
           tempSize = myContribs[0][*id].size();
 
+        if(AGNOS_DEBUG)
+          std::cout << "surrogate build -- solSize[" << *id << "]:" <<
+            tempSize << std::endl;
+
         this->_comm.broadcast(tempSize);
 
         if(AGNOS_DEBUG)
-          std::cout << "surrogate build -- solSize[" << *id << "]:" <<
+          std::cout << "surrogate build --(post_broadcast) solSize[" << *id << "]:" <<
             tempSize << std::endl;
 
         this->_solSize.insert( std::pair<std::string,unsigned int>(
@@ -328,10 +332,15 @@ namespace AGNOS
       // clear old coefficients
       this->_coefficients.clear();
 
+      if(AGNOS_DEBUG)
+        std::cout << "surrogate build before computing coeffs" << std::endl ;
+
       //-- loop through sols
       for (id=this->_solutionNames.begin();
           id!=this->_solutionNames.end(); id++)
       {
+        if(AGNOS_DEBUG)
+          std::cout << "surrogate build computing coeffs: " << *id << std::endl ;
         // temporary storage for my coefficients for this sol
         std::vector<T_P> solCoefficientVectors;
         solCoefficientVectors.reserve(nCoeffs);
@@ -367,6 +376,8 @@ namespace AGNOS
 
       } // id
 
+        if(AGNOS_DEBUG)
+          std::cout << "leaving surrogate build " << std::endl ;
       return;
     } 
 
@@ -400,6 +411,8 @@ namespace AGNOS
         std::cout << "test: computeContribution( ) post compute()" << std::endl;
         std::cout << "contrib['primal'].size():" << contrib["primal"].size() <<
                                                     std::endl;
+        std::cout << "contrib['adjoint'].size():" << contrib["adjoint"].size() <<
+                                                    std::endl;
       }
 
       std::set<std::string>::iterator id = this->_solutionNames.begin();
@@ -422,6 +435,8 @@ namespace AGNOS
         T_S& parameterValues /**< parameter values to evaluate*/
         )
     {
+      if(AGNOS_DEBUG)
+        std::cout << "entering surrogate evaluate" << std::endl;
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::map< std::string, T_P> surrogateValue;
 
@@ -438,6 +453,9 @@ namespace AGNOS
         std::string id = solutionNames[n];
 
         std::vector<double> sumContrib(this->_solSize[id],0.);
+        if(AGNOS_DEBUG)
+          std::cout << "evaluating surrogate model for: " << solutionNames[n] <<
+            "with size:" << sumContrib.size() << std::endl;
 
         for(unsigned int c=0; c < this->_coefficients[id].size(); c++)
         {
@@ -457,6 +475,8 @@ namespace AGNOS
 
       } // solNames
 
+      if(AGNOS_DEBUG)
+        std::cout << "leaving surrogate evaluate" << std::endl;
       return surrogateValue;
     }
 
