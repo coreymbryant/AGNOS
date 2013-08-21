@@ -49,7 +49,7 @@ namespace AGNOS
 
       
       /** Return libMesh mesh object */
-      const libMesh::Mesh getMesh( ) const { return _mesh; }
+      const libMesh::Mesh getMesh( ) const { return *_mesh; }
 
     protected:
       /** communicator reference */
@@ -124,8 +124,8 @@ namespace AGNOS
 
     // read refinement options
     _useUniformRefinement = input("physics/useUniformRefinement",true);
-    _numberHRefinements   = input("physics/numberHRefinements",0);
-    _numberPRefinements   = input("physics/numberPRefinements",1);
+    _numberHRefinements   = input("physics/numberHRefinements",1);
+    _numberPRefinements   = input("physics/numberPRefinements",0);
     _maxRefineSteps       = input("physics/maxRefineSteps",1);
 
     // other options
@@ -175,15 +175,12 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-    delete _system;
-    delete _equationSystems;
-    delete _mesh;
-    delete _meshRefinement;
-    delete _errorEstimator;
-
-    /* delete _qoi; */
-    /* delete _qoiDerivative; */
-    delete _qois;
+    /* delete _system; */
+    /* delete _mesh; */
+    /* delete _meshRefinement; */
+    /* delete _errorEstimator; */
+    /* delete _qois; */
+    /* delete _equationSystems; */
   }
 
 /********************************************//**
@@ -209,6 +206,7 @@ namespace AGNOS
       // The current mesh
       MeshBase& mesh = es.get_mesh();
 
+      
       // set parameter values
       this->_setParameterValues( paramVector );
       // reinitialize system
@@ -249,6 +247,9 @@ namespace AGNOS
       // save adjoint in solutionVectors
       std::vector<Number> adjointSolution ;
       system.get_adjoint_solution(0).localize(adjointSolution);
+      if(AGNOS_DEBUG)
+        std::cout << "post estimate_error:adjoint solution size" << adjointSolution.size() << std::endl;
+      
       solutionVectors.insert( 
           std::pair<std::string,T_P >( "adjoint", T_P(adjointSolution) )
             );
@@ -287,7 +288,7 @@ namespace AGNOS
       qoiValue(0) = system.qoi[0] ;
       solutionVectors.insert( 
           std::pair<std::string,T_P >(
-            "qoiValue", qoiValue)
+            "qoi", qoiValue)
             );
       if(AGNOS_DEBUG)
         std::cout << "qoi[0]:" << qoiValue(0) << std::endl;
