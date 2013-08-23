@@ -17,6 +17,10 @@
 #include "libmesh/elem.h"
 #include "libmesh/point.h"
 #include "libmesh/gnuplot_io.h"
+#include "libmesh/zero_function.h"
+#include "libmesh/const_function.h"
+#include "libmesh/dirichlet_boundaries.h"
+#include "libmesh/dof_map.h"
 
 // Bring in everything from the libMesh namespace
 using namespace libMesh;
@@ -76,15 +80,34 @@ public:
 
 void CatenarySystem::init_data ()
 {
-  this->add_variable ("u",FIRST) ;
+  unsigned int u_var = this->add_variable ("u",FIRST) ;
+  this->time_evolving(u_var);
   // TODO update using setParameters
   /* _coeff = 1.0; */
   _forcing = -10.0;
 
+    /** set up boundary conditions */
+    std::set<boundary_id_type> minusBoundaries;
+    minusBoundaries.insert(0);
+    std::set<boundary_id_type> plusBoundaries;
+    plusBoundaries.insert(1);
+
+    std::vector<unsigned int> variables(1,u_var);
+    ZeroFunction<double> zf;
+
+    /* libMesh::DirichletBoundary minus_bc(minusBoundaries,variables,&uMinus); */
+    /* libMesh::DirichletBoundary plus_bc(plusBoundaries,variables,&uPlus); */
+    this->get_dof_map().add_dirichlet_boundary(
+        DirichletBoundary(minusBoundaries,variables,&zf) );
+    this->get_dof_map().add_dirichlet_boundary(
+        DirichletBoundary(plusBoundaries,variables,&zf) );
+    if (AGNOS_DEBUG)
+      std::cout << "post BC set up" << std::endl;
+    //---------------------------------------------
+
   // Do the parent's initialization after variables are defined
   FEMSystem::init_data();
 
-  this->time_evolving(0);
 }
 
 void CatenarySystem::init_context(DiffContext &context)
@@ -99,11 +122,11 @@ void CatenarySystem::init_context(DiffContext &context)
   elem_fe->get_phi();
   elem_fe->get_dphi();
 
-  FEBase* side_fe = NULL;
-  c.get_side_fe( 0, side_fe );
-  side_fe->get_JxW();
-  side_fe->get_phi();
-  side_fe->get_dphi();
+/*   FEBase* side_fe = NULL; */
+/*   c.get_side_fe( 0, side_fe ); */
+/*   side_fe->get_JxW(); */
+/*   side_fe->get_phi(); */
+/*   side_fe->get_dphi(); */
 }
 
 #define optassert(X) {if (!(X)) libmesh_error();}
