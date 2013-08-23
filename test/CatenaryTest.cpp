@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
       new Parameter(UNIFORM, 1.0,3.0)
       ); 
 
-  const GetPot& inputfile("dummy.in");
+  const GetPot inputfile = GetPot();
 
   PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>(comm,inputfile );
 

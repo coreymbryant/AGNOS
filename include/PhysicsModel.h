@@ -35,7 +35,9 @@ namespace AGNOS
           const Communicator& comm_in,
           const GetPot& input
           ) :
-        _input(input),_communicator(comm_in)
+        _input(input),
+        _communicator(comm_in),
+        _compute_function(NULL)
       {
         // -----------------------------------------------------------
         // which solutions do we want to compute a surrogate for
@@ -73,12 +75,35 @@ namespace AGNOS
       virtual void compute( 
           const T_S& paramVector, 
           std::map<std::string, T_P >& solutionVectors 
-          ) = 0;
+          ) 
+      { 
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: calling provided compute function\n" ;
+
+        if(_compute_function != NULL)
+          this->_compute_function(paramVector, solutionVectors);
+
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: ending call to provided compute function\n" ;
+
+      }
 
       /** Refinement methods for the physics model */
-      virtual void refine( ) = 0;
+      virtual void refine( ) {};
+
+      /** return requested solution names */
       std::set<std::string> getSolutionNames( ) const
         { return _solutionNames; }
+
+
+      /** attach a user defined compute function */
+      void attach_compute_function(
+          void fptr(const T_S& paramVector,std::map<std::string,T_P>& solutionVectors)
+          )
+      {
+        libmesh_assert(fptr);
+        _compute_function = fptr;
+      }
       
     protected:
       /** communicator reference */
@@ -88,6 +113,10 @@ namespace AGNOS
       /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
       std::set<std::string> _solutionNames;
 
+      /** Function pointer to compute function */
+      void(* _compute_function)(
+          const T_S& paramVector, 
+          std::map<std::string, T_P >& solutionVectors ) ;
       
   }; // PhysicsModel class
 

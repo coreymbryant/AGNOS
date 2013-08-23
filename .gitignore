@@ -42,6 +42,10 @@ examples/viscousBurgers/viscousBurgers
 
 *testFile.dat
 
+build-aux/
+
 *.o
 *.deps/
 *.swp
+*.log
+*.trs
