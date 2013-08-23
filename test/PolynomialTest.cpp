@@ -11,6 +11,9 @@
 #include <assert.h>
 
 #include "agnosDefines.h"
+#undef AGNOS_DEBUG
+#define AGNOS_DEBUG 0
+
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
 
@@ -21,36 +24,54 @@ using namespace AGNOS;
   typedef libMesh::DenseVector<double> T_P ;
   typedef libMesh::DenseVector<double> T_S ;
   // linear test function
-  T_P linearFunction (const T_S& paramVec)
+  void linearFunction (
+      const T_S& paramVec, 
+      std::map<std::string,T_P>& solutionVectors
+      )
   {
     T_P returnVec(1);
     returnVec(0)=paramVec(0);
     for(unsigned int dim=1; dim<paramVec.size(); dim++)
       returnVec(0) *= paramVec(dim) ;
-    return returnVec ;
+
+    solutionVectors.clear();
+    solutionVectors.insert(std::pair<std::string,T_P>("primal",returnVec) );
   }
 
+
   // quadratic test function
-  T_P quadFunction (const T_S& paramVec)
+  void quadFunction (
+      const T_S& paramVec, 
+      std::map<std::string,T_P>& solutionVectors
+      )
   {
     T_P returnVec(1);
     returnVec(0) = paramVec(0) * paramVec(0) ;
     for(unsigned int dim=1; dim<paramVec.size(); dim++)
       returnVec(0) *= (paramVec(dim)*paramVec(dim)) ;
-    return returnVec ;
+
+    solutionVectors.clear();
+    solutionVectors.insert(std::pair<std::string,T_P>("primal",returnVec) );
   }
 
+
   // mixed-order 5 dimensional exammple
-  T_P mixedFunction (const T_S& paramVec)
+  void mixedFunction (
+      const T_S& paramVec, 
+      std::map<std::string,T_P>& solutionVectors
+      )
   {
     T_P returnVec(1);
     returnVec(0) = paramVec(2)  + paramVec(1)*paramVec(1)*paramVec(0) + std::pow(paramVec(3),3) ;
-    return returnVec ;
+
+    solutionVectors.clear();
+    solutionVectors.insert(std::pair<std::string,T_P>("primal",returnVec) );
   }
 
 BOOST_AUTO_TEST_SUITE(Polynomials_tensorProduct)
 
   const Communicator comm( MPI_COMM_NULL );
+  const GetPot inputfile = GetPot();
 
 BOOST_AUTO_TEST_CASE(Linear_1D)
 {
@@ -66,13 +87,14 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
       new Parameter(UNIFORM, -1.0,1.0)
       ); 
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "linear", &linearFunction ) ;
+  PhysicsModel<T_S,T_P>* myPhysics=
+    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
+  myPhysics->attach_compute_function(&linearFunction);
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -81,7 +103,7 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff["linear"][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["primal"][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Linear_ND)
@@ -95,13 +117,14 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
       new Parameter(UNIFORM, -1.0,1.0)
       ); 
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "linear", &linearFunction ) ;
+  PhysicsModel<T_S,T_P>* myPhysics=
+    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
+  myPhysics->attach_compute_function(&linearFunction);
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -112,7 +135,7 @@ BOOST_AUTO_TEST_CASE(Linear_ND)
 
 
   BOOST_CHECK_CLOSE( 
-      myCoeff["linear"].back()(0) , 
+      myCoeff["primal"].back()(0) , 
       std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
         static_cast<int>(dimension)), 
       1e-4 );
@@ -130,13 +153,14 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
       new Parameter(UNIFORM, -1.0,1.0)
       ); 
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "quad", &quadFunction ) ;
+  PhysicsModel<T_S,T_P>* myPhysics=
+    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
+  myPhysics->attach_compute_function(&quadFunction);
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -145,8 +169,8 @@ BOOST_AUTO_TEST_CASE(Quad_1D)
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , 1.0/3.0 , 1e-9 );
-  BOOST_CHECK_CLOSE( myCoeff["quad"][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , 1.0/3.0 , 1e-9 );
+  BOOST_CHECK_CLOSE( myCoeff["primal"][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
 }
 
 BOOST_AUTO_TEST_CASE(Quad_ND)
@@ -161,13 +185,14 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
       new Parameter(UNIFORM, -1.0,1.0)
       ); 
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "quad", &quadFunction ) ;
+  PhysicsModel<T_S,T_P>* myPhysics=
+    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
+  myPhysics->attach_compute_function(&quadFunction);
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -176,11 +201,11 @@ BOOST_AUTO_TEST_CASE(Quad_ND)
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
 
-  BOOST_CHECK_CLOSE( myCoeff["quad"][0](0) , 
+  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , 
       std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)), 
       1e-9 );
   BOOST_CHECK_CLOSE( 
-      myCoeff["quad"].back()(0) , 
+      myCoeff["primal"].back()(0) , 
       std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
         static_cast<int>(dimension)), 
       1e-9 );
@@ -203,13 +228,14 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
       new Parameter(UNIFORM, -1.0,1.0)
       ); 
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "mixed", &mixedFunction ) ;
+  PhysicsModel<T_S,T_P>* myPhysics=
+    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
+  myPhysics->attach_compute_function(&mixedFunction);
 
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
     PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -228,29 +254,29 @@ BOOST_AUTO_TEST_CASE(OrderN_1D)
 
   // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
   BOOST_CHECK_CLOSE( 
-      myCoeff["mixed"][4](0) , 
+      myCoeff["primal"][4](0) , 
       std::sqrt(1.0/3.0),
       1e-9 );
 
   // 1 2 0 0 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
   BOOST_CHECK_CLOSE(
-      myCoeff["mixed"][40](0),
+      myCoeff["primal"][40](0),
       2.0/(3.0 * std::sqrt(3.0*5.0)) ,
       1e-9 );
   BOOST_CHECK_CLOSE(
-      myCoeff["mixed"][24](0),
+      myCoeff["primal"][24](0),
       1.0 / ( 3.0 * std::sqrt(3.0) ),
       1e-9 );
 
   // 0 0 0 3 0  = 1
   // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
   BOOST_CHECK_CLOSE(
-      myCoeff["mixed"][3](0),
+      myCoeff["primal"][3](0),
       2.0 / ( 5.0 * std::sqrt(7.0) ),
       1e-9 );
   BOOST_CHECK_CLOSE(
-       myCoeff["mixed"][1](0),
+       myCoeff["primal"][1](0),
        3.0 / ( 5.0 * std::sqrt(3.0) ), 
        1e-9 );
 }

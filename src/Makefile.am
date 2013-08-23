@@ -2,7 +2,7 @@
 # Programs and libraries we want to build
 #----------------------------------------
 
-# bin_PROGRAMS = agnos 
+bin_PROGRAMS = agnos 
 
 #--------------------------------------
 #Local Directories to include for build
@@ -28,8 +28,10 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 # run_SOURCES =$(top_srcdir)/src/run.C \
 # 							 $(top_srcdir)/src/agnos.C
-# agnos_SOURCES = $(top_srcdir)/src/agnos.C
+# agnos_LDADD = $(LIBMESH_LDFLAGS)
+agnos_SOURCES = agnos.C
 
 #
 # Required for AX_AM_MACROS
 ##@INC_AMINCLUDE@
+MAINTAINERCLEANFILES = Makefile.in

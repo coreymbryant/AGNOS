@@ -5,11 +5,13 @@ AC_PREREQ(2.61)
 AC_INIT(agnos, 0.1.0, cbryant@ices.utexas.edu)
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(agnos_config.h.tmp)
+AX_PREFIX_CONFIG_H(agnos_config.h,AGNOS,agnos_config.h.tmp)
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET()
-AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+# AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
 AM_SILENT_RULES(yes)  # use silent rules where available - automake 1.11
 
 LT_INIT
@@ -122,7 +124,23 @@ DX_PDF_FEATURE(ON)
 DX_PS_FEATURE(OFF)
 
 DX_INIT_DOXYGEN(AGNOS, doxygen/agnos.dox, doc/doxygen)
+# AC_CONFIG_FILES(doxygen/txt_common/about.page)
 
+dnl-----------------------------------------------
+dnl Generate files for unit and regression testing
+dnl-----------------------------------------------
+AC_CONFIG_FILES(test/polynomialTest.sh,       [chmod +x test/polynomialTest.sh])
+AC_CONFIG_FILES(test/evaluationTest.sh,       [chmod +x test/evaluationTest.sh])
+AC_CONFIG_FILES(test/catenaryTest.sh,	        [chmod +x test/catenaryTest.sh])
+AC_CONFIG_FILES(test/catenaryLibmeshTest.sh,	[chmod +x test/catenaryLibmeshTest.sh])
+AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh])
+
+dnl-----------------------------------------------
+dnl Generate run scripts for examples
+dnl-----------------------------------------------
+AC_CONFIG_FILES(examples/catenary/run.sh,	      [chmod +x examples/catenary/run.sh])
+AC_CONFIG_FILES(examples/catenaryLibmesh/run.sh,[chmod +x examples/catenaryLibmesh/run.sh])
+AC_CONFIG_FILES(examples/viscousBurgers/run.sh,	[chmod +x examples/viscousBurgers/run.sh])
 
 dnl-----------------------------------------------
 dnl Generate Makefiles
@@ -132,9 +150,6 @@ AC_CONFIG_FILES([
                  src/Makefile 
                  test/Makefile 
                  examples/Makefile 
-                 examples/catenary/Makefile
-                 examples/catenaryLibmesh/Makefile
-                 examples/viscousBurgers/Makefile
                  doxygen/Makefile])
 
 
