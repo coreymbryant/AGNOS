@@ -1,0 +1,8 @@
+#!/bin/bash
+PROG="@top_builddir@/test/parallelCatenary"
+
+INPUT=""
+
+BOOST_TEST_OPTIONS="--log_level=test_suite"
+
+mpirun -n 4 $PROG $INPUT $BOOST_TEST_OPTIONS
