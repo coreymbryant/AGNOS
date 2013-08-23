@@ -45,7 +45,7 @@ EXTRA_DIST += $(viscousburgers_DATA)
 
 
 MAINTAINERCLEANFILES = Makefile.in \
-											 examples/catenary/testFile.dat \
-											 examples/catenaryLibmesh/testFile.dat \
-											 examples/viscousBurgers/testFile.dat 
+											 catenary/testFile.dat \
+											 catenaryLibmesh/testFile.dat \
+											 viscousBurgers/testFile.dat 
 
