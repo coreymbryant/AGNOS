@@ -44,9 +44,8 @@ using namespace AGNOS;
       void runTest( )
       {
 
-        Communicator comm(MPI_COMM_WORLD);
+        const Communicator comm(MPI_COMM_WORLD);
         GetPot inputfile = GetPot();
-
         inputfile.set("physics/solutions","primal adjoint qoi") ;
 
         unsigned int dimension = 1;
