@@ -51,7 +51,7 @@ using namespace AGNOS;
 
         unsigned int dimension = 1;
         
-        std::vector<Parameter*> myParameters(
+        std::vector<AGNOS::Parameter*> myParameters(
             dimension, 
             new Parameter(UNIFORM, 1.0,3.0)
             ); 
@@ -94,11 +94,11 @@ using namespace AGNOS;
             std::abs(testValue(0) - (-10./8./paramValue(0)) ) <= 1e-6 
             );
 
-        /* delete mySurrogate; */
-        /* delete myPhysics; */
-        /* for (unsigned int i=0; i<myParameters.size(); i++) */
-        /*   delete myParameters[i] ; */
-        /* myParameters.clear(); */
+        delete mySurrogate;
+        delete myPhysics;
+        for (unsigned int i=0; i<myParameters.size(); i++)
+          delete myParameters[i] ;
+        myParameters.clear();
       }
 
   };

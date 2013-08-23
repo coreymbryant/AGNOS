@@ -108,7 +108,7 @@ namespace AGNOS
 
 
     if(AGNOS_DEBUG)
-      std::cout << "libMesh initialized?:" << libMesh::initialized() << std::endl;
+      std::cout << "DEBUG: libMesh initialized?:" << libMesh::initialized() << std::endl;
 
 
     // -----------------------------------------------------------
@@ -119,7 +119,7 @@ namespace AGNOS
     {
       int worldRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
-      std::cout << "worldRank:" << worldRank << std::endl;
+      std::cout << "DEBUG: worldRank:" << worldRank << std::endl;
     }
 
     // read refinement options
@@ -176,11 +176,11 @@ namespace AGNOS
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
     /* delete _system; */
-    /* delete _mesh; */
-    /* delete _meshRefinement; */
-    /* delete _errorEstimator; */
-    /* delete _qois; */
-    /* delete _equationSystems; */
+    delete _mesh;
+    delete _meshRefinement;
+    delete _errorEstimator;
+    delete _qois;
+    delete _equationSystems;
   }
 
 /********************************************//**
@@ -193,7 +193,7 @@ namespace AGNOS
         ) 
     {
       if (AGNOS_DEBUG)
-        std::cout << " begin: PhysicsModel::compute(...)" << std::endl;
+        std::cout << "DEBUG:  begin: PhysicsModel::compute(...)" << std::endl;
       
       // clear out any old data
       solutionVectors.clear();
@@ -212,6 +212,34 @@ namespace AGNOS
       // reinitialize system
       es.reinit();
 
+      if(AGNOS_DEBUG)
+      {
+        std::cout << "DEBUG: in compute routine:" << std::endl;
+        mesh.print_info();
+        es.print_info();
+      }
+
+      if(AGNOS_DEBUG)
+        std::cout << "DEBUG: pre solve: " 
+          << " n_vars: " << system.n_vars()
+          << " n_dofs: " << system.n_dofs()
+          << std::endl;
+
+      std::cout << " number of systems: " << es.n_systems() << std::endl;
+      std::cout << " number of vars: " << system.n_vars() << std::endl;
+      std::cout << " number of comp: " << system.n_components() << std::endl;
+      libMesh::MeshBase::element_iterator elemIt = mesh.elements_begin();
+      for(;elemIt!=mesh.elements_end();elemIt++)
+      {
+        Elem* elem = *elemIt;
+        std::cout << "elem.n_vars(s): " 
+          << elem->n_vars(0) << std::endl;
+        std::cout << "elem.n_dofs(s,var): " 
+          << elem->n_dofs(0,0) << std::endl;
+        std::cout << "elem.n_comp(s,vars): " 
+          << elem->n_comp(0,0) << std::endl;
+      }
+
       // solve system
       system.solve();
 
@@ -223,7 +251,10 @@ namespace AGNOS
             );
       
       if (AGNOS_DEBUG)
+      {
+        std::cout << "DEBUG: primal solution\n:" ;
         system.solution->print_global();
+      }
 
       // TODO if adjoint requested
       // TODO if error requested
@@ -231,30 +262,35 @@ namespace AGNOS
       //
       
       system.adjoint_solve();
-      if(AGNOS_DEBUG)
-        system.get_adjoint_solution(0).print_global();
       system.set_adjoint_already_solved(true);
+
+      if(AGNOS_DEBUG)
+      {
+        std::cout << "DEBUG: adjoint solution\n:" ;
+        system.get_adjoint_solution(0).print_global();
+      }
+
+
       
       // We will declare an error vector for passing to the adjoint refinement error estimator
+      this->_buildErrorEstimator();
       ErrorVector QoI_elementwise_error;
       
       // Estimate the error in each element using the Adjoint Refinement estimator
       _errorEstimator->estimate_error(system, QoI_elementwise_error);
 
       if(AGNOS_DEBUG)
-        std::cout << "post estimate_error" << std::endl;
+        std::cout << "DEBUG: post estimate_error" << std::endl;
 
       // save adjoint in solutionVectors
       std::vector<Number> adjointSolution ;
       system.get_adjoint_solution(0).localize(adjointSolution);
       if(AGNOS_DEBUG)
-        std::cout << "post estimate_error:adjoint solution size" << adjointSolution.size() << std::endl;
+        std::cout << "DEBUG: post estimate_error:adjoint solution size" << adjointSolution.size() << std::endl;
       
       solutionVectors.insert( 
           std::pair<std::string,T_P >( "adjoint", T_P(adjointSolution) )
             );
-      if(AGNOS_DEBUG)
-        system.get_adjoint_solution(0).print_global();
 
       // save errorEstimate in solutionVectors
       T_P errorEstimate;
@@ -265,14 +301,14 @@ namespace AGNOS
             "errorEstimate", errorEstimate)
             );
       if(AGNOS_DEBUG)
-        std::cout << "error[0]:" << errorEstimate(0) << std::endl;
+        std::cout << "DEBUG: error[0]:" << errorEstimate(0) << std::endl;
 
       // save errorIndicators in solutionVectors
       T_P errorIndicators( QoI_elementwise_error.size() );
       for (unsigned int i=0; i<errorIndicators.size(); i++)
       {
         if(AGNOS_DEBUG)
-          std::cout << "error_per_cell[" << i << "]:" <<
+          std::cout << "DEBUG: error_per_cell[" << i << "]:" <<
             QoI_elementwise_error[i] << std::endl;
         errorIndicators(i) = std::abs(QoI_elementwise_error[i]);
       }
@@ -291,7 +327,7 @@ namespace AGNOS
             "qoi", qoiValue)
             );
       if(AGNOS_DEBUG)
-        std::cout << "qoi[0]:" << qoiValue(0) << std::endl;
+        std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
 
       
 
