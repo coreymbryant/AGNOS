@@ -29,6 +29,7 @@ typedef libMesh::DenseVector<double> T_S ;
 int already_initialized;
 int already_finalized;
 Communicator comm;
+GetPot inputfile = GetPot();
 
 void finalize_mpi(void)
 {
@@ -59,15 +60,15 @@ BOOST_AUTO_TEST_SUITE(Catenary_tensorProduct)
       new Parameter(UNIFORM, 1.0,3.0)
       ); 
 
-  PhysicsModel<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>( -10.0 );
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionPrimal<T_S,T_P>( myPhysics ) ;
+  PhysicsCatenary<T_S,T_P>* myPhysics = new PhysicsCatenary<T_S,T_P>(
+      comm, inputfile );
 
 BOOST_AUTO_TEST_CASE(Catenary_N0)
 {
 
   initialize_mpi();
   comm = MPI_COMM_WORLD;
+  /* inputfile.set("physics/solutions","primal") ; */
 
   if (comm.rank()==0)
     BOOST_TEST_MESSAGE(" Testing Catenary with N=0");
@@ -75,8 +76,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N0)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -96,6 +97,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
 {
   initialize_mpi();
   comm = MPI_COMM_WORLD;
+  /* inputfile.set("physics/solutions","primal") ; */
 
   if (comm.rank()==0)
     BOOST_TEST_MESSAGE(" Testing Catenary with N=1");
@@ -103,8 +105,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N1)
   std::vector<unsigned int> myOrder(dimension,1);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -134,6 +136,7 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
 {
   initialize_mpi();
   comm = MPI_COMM_WORLD;
+  /* inputfile.set("physics/solutions","primal") ; */
 
   if (comm.rank()==0)
     BOOST_TEST_MESSAGE(" Testing Catenary with N=4");
@@ -141,8 +144,8 @@ BOOST_AUTO_TEST_CASE(Catenary_N4)
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -192,6 +195,7 @@ BOOST_AUTO_TEST_CASE(Catenary_mean)
 {
   initialize_mpi();
   comm = MPI_COMM_WORLD;
+  /* inputfile.set("physics/solutions","primal") ; */
 
   if (comm.rank()==0)
     BOOST_TEST_MESSAGE(" Testing Catenary with N=4 for mean calculation");
@@ -199,8 +203,8 @@ BOOST_AUTO_TEST_CASE(Catenary_mean)
   std::vector<unsigned int> myOrder(dimension,4);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );
@@ -223,6 +227,7 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
 {
   initialize_mpi();
   comm = MPI_COMM_WORLD;
+  /* inputfile.set("physics/solutions","primal") ; */
 
   if (comm.rank()==0)
     BOOST_TEST_MESSAGE(" Testing Catenary convergence");
@@ -230,8 +235,8 @@ BOOST_AUTO_TEST_CASE(Catenary_convergence)
   std::vector<unsigned int> myOrder(dimension,0);
   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
     new PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
+        comm,
+        myPhysics, 
         myParameters, 
         myOrder  
         );

@@ -8,6 +8,8 @@
 #include <assert.h>
 
 #include "agnosDefines.h"
+/* #undef AGNOS_DEBUG */
+/* #define AGNOS_DEBUG 0 */
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
 
@@ -42,12 +44,13 @@ using namespace AGNOS;
       void runTest( )
       {
 
-        Communicator comm(MPI_COMM_WORLD);
+        const Communicator comm(MPI_COMM_WORLD);
         GetPot inputfile = GetPot();
+        inputfile.set("physics/solutions","primal adjoint qoi") ;
 
         unsigned int dimension = 1;
         
-        std::vector<Parameter*> myParameters(
+        std::vector<AGNOS::Parameter*> myParameters(
             dimension, 
             new Parameter(UNIFORM, 1.0,3.0)
             ); 
@@ -55,14 +58,12 @@ using namespace AGNOS;
 
         PhysicsCatenaryLibmesh<T_S,T_P>* myPhysics = new PhysicsCatenaryLibmesh<T_S,T_P>(
             comm, inputfile );
-        PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-          new PhysicsFunctionQoi<T_S,T_P>( myPhysics ) ;
 
         std::vector<unsigned int> myOrder(dimension,4);
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
           new PseudoSpectralTensorProduct<T_S,T_P>(
-              &comm,
-              myPhysicsFunction, 
+              comm,
+              myPhysics, 
               myParameters, 
               myOrder  
               );
@@ -77,10 +78,11 @@ using namespace AGNOS;
         for (unsigned int iter=0; iter < maxIter; iter++)
         {
           testValue = mySurrogate->evaluate( "qoi", paramValue ) ;
+          std::cout << "testValue.size():" << testValue.size() << std::endl;
           std::cout << "testValue = " << testValue(0) << std::endl;
           std::cout << " n_elem = " << myPhysics->getMesh( ).n_active_elem() << std::endl;
 
-          myPhysics->refine( );
+          /* myPhysics->refine( ); */
           mySurrogate->refine();
         }
         std::cout << "testValue = " << testValue(0) << std::endl;
@@ -92,7 +94,6 @@ using namespace AGNOS;
             );
 
         delete mySurrogate;
-        delete myPhysicsFunction;
         delete myPhysics;
         for (unsigned int i=0; i<myParameters.size(); i++)
           delete myParameters[i] ;
@@ -111,8 +112,8 @@ using namespace AGNOS;
 /*   std::vector<unsigned int> myOrder(dimension,1); */
 /*   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = */ 
 /*     new PseudoSpectralTensorProduct<T_S,T_P>( */
-/*         &comm, */
-/*         myPhysicsFunction, */ 
+/*         comm, */
+/*         myPhysics, */ 
 /*         myParameters, */ 
 /*         myOrder */  
 /*         ); */
@@ -139,8 +140,8 @@ using namespace AGNOS;
 /*   std::vector<unsigned int> myOrder(dimension,4); */
 /*   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = */ 
 /*     new PseudoSpectralTensorProduct<T_S,T_P>( */
-/*         &comm, */
-/*         myPhysicsFunction, */ 
+/*         comm, */
+/*         myPhysics, */ 
 /*         myParameters, */ 
 /*         myOrder */  
 /*         ); */
@@ -181,8 +182,8 @@ using namespace AGNOS;
 /*   std::vector<unsigned int> myOrder(dimension,0); */
 /*   PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = */ 
 /*     new PseudoSpectralTensorProduct<T_S,T_P>( */
-/*         &comm, */
-/*         myPhysicsFunction, */ 
+/*         comm, */
+/*         myPhysics, */ 
 /*         myParameters, */ 
 /*         myOrder */  
 /*         ); */

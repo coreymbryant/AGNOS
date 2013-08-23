@@ -32,16 +32,26 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-polynomialTest_SOURCES 	=$(top_srcdir)/test/PolynomialTest.cpp
-catenaryTest_SOURCES 		=$(top_srcdir)/test/CatenaryTest.cpp
-evaluationTest_SOURCES 	=$(top_srcdir)/test/EvaluationTest.cpp
-parallelCatenary_SOURCES 		=$(top_srcdir)/test/ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES 		= $(top_srcdir)/test/libmeshTests.C \
-																	$(top_srcdir)/test/LibmeshCatenaryTest.cpp
+polynomialTest_SOURCES 			= PolynomialTest.cpp
+catenaryTest_SOURCES 				= CatenaryTest.cpp
+evaluationTest_SOURCES 			= EvaluationTest.cpp
+parallelCatenary_SOURCES 		= ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES = libmeshTests.C \
+																LibmeshCatenaryTest.cpp
 
 
-TESTS  = $(top_builddir)/test/polynomialTest.sh
-TESTS += $(top_builddir)/test/catenaryTest.sh
-TESTS += $(top_builddir)/test/evaluationTest.sh
-TESTS += $(top_builddir)/test/parallelCatenary.sh
-TESTS += $(top_builddir)/test/catenaryLibmeshTest
+TESTS  = polynomialTest.sh
+TESTS += catenaryTest.sh
+TESTS += evaluationTest.sh
+TESTS += parallelCatenary.sh
+TESTS += catenaryLibmeshTest
+
+shellfiles_src = polynomialTest.sh \
+								 catenaryTest.sh \
+								 evaluationTest.sh \
+								 parallelCatenary.sh
+
+# Want these put with the distro so we can run make check
+EXTRA_DIST = $(shellfiles_src) input_files test_data 
+
+
