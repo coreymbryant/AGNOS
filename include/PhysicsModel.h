@@ -13,7 +13,6 @@
 #ifndef PHYSICS_MODEL_H
 #define PHYSICS_MODEL_H
 
-#include "libmesh/error_vector.h"
 
 namespace AGNOS
 {
@@ -29,263 +28,97 @@ namespace AGNOS
     
     public: 
 
-      PhysicsModel( );   /**< Default constructor */
-      virtual ~PhysicsModel( );  /**< Default destructor */
+      /** Default constructor for abastract base class. Default to
+       * solutionNames=["simple"] since we may not have primal, adjoint, qoi,
+       * etc. */
+      PhysicsModel( 
+          const Communicator& comm_in,
+          const GetPot& input
+          ) :
+        _input(input),
+        _communicator(comm_in),
+        _compute_function(NULL)
+      {
+        // -----------------------------------------------------------
+        // which solutions do we want to compute a surrogate for
+        _solutionNames.clear( );
 
-      virtual T_P solvePrimal( 
-          const T_S& parameterValue  
-          ) = 0;
-      void setPrimalSolution( T_P primalSolution );
+        for(unsigned int i=0; i<input.vector_variable_size("physics/solutions") ; i++)
+          _solutionNames.insert( input("physics/solutions"," ",i) ) ;
+        
+        // default to only primal solution
+        if(_solutionNames.size() == 0)
+          _solutionNames.insert("primal");
 
-      virtual T_P solveAdjoint( 
-          const T_S& parameterValue,  
-          const T_P& primalSolution    
-          ) = 0;
-      void setAdjointSolution( T_P adjointSolution );
+        if(AGNOS_DEBUG)
+        {
+          std::set<std::string>::iterator it = _solutionNames.begin();
+          std::cout << "Requested solutons: " ;
+          for (; it!=_solutionNames.end(); ++it)
+            std::cout <<  *it << " " ;
+          std::cout << std::endl ;
+        }
 
-      virtual T_P evaluateQoi( 
-          const T_S& parameterValue,
-          const T_P& primalSolution    
-          ) = 0;
-      void setQoiValue( T_P qoiValue );
 
-      virtual T_P estimateError( 
-          const T_S& parameterValue,  
-          const T_P& primalSolution,   
-          const T_P& adjointSolution  
-          ) = 0;
-      void setErrorEstimate( T_P errorEstimate );
-      void setErrorIndicators( T_P errorIndicators );
+        if(AGNOS_DEBUG)
+          std::cout << "solutionNames.size():" << _solutionNames.size() << std::endl;
+        // -----------------------------------------------------------
 
-      virtual void refine (  )  = 0;
-      virtual void refine ( T_P& errorIndicators  ) ;
 
-      const T_P* getPrimalSolution( ) const ;
-      const T_P* getAdjointSolution( ) const ;
-      const T_P* getQoiValue( ) const;
-      const T_P* getErrorEstimate( ) const;
-      const T_P* getErrorIndicators( ) const;
+      }
 
-      void resetSolution( );
+      /** Destructor */
+      virtual ~PhysicsModel( ){};  /**< Default destructor */
 
-      bool useUniformRefinement();
-      bool resolveAdjoint();
+      /** Function called by SurrogateModel to solve for requested solution
+       * vectors at each evaluation point in parameter space  */
+      virtual void compute( 
+          const T_S& paramVector, 
+          std::map<std::string, T_P >& solutionVectors 
+          ) 
+      { 
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: calling provided compute function\n" ;
+
+        if(_compute_function != NULL)
+          this->_compute_function(paramVector, solutionVectors);
+
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: ending call to provided compute function\n" ;
+
+      }
+
+      /** Refinement methods for the physics model */
+      virtual void refine( ) {};
+
+      /** return requested solution names */
+      std::set<std::string> getSolutionNames( ) const
+        { return _solutionNames; }
+
+
+      /** attach a user defined compute function */
+      void attach_compute_function(
+          void fptr(const T_S& paramVector,std::map<std::string,T_P>& solutionVectors)
+          )
+      {
+        libmesh_assert(fptr);
+        _compute_function = fptr;
+      }
       
     protected:
+      /** communicator reference */
+      const Communicator &_communicator;
+      /** reference to input file just incase its needed after initialization */
+      const GetPot&         _input;
+      /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
+      std::set<std::string> _solutionNames;
 
-      T_P* m_primalSolution;
-      T_P* m_adjointSolution;
-      T_P* m_qoiValue;
-      T_P* m_errorEstimate;
-      T_P* m_errorIndicators;
-      T_P* m_meanErrorIndicator;
-
-      bool m_useUniformRefinement;
-      
-      // for nonlinear problems we need to resolve the adjoint at each
-      // parameterValue in TotalErrorFunction 
-      bool m_resolveAdjoint;
-
+      /** Function pointer to compute function */
+      void(* _compute_function)(
+          const T_S& paramVector, 
+          std::map<std::string, T_P >& solutionVectors ) ;
       
   }; // PhysicsModel class
-
-
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsModel<T_S,T_P>::PhysicsModel( )
-  : m_resolveAdjoint(false),m_useUniformRefinement(true)
-  {
-    m_primalSolution  = NULL;
-    m_adjointSolution = NULL;
-    m_qoiValue        = NULL;
-    m_errorEstimate = NULL;
-    m_errorIndicators = NULL;
-
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsModel<T_S,T_P>::~PhysicsModel( )
-  {
-    if ( m_primalSolution )
-      delete m_primalSolution;
-    if ( m_adjointSolution )
-      delete m_adjointSolution;
-    if ( m_qoiValue )
-      delete m_qoiValue;
-    if ( m_errorEstimate )
-      delete m_errorEstimate;
-    if ( m_errorIndicators )
-      delete m_errorIndicators;
-  }
-
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getPrimalSolution() const
-  {
-    return m_primalSolution;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getAdjointSolution( ) const
-  {
-    return m_adjointSolution;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getQoiValue( ) const
-  {
-    return m_qoiValue;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getErrorEstimate( ) const
-  {
-    return m_errorEstimate;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  const T_P* PhysicsModel<T_S,T_P>::getErrorIndicators( ) const
-  {
-    return m_errorIndicators;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::setPrimalSolution( 
-      T_P primalSolution )
-  {
-    delete m_primalSolution;
-    m_primalSolution = new T_P(primalSolution);
-    return ;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::setAdjointSolution( 
-      T_P adjointSolution )
-  {
-    delete m_adjointSolution;
-    m_adjointSolution = new T_P(adjointSolution);
-    return ;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::setQoiValue( 
-      T_P qoiValue )
-  {
-    delete m_qoiValue;
-    m_qoiValue = new T_P(qoiValue);
-    return ;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::setErrorEstimate( 
-      T_P errorEstimate )
-  {
-    delete m_errorEstimate;
-    m_errorEstimate = new T_P(errorEstimate);
-    return ;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::setErrorIndicators( 
-      T_P errorIndicators )
-  {
-    delete m_errorIndicators;
-    m_errorIndicators = new T_P(errorIndicators);
-    return ;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  void PhysicsModel<T_S,T_P>::resetSolution( )
-  {
-    if ( m_primalSolution )
-      delete m_primalSolution;
-    if ( m_adjointSolution )
-      delete m_adjointSolution;
-    if ( m_qoiValue )
-      delete m_qoiValue;
-    if ( m_errorEstimate )
-      delete m_errorEstimate;
-    if ( m_errorIndicators )
-      delete m_errorIndicators;
-
-    m_primalSolution  = NULL;
-    m_adjointSolution = NULL;
-    m_qoiValue        = NULL;
-    m_errorEstimate = NULL;
-    m_errorIndicators = NULL;
-  }
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-  template<class T_S,class T_P>
-    bool PhysicsModel<T_S,T_P>::useUniformRefinement()
-    {
-      return m_useUniformRefinement;
-    }
-
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-  template<class T_S,class T_P>
-    void PhysicsModel<T_S,T_P>::refine(
-        T_P& errorIndicators)
-    {
-      std::cerr 
-        << "\n\t ERROR: Adaptive refinement is not available in derived "
-        << "PhysicsModel class\n" << std::endl;
-      exit(1);
-      return;
-    }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  bool PhysicsModel<T_S,T_P>::resolveAdjoint()
-  {
-    return m_resolveAdjoint;
-  }
 
 }
 

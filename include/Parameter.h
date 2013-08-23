@@ -26,7 +26,7 @@ namespace AGNOS
       Parameter( int type, double min, double max );
 
       Parameter( );
-      ~Parameter( );
+      virtual ~Parameter( );
 
       // Manipulators
       int getType() const; /**< 0: Uniform */
