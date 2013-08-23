@@ -5,12 +5,13 @@ AC_PREREQ(2.61)
 AC_INIT(agnos, 0.1.0, cbryant@ices.utexas.edu)
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(agnos_config.h.tmp)
+AX_PREFIX_CONFIG_H(agnos_config.h,AGNOS,agnos_config.h.tmp)
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET()
-# AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
-AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+# AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
 AM_SILENT_RULES(yes)  # use silent rules where available - automake 1.11
 
 LT_INIT
