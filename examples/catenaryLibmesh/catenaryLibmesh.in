@@ -15,22 +15,26 @@ refineSurrogate = true
 []
 
 [physics]
-type = 'catenary'
+type = 'catenaryLibmesh'
 min = '0.0'
 max = '1.0'
+nElem = '3'
 forcing = '-10.0'
-n = '2'
+
 useUniformRefinement = false
 numberHRefinements = '1';
 numberPRefinements = '0';
 maxRefineSteps ='15'
+
+resolveAdjoint = false
+solutions='primal adjoint errorEstimate errorIndicators qoi'
 []
 
 
 [surrogateModel]
 type = 'PseudoSpectralTensorProduct'
-order = '1'
-errorOrder = '2'
+order = '0'
+errorOrder = '1'
 []
 
 [output]

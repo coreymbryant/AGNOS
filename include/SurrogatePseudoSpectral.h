@@ -397,7 +397,9 @@ namespace AGNOS
         std::cout << "test: computeContribution( ) beginning" << std::endl;
       
 
+      //TODO if evaluation surrogate is provided set values
       std::map< std::string, T_P > contrib;
+      contrib.clear();
 
       
       if (AGNOS_DEBUG)
