@@ -123,7 +123,7 @@ DX_XML_FEATURE(OFF)
 DX_PDF_FEATURE(ON)
 DX_PS_FEATURE(OFF)
 
-DX_INIT_DOXYGEN(AGNOS, doxygen/agnos.dox, doc/doxygen)
+DX_INIT_DOXYGEN(AGNOS, doxygen/agnos.dox, doc/)
 # AC_CONFIG_FILES(doxygen/txt_common/about.page)
 
 dnl-----------------------------------------------
