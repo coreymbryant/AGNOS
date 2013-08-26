@@ -28,7 +28,7 @@ test/Makefile.in
 texput.log
 test-driver
 
-test/*Test.sh.*
+#test/*Test.sh.*
 test/test-suite.log
 test/polynomialTest
 test/catenaryTest
