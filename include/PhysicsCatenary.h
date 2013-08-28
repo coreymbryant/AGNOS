@@ -66,7 +66,7 @@ namespace AGNOS
     PhysicsModel<T_S,T_P>(comm_in,input),
     _communicator(comm_in),_input(input)
   {
-    m_forcing = input("physics/forcing",-10.0) ;
+    m_forcing = input("forcing",-10.0) ;
   }
 
 /********************************************//**

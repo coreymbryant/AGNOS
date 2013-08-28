@@ -75,14 +75,14 @@ namespace AGNOS
   {
 
     // read in parameters unique to this model
-    _L      = input("physics/L",10.);
-    _uMinus = input("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
-    _uPlus  = input("physics/uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
-    _nElem  = input("physics/nElem",4);
+    _L      = input("L",10.);
+    _uMinus = input("uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
+    _uPlus  = input("uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
+    _nElem  = input("nElem",4);
 
     // and some nonlinear solver parameters
-    _nonlinearSteps      = input("physics/nNonlinearSteps",15);
-    _nonlinearTolerance  = input("physics/nonlinearTolerance",1.e-9);
+    _nonlinearSteps      = input("nNonlinearSteps",15);
+    _nonlinearTolerance  = input("nonlinearTolerance",1.e-9);
 
     //----------------------------------------------
     // construct a 1d mesh 

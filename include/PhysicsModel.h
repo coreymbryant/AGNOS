@@ -43,8 +43,8 @@ namespace AGNOS
         // which solutions do we want to compute a surrogate for
         _solutionNames.clear( );
 
-        for(unsigned int i=0; i<input.vector_variable_size("physics/solutions") ; i++)
-          _solutionNames.insert( input("physics/solutions"," ",i) ) ;
+        for(unsigned int i=0; i<input.vector_variable_size("solutions") ; i++)
+          _solutionNames.insert( input("solutions"," ",i) ) ;
         
         // default to only primal solution
         if(_solutionNames.size() == 0)
@@ -68,10 +68,16 @@ namespace AGNOS
       }
 
       /** Destructor */
-      virtual ~PhysicsModel( ){};  /**< Default destructor */
+      virtual ~PhysicsModel( ){};  
 
       /** Function called by SurrogateModel to solve for requested solution
-       * vectors at each evaluation point in parameter space  */
+       * vectors at each evaluation point in parameter space. If solutionVectors
+       * is non-empty then this routine should use provided soltuions in place
+       * of any requested solutionNames. This allows for the construction of an
+       * errorSurrogate where surrogate primal and adjoint solutions are
+       * provided in solutionVectors.
+       *
+       * Should be redefined in derived classes*/
       virtual void compute( 
           const T_S& paramVector, 
           std::map<std::string, T_P >& solutionVectors 

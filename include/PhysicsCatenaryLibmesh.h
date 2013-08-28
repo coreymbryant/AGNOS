@@ -75,11 +75,11 @@ namespace AGNOS
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
-    _min    = input("physics/min",0.);
-    _max    = input("physics/max",1.);
-    _nElem  = input("physics/nElem",4);
+    _min    = input("min",0.);
+    _max    = input("max",1.);
+    _nElem  = input("nElem",4);
 
-    _forcing = input("physics/forcing",-10.);
+    _forcing = input("forcing",-10.);
 
     
     //------------------------
