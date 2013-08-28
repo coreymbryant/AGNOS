@@ -53,19 +53,18 @@ namespace AGNOS
       void build( ) ;
       std::map< std::string, T_P > computeContribution( 
           PhysicsModel<T_S,T_P>*   physics,
-          T_S&                     integrationPoint, 
-          double&                  integrationWeight
+          unsigned int index
           );
 
       using SurrogateModel<T_S,T_P>::evaluate; 
       std::map<std::string, T_P> evaluate( 
-          std::vector< std::string >  solutionNames,
+          std::set< std::string >  solutionNames,
           T_S&                        parameterValues 
           ) const ;
 
       using SurrogateModel<T_S,T_P>::l2Norm;
       std::map< std::string, T_P> l2Norm(
-        std::vector< std::string > solutionNames
+        std::set< std::string > solutionNames
         );
       double l2NormDifference(
           SurrogateModel<T_S,T_P>& comparisonModel,
@@ -243,6 +242,7 @@ namespace AGNOS
         std::cout << " }" << std::endl;
       }
       
+      // ------------------------------------
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
@@ -258,17 +258,44 @@ namespace AGNOS
         =  totalNCoeff / this->_comm.size()  
         + ( this->_comm.rank() < (totalNCoeff % this->_comm.size() ) ) ;
       unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
+      // ------------------------------------
+      
+      
+      // ------------------------------------
+      // Get primalSurrogate evaluations if needed
+      this->_primalEvaluations.clear();
+      if ( ! this->_evalNames.empty() )
+      {
+        std::cout << "_integrationPoints.size():"  << _integrationPoints.size() << std::endl;
+        for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
+        {
+          std::cout << "pt: " << pt << std::endl;
+          T_S integrationPoint = _integrationPoints[pt];
+          this->_primalEvaluations.push_back( 
+              this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint  )
+              );
+        }
+      }
+      
+      // ------------------------------------
 
 
+
+
+
+      this->_comm.barrier();
+
+
+      // ------------------------------------
+      // Solve for solution at integration points
+      if( this->_comm.rank() == 0)
+        std::cout << "     --> Solving at " << _nIntegrationPoints 
+          << " integration points " << std::endl;
+      
       // initiaize contribution vector
       std::vector< std::map< std::string, T_P > > myContribs;
       myContribs.reserve(nPts);
 
-      this->_comm.barrier();
-
-      if( this->_comm.rank() == 0)
-        std::cout << "     --> Solving at " << _nIntegrationPoints 
-          << " integration points " << std::endl;
 
       // solve for my integration points
       for(unsigned int pt=0; pt < nPts; pt++)
@@ -284,8 +311,7 @@ namespace AGNOS
         // compute the contribution
         myContribs.push_back( computeContribution( 
             this->_physics,
-            _integrationPoints[intPtsStart + pt*this->_comm.size() ], 
-            _integrationWeights[intPtsStart + pt*this->_comm.size() ]
+            intPtsStart + pt*this->_comm.size()
             ) );
 
         if (AGNOS_DEBUG)
@@ -299,6 +325,11 @@ namespace AGNOS
         if (AGNOS_DEBUG)
           std::cout << "test: end of pt" << std::endl;
       }
+
+        std::cout << "rank: " << this->_comm.rank() << std::endl;
+        std::cout << "size: " << this->_comm.size() << std::endl;
+      this->_comm.barrier();
+
 
       // need to know size of solution vector on all processes (in case some
       // don't have any work but will still be called in reduce operation)
@@ -399,8 +430,7 @@ namespace AGNOS
     std::map< std::string, T_P >
     SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
         PhysicsModel<T_S,T_P>*  physics,
-        T_S&                    integrationPoint, 
-        double&                 integrationWeight
+        unsigned int index
         )
     {
 
@@ -408,17 +438,12 @@ namespace AGNOS
         std::cout << "test: computeContribution( ) beginning" << std::endl;
       
 
-      //TODO if evaluation surrogate is provided set values
-      std::map< std::string, T_P > contrib;
-      contrib.clear();
-      std::set<std::string>::iterator evalName = this->_evalNames.begin();
-      for(; evalName != this->_evalNames.end(); evalName++)
-      {
-        contrib.insert( std::pair<std::string,T_P>( 
-              *evalName, this->_evalSurrogate->evaluate( *evalName,
-                integrationPoint ) 
-              ));
-      }
+      // get data for this integration point
+      std::map< std::string, T_P > contrib ;
+      if ( ! this->_primalEvaluations.empty() )
+        contrib = this->_primalEvaluations[index];
+      T_S integrationPoint = _integrationPoints[index];
+      double integrationWeight = _integrationWeights[index];
 
       
       if (AGNOS_DEBUG)
@@ -430,8 +455,8 @@ namespace AGNOS
 
       // clear out any evaluations that were provided by evalSurrogate, and that
       // aren't in solutionNames
-      for(evalName = this->_evalNames.begin(); 
-          evalName != this->_evalNames.end(); evalName++)
+      std::set<std::string>::iterator evalName = this->_evalNames.begin() ;
+      for( ; evalName != this->_evalNames.end(); evalName++)
       {
         if ( !this->_solutionNames.count(*evalName) ) 
           contrib.erase( *evalName );
@@ -459,7 +484,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
-        std::vector< std::string > solutionNames,
+        std::set< std::string > solutionNames,
         T_S& parameterValues /**< parameter values to evaluate*/
         ) const
     {
@@ -482,20 +507,20 @@ namespace AGNOS
         this->getLocalCoefficients();
 
       // loop over all solutions requested
-      for (unsigned int n=0; n < solutionNames.size(); n++)
+      std::set<std::string>::iterator id = solutionNames.begin();
+      for (; id != solutionNames.end(); id++)
       {
-        std::string id = solutionNames[n];
 
-        std::vector<double> sumContrib(solSize[id],0.);
+        std::vector<double> sumContrib(solSize[*id],0.);
         if(AGNOS_DEBUG)
-          std::cout << "evaluating surrogate model for: " << solutionNames[n] <<
+          std::cout << "evaluating surrogate model for: " << *id <<
             "with size:" << sumContrib.size() << std::endl;
 
-        for(unsigned int c=0; c < coefficients[id].size(); c++)
+        for(unsigned int c=0; c < coefficients[*id].size(); c++)
         {
           // compute current rank's contribution
-          for(unsigned int i=0; i < coefficients[id][c].size(); i++)
-            sumContrib[i] += coefficients[id][c](i) *
+          for(unsigned int i=0; i < coefficients[*id][c].size(); i++)
+            sumContrib[i] += coefficients[*id][c](i) *
               polyValues[coeffStart + c*(this->_comm.size())];
 
         } // coefficients
@@ -504,7 +529,7 @@ namespace AGNOS
         this->_comm.sum( sumContrib );
 
         surrogateValue.insert(
-            std::pair< std::string, T_P >(id, T_P(sumContrib) ) 
+            std::pair< std::string, T_P >(*id, T_P(sumContrib) ) 
             ) ;
 
       } // solNames
@@ -717,17 +742,17 @@ namespace AGNOS
    ***********************************************/
   template<class T_S, class T_P>
     std::map< std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::l2Norm(
-        std::vector< std::string > solutionNames
+        std::set< std::string > solutionNames
         )
     {
 
       // initialize to zero
       std::map< std::string, T_P> l2norm;
-      for (unsigned int n=0; n < solutionNames.size(); n++)
+      std::set<std::string>::iterator id = solutionNames.begin();
+      for (; id != solutionNames.end(); id++)
       {
-        std::string id = solutionNames[n];
         l2norm.insert( std::pair<std::string,T_P>(
-              id, T_P( std::vector<double>(this->_solSize[id],0.) ) )
+              *id, T_P( std::vector<double>(this->_solSize[*id],0.) ) )
             );
       }
 
@@ -757,11 +782,10 @@ namespace AGNOS
 
         std::map<std::string,T_P> pointValue 
           = this->evaluate(solutionNames,paramValues);
-        for (unsigned int n=0; n < solutionNames.size(); n++)
+        for (id=solutionNames.begin(); id != solutionNames.end(); id++)
         {
-          std::string id = solutionNames[n];
-          for(unsigned int j=0; j<l2norm[id].size();j++)
-            l2norm[id](j) += pointValue[id](j) * pointValue[id](j) 
+          for(unsigned int j=0; j<l2norm[*id].size();j++)
+            l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
               * quadWeights[i] ; 
         }
 
@@ -769,12 +793,11 @@ namespace AGNOS
 
       
       // take square root
-      for (unsigned int n=0; n < solutionNames.size(); n++)
+      for (id=solutionNames.begin(); id != solutionNames.end(); id++)
       {
-        std::string id = solutionNames[n];
 
-        for(unsigned int j=0; j<l2norm[id].size();j++)
-          l2norm[id](j) =  std::sqrt( l2norm[id](j) );
+        for(unsigned int j=0; j<l2norm[*id].size();j++)
+          l2norm[*id](j) =  std::sqrt( l2norm[*id](j) );
       }
 
 
