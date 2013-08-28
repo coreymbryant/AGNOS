@@ -24,10 +24,11 @@ namespace AGNOS
   class Driver
   { 
 
+    // TODO comment variables and methods
     public:
 
       Driver( );
-      Driver( const Communicator& comm, const Communicator& physicsComm, const GetPot& input );
+      Driver( const Communicator& comm, const Communicator& physicsComm, GetPot& input );
 
       virtual ~Driver( );
 
@@ -41,34 +42,31 @@ namespace AGNOS
       void printSolution( unsigned int iteration=1 ) ;
 
     protected:
-      void _buildPhysics( const GetPot& input );
-      void _buildSurrogate( const GetPot& input );
+      void _initPhysics( GetPot& input );
+      void _initSurrogate( GetPot& input );
 
       const Communicator& _comm;
       const Communicator& _physicsComm;
 
 
       // DRIVER VARIABLES
-      unsigned int _maxIter;
+      /** maximum driver iterations */
+      unsigned int  _maxIter;
+      /** Determine which space to refine based on relative error estiamtes */
+      bool          _adaptiveDriver;
 
       // PARAMETERS VARIABLES
       unsigned int              _paramDim;
       std::vector<Parameter*>   _parameters;
       
-      // ADAPTIVE SETTINGS
-      // TODO adaptive settings
-      bool _refinePhysical;
-      bool _refineSurrogate;
-
       // SURROGATE VARIABLES
-      int                       _surrogateType;
-      std::vector<unsigned int> _order;
-      std::vector<unsigned int> _errorOrder;
-      SurrogateModel<T_S,T_P>*  _surrogate;
-      SurrogateModel<T_S,T_P>*  _errorSurrogate;
-      //
+      std::map<std::string, unsigned int> _surrogateNames;
+      std::vector< SurrogateModel<T_S,T_P>* >  _surrogates;
+      bool _refineSurrogates;
+
       // PHYSICS VARIABLES
-      std::vector< PhysicsModel<T_S,T_P>* >                _physics;
+      std::vector< PhysicsModel<T_S,T_P>* >    _physics;
+      bool _refinePhysical;
 
       // OUTPUT VARIABLES
       std::string               _outputFilename; 
@@ -89,21 +87,20 @@ namespace AGNOS
   Driver::Driver( 
       const Communicator& comm,
       const Communicator& physicsComm,
-      const GetPot& input 
+      GetPot& input 
       ) :
     _comm(comm), _physicsComm(physicsComm) 
   {
+
     if(AGNOS_DEBUG)
       std::cout << "rank: " << _comm.rank() <<  std::endl;
 
     
     // DRIVER SETTINGS
     _maxIter = input("driver/maxIter",1);
+    _adaptiveDriver = input("driver/adaptive",false);
     
     // ADAPTIVE SETTINGS
-    // TODO adaptive settings
-    _refinePhysical = input("adaptive/refinePhysical",false);
-    _refineSurrogate = input("adaptive/refineSurrogate",true);
     
     
     // PARAMETER SETTINGS
@@ -117,12 +114,35 @@ namespace AGNOS
           input("parameters/maxs", 1.0,i)
           );
     
-    // BUILD PHYSICS
-    _buildPhysics( input );
-    
 
-    // SURROGATE MODEL SETTINGS
-    _buildSurrogate( input );
+    // PHYSICS SETTINGS
+    _initPhysics( input );
+
+
+    // SURROGATE MODEL(s) SETTINGS
+    input.set_prefix("surrogateModels/") ;
+    _refineSurrogates = input("refine",false);
+
+    /* _surrogateNames.resize( input.vector_variable_size("modelNames") ); */
+    for(unsigned int n=0; n < input.vector_variable_size("modelNames"); n++)
+    {
+      std::string modelName = input("modelNames","", n);
+      _surrogateNames.insert( std::pair<std::string,unsigned int>(
+            modelName, n )
+          );
+
+      // get section name and set prefix
+      std::string sectionName = "surrogateModels/";
+        sectionName += modelName;
+        sectionName += "/";
+      input.set_prefix(sectionName.data()) ;
+
+      // for each surrogate model initialize it
+      _initSurrogate( input );
+
+      std::cout << "sectionName: " << sectionName << std::endl;
+      input.set_prefix("surrogateModels/") ;
+    }
 
 
     
@@ -132,7 +152,7 @@ namespace AGNOS
 
     _solutionsToPrint.resize( input.vector_variable_size("output/solutions") );
     for (unsigned int i=0; i < _solutionsToPrint.size(); i++)
-      _solutionsToPrint[i] = input("output/solutions", " ",i);
+      _solutionsToPrint[i] = input("output/solutions", "",i);
 
     _outputIterations    = input("output/iterations",false);
 
@@ -150,13 +170,16 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
-    /* for(unsigned int i=0; i < _physics.size(); i++) */
-    /*   delete _physics[i]; */
+    for(unsigned int i=0; i < _physics.size(); i++)
+      delete _physics[i];
     _physics.clear();
 
-    /* delete _comm; */
-    delete _surrogate;
-    delete _errorSurrogate;
+    /* std::map< std::string, SurrogateModel<T_S,T_P>* >::iterator sit */
+    /*   = _surrogates.begin(); */
+    /* for(; sit != _surrogates.end(); sit++) */
+    /*   delete sit; */
+    _surrogates.clear();
+
   }
 
 /********************************************//**
@@ -164,32 +187,41 @@ namespace AGNOS
  * Can be overidden to include new physicsModel classes.
  * 
  ***********************************************/
-  void Driver::_buildPhysics( const GetPot& input)
+  void Driver::_initPhysics( GetPot& input)
   {
     //TODO make more general 
     // deal with parallel issue
     std::string physicsName = input("physics/type","");
+    _refinePhysical = input("refine",false);
+
+    if(AGNOS_DEBUG)
+      std::cout << "_initPhysics() rank: " << _comm.rank() << std::endl;
+
     if ( physicsName == "viscousBurgers" )
     {
-      if(AGNOS_DEBUG)
-        std::cout << "_buildPhysics() rank: " << _comm.rank() << std::endl;
+      input.set_prefix("physics/viscousBurgers/");
       _physics.push_back( 
           new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
             _physicsComm, input )
           );
+      input.set_prefix("");
     }
     else if ( physicsName == "catenaryLibmesh" )
     {
+      input.set_prefix("physics/catenaryLibmesh/");
       _physics.push_back(
           new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( _physicsComm, input )
           );
+      input.set_prefix("");
     }
     else if ( physicsName == "catenary" )
     {
+      input.set_prefix("physics/catenary/");
       _physics.push_back(
           new AGNOS::PhysicsCatenary<T_S,T_P>(
             _physicsComm, input )
           );
+      input.set_prefix("");
     }
     else
     {
@@ -205,63 +237,92 @@ namespace AGNOS
   }
 
 /********************************************//**
- * \brief build surrogateModel
- * Can be overidden to include new surrogateModel classes.
+ * \brief build primary surrogateModel
+ * Settings and options provided through libMesh input file. 
+ *
+ * handles the initialziation of each surrogate model listed in input file
  * 
  ***********************************************/
-  void Driver::_buildSurrogate( const GetPot& input)
+  void Driver::_initSurrogate( GetPot& input)
   {
-
-    int orderDim = input.vector_variable_size("surrogateModel/order");
-    int errorOrderDim = input.vector_variable_size("surrogateModel/errorOrder");
-
-    if (orderDim == 1)
-      for (unsigned int i=0; i < _paramDim; i++)
-        _order.push_back( input("surrogateModel/order", 0) ) ;
-    else
-      for (unsigned int i=0; i < _paramDim; i++)
-        _order.push_back( input("surrogateModel/order", 0, i) ) ;
-
-    // TODO make this a functino like we have in matlab code
-    // i.e. incremental order increase
-    if (errorOrderDim == 1)
-      for (unsigned int i=0; i < _paramDim; i++)
-        _errorOrder.push_back( input("surrogateModel/errorOrder", _order[i]+1) ) ;
-    else
-      for (unsigned int i=0; i < _paramDim; i++)
-        _errorOrder.push_back( input("surrogateModel/errorOrder", _order[i]+1, i) ) ;
-
-    std::string surrType  = 
-      input("surrogateModel/type","PseudoSpectralTensorProduct");
+    /** Get type of surrogate model */
+    std::string surrType  = input("type","PseudoSpectralTensorProduct");
+    int surrogateType;
 
     if (surrType == "PseudoSpectralTensorProduct")
-      _surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
+      surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
     else if (surrType == "PseudoSpectralSparseGrid")
-      _surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
+      surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
     else if (surrType == "PseudoSpectralMonteCarlo")
-      _surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
+      surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
     else if (surrType == "Collocation")
-      _surrogateType =  COLLOCATION ;
+      surrogateType =  COLLOCATION ;
     else
     {
       std::cerr << " ERROR: unrecognized SurrogateModelType " 
         << surrType << std::endl;
       exit(1);
     }
-    
+
+    std::set<std::string> computeSolutions ;
+    for(unsigned int n=0; n < input.vector_variable_size("computeSolutions"); n++)
+      computeSolutions.insert( input("computeSolutions","", n) );
+
+    std::set<std::string> evaluateSolutions ;
+    for(unsigned int n=0; n < input.vector_variable_size("evaluateSolutions"); n++)
+      evaluateSolutions.insert( input("evaluateSolutions","", n) );
+
+
+    /** Determine which type of surrogate we have, primary or secondary */
+    std::string primarySurrogate = input("primarySurrogate","");
+
+    /** Get length of input vectors */
+    int orderDim = input.vector_variable_size("order");
+    std::vector<unsigned int> order;
+
+    if (orderDim == 1)
+      for (unsigned int i=0; i < _paramDim; i++)
+        order.push_back( input("order", 0) ) ;
+    else
+      for (unsigned int i=0; i < _paramDim; i++)
+        order.push_back( input("order", 0, i) ) ;
+    /** Get increaseOrder */
+    unsigned int increaseOrder = input("increaseOrder",0);
+    /** Get increaseOrder */
+    unsigned int multiplyOrder = input("multiplyOrder",1);
+
 
 
     // type specific setup
-    switch( _surrogateType )
+    switch( surrogateType )
     {
       case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
         {
+          /** primary surrogate  */
+          if ( primarySurrogate.empty() )
+          {
+            _surrogates.push_back( 
+                new PseudoSpectralTensorProduct<T_S,T_P>( 
+                  _comm, 
+                  _physics[0],
+                  _parameters, 
+                  order  )
+                );
+          }
+          /** secondary surrogate  */
+          else 
+          {
+            _surrogates.push_back( 
+                new PseudoSpectralTensorProduct<T_S,T_P>( 
+                  _surrogates[_surrogateNames[primarySurrogate]],
+                  increaseOrder,
+                  multiplyOrder,
+                  evaluateSolutions,
+                  computeSolutions
+                  )
+                );
+          }
 
-          _surrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              _comm,
-              _physics[0], 
-              _parameters, 
-              _order  );
 
           break;
         }
@@ -289,48 +350,10 @@ namespace AGNOS
     }
     
 
-    // ----- ERROR SURROGATE
-    //
-
-    // type specific setup
-    switch( _surrogateType )
-    {
-      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
-        {
-
-          _errorSurrogate = new PseudoSpectralTensorProduct<T_S,T_P>(
-              _comm,
-              _physics[0], 
-              _parameters, 
-              _errorOrder  );
-
-          break;
-        }
-      case(PSEUDO_SPECTRAL_SPARSE_GRID):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(PSEUDO_SPECTRAL_MONTE_CARLO):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(COLLOCATION):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-    }
 
     return;
   }
+
 
 /********************************************//**
  * \brief an initial driver run routine for testing
@@ -343,7 +366,8 @@ namespace AGNOS
     printSettings();
     
     // build initial approximation
-    _surrogate->build();
+    for(unsigned int i=0;i<_surrogates.size(); i++)
+      _surrogates[i]->build();
 
     // build error surrogate
     /* _errorSurrogate->build(); */
@@ -526,14 +550,14 @@ namespace AGNOS
       std::endl;
     out << "# Parameter settings: " << std::endl;
     out << "#     dimension = " << _paramDim << std::endl;
-    out << "#     order = " ;
-    for(unsigned int i=0; i < _paramDim; i++)
-      out << _order[i] << " " ;
-    out << std::endl;
-    out << "#     errorOrder = " ;
-    for(unsigned int i=0; i < _paramDim; i++)
-      out << _errorOrder[i] << " " ;
-    out << std::endl;
+    /* out << "#     order = " ; */
+    /* for(unsigned int i=0; i < _paramDim; i++) */
+    /*   out << _order[i] << " " ; */
+    /* out << std::endl; */
+    /* out << "#     errorOrder = " ; */
+    /* for(unsigned int i=0; i < _paramDim; i++) */
+    /*   out << _errorOrder[i] << " " ; */
+    /* out << std::endl; */
 
     out << "#     mins = " ;
     for (unsigned int i=0; i < _paramDim; i++)
@@ -564,22 +588,24 @@ namespace AGNOS
  ***********************************************/
   void Driver::printSolutionData( std::ostream& out ) 
   {
-      if (_outputCoefficients)
-        _surrogate->printCoefficients( _solutionsToPrint, out );
-      if (_outputErrorCoefficients)
-      {
-        std::vector<std::string> errorSols;
-        errorSols.push_back("error");
-        _errorSurrogate->printCoefficients( errorSols, out );
-      }
-      if (_outputWeights)
-        _surrogate->printIntegrationWeights( out );
-      if (_outputPoints)
-        _surrogate->printIntegrationPoints( out );
-      if (_outputIndexSet)
-        _surrogate->printIndexSet( out );
+    /* //TODO update this to new structure */
+    /*   if (_outputCoefficients) */
+    /*     for(unsigned int i=0; i<_surrogates.size(); i++) */
+    /*       _surrogates[i]->printCoefficients( _solutionsToPrint, out ); */
+    /*   if (_outputErrorCoefficients) */
+    /*   { */
+    /*     std::vector<std::string> errorSols; */
+    /*     errorSols.push_back("error"); */
+    /*     _errorSurrogate->printCoefficients( errorSols, out ); */
+    /*   } */
+    /*   if (_outputWeights) */
+    /*     _surrogate->printIntegrationWeights( out ); */
+    /*   if (_outputPoints) */
+    /*     _surrogate->printIntegrationPoints( out ); */
+    /*   if (_outputIndexSet) */
+    /*     _surrogate->printIndexSet( out ); */
 
-    out << std::endl;
+    /* out << std::endl; */
     return;
   }
 

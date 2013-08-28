@@ -32,13 +32,7 @@ namespace AGNOS
 
     public: 
 
-      // single physics function constructors
-      SurrogateModel(
-          const Communicator&               comm,
-          PhysicsModel<T_S,T_P>*            physics,
-          const std::vector<Parameter*>     parameters,
-          const unsigned int                order 
-          );
+      /** Constructor */
       SurrogateModel(
           const Communicator&               comm,
           PhysicsModel<T_S,T_P>*            physics,
@@ -46,110 +40,158 @@ namespace AGNOS
           const std::vector<unsigned int>&  order
           );
 
+      /** Secondary Constructor. 
+       *  ***DO NOT MISTAKE FOR A COPY CONSTRUCTOR ***
+       *  Intended use is for constructing a secondary surrogate model using the
+       *  primary model as an evaluating object in the build routine. 
+       *  If additional inputs are defined it will
+       * construct a new surrogate increasing the order and using
+       * primarySurrogate to perform evaluations in the constructions */
+      SurrogateModel( 
+          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          unsigned int increaseOrder = 0,
+          unsigned int multiplyOrder = 1,
+          std::set<std::string> evaluateSolutions = std::vector<std::string>(),
+          std::set<std::string> computeSolutions = std::vector<std::string>()
+          );
 
-      SurrogateModel( );           /**< Default constructor */
-      virtual ~SurrogateModel( );  /**< Default destructor */
+      /** default destructor */
+      virtual ~SurrogateModel( ); 
 
-      // surrogate construction and evaluation
+      /** build the surrogate model construction */
       virtual void build( ) = 0; 
 
+      /** evaluate surrogate model at give parameterValues and return
+       * solutionNames */
       virtual std::map<std::string, T_P> evaluate( 
           std::vector<std::string> solutionNames,  ///< solution to return
           T_S& parameterValues /**< parameter values to evaluate*/
-          ) = 0;
+          ) const = 0;
+      /** evaluate surrogate model at give parameterValues and return
+       * solutionName */
       T_P evaluate( 
           std::string solutionName,  ///< solution to return
           T_S& parameterValues     ///< parameter values to evaluate*/
-          ) ;
+          ) const ;
+      /** evaluate surrogate model at give parameterValues and return
+       * all solutions*/
       std::map<std::string, T_P> evaluate( 
           T_S& parameterValues     ///< parameter values to evaluate*/
-          ) ;
+          ) const ;
 
+      /** Refine the surrogate model. Must be definied in derived classes. */
       virtual void refine( ) = 0;
 
-      // calculate norms and statistics
+      /** calculate mean */
       std::map< std::string, T_P > mean( ) ;
-      // integration method depends on surr type
+
+      /** calculate the L2 norm over parameter space */
       virtual std::map<std::string, T_P> l2Norm( 
           std::vector<std::string> solutionNames  ///< solution to return
           ) = 0;
+      /** calculate the L2 norm over parameter space */
       T_P l2Norm( 
           std::string solutionName  ///< solution to return
           ) ;
+      /** calculate the L2 norm over parameter space */
       std::map<std::string, T_P> l2Norm( ) ;
 
-      // difference btw two surrogate models
+      /** Compute the norm of the difference between this and comaprisonModel,
+       * for given solutionName */
       virtual double l2NormDifference( 
           SurrogateModel<T_S,T_P>& comparisonModel,
           std::string solutionName
           ) ;
 
 
-      // Manipulators
+      /** set parameters object  */
       void setParameters( std::vector<Parameter*> parameters );
-      std::vector<Parameter*>   getParameters( ) const;
+      /** return reference to parameters object */
+      std::vector<Parameter*>   getParameters( ) const
+      { return _parameters; }
 
+      /** print the coefficient vectors */
       void printCoefficients( 
         std::vector<std::string> solutionNames,
         std::ostream& out ) ;
+      /** print the coefficient vectors */
       void printCoefficients( std::string solutionName, std::ostream& out ) ;
+      /** print the coefficient vectors */
       void printCoefficients( std::ostream& out ) ;
-      const std::map< std::string, std::vector<T_P> >   getLocalCoefficients() const;
+
+      /** reference to locally stored coefficients */
+      const std::map< std::string, std::vector<T_P> >   getLocalCoefficients() const
+      { return _coefficients; }
+      /** reference to all coefficients */
       const std::map< std::string, std::vector<T_P> >   getCoefficients() ;
 
+      /** print integration weights */
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
+      /** print integration points */
       virtual void printIntegrationPoints( std::ostream& out ) const = 0;
+      /** print index set */
       virtual void printIndexSet( std::ostream& out ) const = 0;
+      /** print integration weights in table format*/
       virtual void prettyPrintIntegrationWeights( ) const = 0;
+      /** print integration weights in table format*/
       virtual void prettyPrintIntegrationPoints( ) const = 0;
+      /** print integration weights in table format*/
       virtual void prettyPrintIndexSet( ) const = 0;
 
-      std::vector<unsigned int> getExpansionOrder( ) const;
+      /** expansion order used to construct surrogateModel */
+      const std::vector<unsigned int> getExpansionOrder( ) const
+      { return _order; }
 
+      /** reference to communicator  */
+      const Communicator& getComm( ) const 
+      { return _comm; }
+      /** reference to physics pointer */
+      PhysicsModel<T_S,T_P>* getPhysics( ) const
+      { return _physics; }
+
+      /** solution names this surrogateModel is built for */
       std::set<std::string> getSolutionNames( ) const
       { return _solutionNames; }
 
+      /** reference to sol vector sizes */
+      std::map<std::string, unsigned int> getSolSize( ) const
+      { return _solSize; }
+
     protected: 
+      /** reference to communicator */
       const Communicator& _comm;
+      /** reference to underlying physics */
       PhysicsModel<T_S,T_P>* _physics;
       
+      /** expansion order */
       std::vector<unsigned int>                           _order;  
+      /** coefficients vectors (local)*/
       std::map< std::string, std::vector<T_P> >           _coefficients;
+      /** total number of coefficients on all vectors */
       unsigned int                                        _totalNCoeff;
 
+      /** dimension of coefficient vectors for each solution name */
       std::map< std::string, unsigned int>                _solSize;
 
+      /** reference to Parameter object */
       std::vector<Parameter*>                             _parameters;
+      /** Parameter dimension */
       unsigned int                                        _dimension;
 
+      /** Set of solution names that the surrogate model computes */
       std::set<std::string>                               _solutionNames;
+
+      /** Set of solution names that the surrogate model usese primary surrogate
+       * for. Only meaningful in secondary constructor case */
+      std::set<std::string>                               _evalNames;
+
+      /** Primary surrogate to use in evaluation for secondary surrogate
+       * construciton */
+      const SurrogateModel<T_S,T_P>*                      _evalSurrogate ;
 
       
 
   }; //SurrogateModel class
-
-/********************************************//*
- * \brief Constructor
- ***********************************************/
-  template<class T_S, class T_P>
-    SurrogateModel<T_S,T_P>::SurrogateModel( 
-          const Communicator&               comm,
-          PhysicsModel<T_S,T_P>*            physics,
-          const std::vector<Parameter*>     parameters,
-        unsigned int                                        order
-        )
-      : 
-        _comm(comm),
-        _physics(physics), 
-        _parameters(parameters),
-        _dimension( parameters.size() )
-    {
-      _order = std::vector<unsigned int>(_dimension,order);
-
-      _solutionNames.clear();
-      _solutionNames = physics->getSolutionNames();
-
-    }
 
 /********************************************//*
  * \brief Constructor
@@ -184,14 +226,46 @@ namespace AGNOS
       }
     }
 
-
 /********************************************//*
- * \brief Default constructor
+ * \brief Secondary constructor
  ***********************************************/
   template<class T_S, class T_P>
-    SurrogateModel<T_S,T_P>::SurrogateModel( )
+    SurrogateModel<T_S,T_P>::SurrogateModel( 
+          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          unsigned int increaseOrder ,
+          unsigned int multiplyOrder ,
+          std::set<std::string> evaluateSolutions , 
+          std::set<std::string> computeSolutions 
+        )
+      : 
+        _comm( primarySurrogate->getComm() ),
+        _physics( primarySurrogate->getPhysics() ), 
+        _parameters( primarySurrogate->getParameters() ),
+        _dimension( _parameters.size() ),
+        _evalSurrogate( primarySurrogate )
     {
+      // augment order appropriately
+      _order = primarySurrogate->getExpansionOrder() ;
+      for (unsigned int i=0; i<_order.size();i++)
+      {
+        _order[i] += increaseOrder ;
+        _order[i] *= multiplyOrder ;
+      }
+
+      // if no output solutions are provided assume we want all 
+      if (computeSolutions.size() == 0)
+        _solutionNames = primarySurrogate->getSolutionNames();
+      else
+        _solutionNames  = computeSolutions ;
+
+      // if no evaluateSolutions are provided assume we use all
+      if (evaluateSolutions.size() == 0)
+        _evalNames = _solutionNames ;
+      else
+        _evalNames = evaluateSolutions ;
+
     }
+
 
 /********************************************//**
  * \brief Default destructor
@@ -213,34 +287,6 @@ namespace AGNOS
       return;
     }
 
-/********************************************//**
- * \brief get number of parameters
- ***********************************************/
-  template<class T_S, class T_P>
-    std::vector<Parameter*> SurrogateModel<T_S,T_P>::getParameters( ) const
-    {
-      return _parameters ;
-    }
-
-/********************************************//**
- * \brief Get the current expansion order
- ***********************************************/
-  template<class T_S, class T_P>
-    std::vector<unsigned int> SurrogateModel<T_S,T_P>::getExpansionOrder( )
-    const
-  {
-    return _order;
-  }
-
-/********************************************//**
- * \brief return coefficient values
- ***********************************************/
-  template<class T_S, class T_P> 
-    const std::map< std::string, std::vector<T_P> >
-    SurrogateModel<T_S,T_P>::getLocalCoefficients( ) const
-    {
-      return _coefficients;
-    }
 
 /********************************************//**
  * \brief return all coefficients to rank 0, to save on communication we do not
@@ -418,7 +464,7 @@ namespace AGNOS
     T_P SurrogateModel<T_S,T_P>::evaluate( 
         std::string solutionName,  ///< solution to return
         T_S& parameterValues     ///< parameter values to evaluate*/
-        ) 
+        ) const
     {
       std::vector< std::string > solutionsToGet(1,solutionName);
       std::map< std::string, T_P > solutionVectors
@@ -434,7 +480,7 @@ namespace AGNOS
   template<class T_S, class T_P> 
     std::map<std::string, T_P> SurrogateModel<T_S,T_P>::evaluate( 
         T_S& parameterValues     ///< parameter values to evaluate*/
-        ) 
+        ) const
     {
       std::vector< std::string > solutionsToGet ;
       
