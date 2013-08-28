@@ -64,7 +64,7 @@ namespace AGNOS
       /** evaluate surrogate model at give parameterValues and return
        * solutionNames */
       virtual std::map<std::string, T_P> evaluate( 
-          std::vector<std::string> solutionNames,  ///< solution to return
+          std::set<std::string> solutionNames,  ///< solution to return
           T_S& parameterValues /**< parameter values to evaluate*/
           ) const = 0;
       /** evaluate surrogate model at give parameterValues and return
@@ -87,7 +87,7 @@ namespace AGNOS
 
       /** calculate the L2 norm over parameter space */
       virtual std::map<std::string, T_P> l2Norm( 
-          std::vector<std::string> solutionNames  ///< solution to return
+          std::set<std::string> solutionNames  ///< solution to return
           ) = 0;
       /** calculate the L2 norm over parameter space */
       T_P l2Norm( 
@@ -189,6 +189,9 @@ namespace AGNOS
        * construciton */
       const SurrogateModel<T_S,T_P>*                      _evalSurrogate ;
 
+      /** Data structure to hold evalSurrogate evaluations, to be used in
+       * surrogate construction */
+      std::vector<std::map< std::string,T_P> > _primalEvaluations;
       
 
   }; //SurrogateModel class
@@ -263,6 +266,7 @@ namespace AGNOS
         _evalNames = _solutionNames ;
       else
         _evalNames = evaluateSolutions ;
+      
 
     }
 
@@ -466,7 +470,8 @@ namespace AGNOS
         T_S& parameterValues     ///< parameter values to evaluate*/
         ) const
     {
-      std::vector< std::string > solutionsToGet(1,solutionName);
+      std::set< std::string > solutionsToGet;
+      solutionsToGet.insert(solutionName);
       std::map< std::string, T_P > solutionVectors
         = this->evaluate( solutionsToGet, parameterValues ) ;
 
@@ -482,12 +487,8 @@ namespace AGNOS
         T_S& parameterValues     ///< parameter values to evaluate*/
         ) const
     {
-      std::vector< std::string > solutionsToGet ;
+      std::set< std::string > solutionsToGet = _solutionNames;
       
-      std::set< std::string >::iterator id;
-      for (id=_solutionNames.begin(); id!=_solutionNames.end(); id++)
-        solutionsToGet.push_back( *id ) ;
-
       return evaluate( solutionsToGet, parameterValues ) ;    
     }
 
@@ -500,7 +501,9 @@ namespace AGNOS
         std::string solutionName  ///< solution to return
         ) 
     {
-      std::vector< std::string > solutionsToGet(1,solutionName);
+      std::set< std::string > solutionsToGet;
+      solutionsToGet.insert(solutionName);
+
       std::map< std::string, T_P > solutionVectors
         = this->l2Norm( solutionsToGet ) ;
 
@@ -514,12 +517,7 @@ namespace AGNOS
   template<class T_S, class T_P> 
     std::map<std::string, T_P> SurrogateModel<T_S,T_P>::l2Norm( ) 
     {
-      std::vector< std::string > solutionsToGet ;
-      
-      std::set< std::string >::iterator id;
-      for (id=_solutionNames.begin(); id!=_solutionNames.end(); id++)
-        solutionsToGet.push_back( *id ) ;
-
+      std::set< std::string > solutionsToGet  = _solutionNames;
       return l2Norm( solutionsToGet) ;    
     }
   
