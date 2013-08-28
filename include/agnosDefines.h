@@ -2,7 +2,11 @@
 #ifndef AGNOS_DEFINES_H
 #define AGNOS_DEFINES_H
 
+#ifndef  NDEBUG
 #define AGNOS_DEBUG 1
+#else
+#define AGNOS_DEBUG 0
+#endif
 
 #include <iostream>
 #include <fstream>

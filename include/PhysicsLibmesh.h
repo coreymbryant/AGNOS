@@ -17,8 +17,6 @@
 
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
-        
-#define AGNOS_DEBUG 1
 
 namespace AGNOS
 {
@@ -122,13 +120,13 @@ namespace AGNOS
     }
 
     // read refinement options
-    _useUniformRefinement = input("physics/useUniformRefinement",true);
-    _numberHRefinements   = input("physics/numberHRefinements",1);
-    _numberPRefinements   = input("physics/numberPRefinements",0);
-    _maxRefineSteps       = input("physics/maxRefineSteps",1);
+    _useUniformRefinement = input("useUniformRefinement",true);
+    _numberHRefinements   = input("numberHRefinements",1);
+    _numberPRefinements   = input("numberPRefinements",0);
+    _maxRefineSteps       = input("maxRefineSteps",1);
 
     // other options
-    _resolveAdjoint       = input("physics/resolveAdjoint",false);
+    _resolveAdjoint       = input("resolveAdjoint",false);
     // -----------------------------------------------------------
 
 
@@ -335,8 +333,6 @@ namespace AGNOS
           = (dynamic_cast<ExplicitSystem&>(system)).get_vector("RHS Vector");
         projected_residual.close();
 
-        projected_residual.print_global();
-        
         if ( solutionVectors.count("adjoint") && !_resolveAdjoint )
         {
           // TODO set adjoint solution from solutionVectors

@@ -46,7 +46,9 @@ using namespace AGNOS;
 
         const Communicator comm(MPI_COMM_WORLD);
         GetPot inputfile = GetPot();
-        inputfile.set("physics/solutions","primal adjoint qoi") ;
+        inputfile.set("solutions","primal adjoint qoi") ;
+        /* inputfile.set("surrogateModels/modelNames","primary") ; */
+        /* inputfile.set("surrogateModels/primary/solutions","primal adjoint qoi") ; */
 
         unsigned int dimension = 1;
         

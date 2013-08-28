@@ -24,18 +24,28 @@ namespace AGNOS
 
     public:
 
-      // single physics function constructors
-      SurrogatePseudoSpectral( 
-          const Communicator&               comm,
-          PhysicsModel<T_S,T_P>*                physics,
-          const std::vector<Parameter*>     parameters,
-          const unsigned int                order 
-          );
+      /** Constructor */
       SurrogatePseudoSpectral( 
           const Communicator&               comm,
           PhysicsModel<T_S,T_P>*                physics,
           const std::vector<Parameter*>     parameters,
           const std::vector<unsigned int>&  order
+          );
+
+
+      /** Secondary Constructor. 
+       *  ***DO NOT MISTAKE FOR A COPY CONSTRUCTOR ***
+       *  Intended use is for constructing a secondary surrogate model using the
+       *  primary model as an evaluating object in the build routine. 
+       *  If additional inputs are defined it will
+       * construct a new surrogate increasing the order and using
+       * primarySurrogate to perform evaluations in the constructions */
+      SurrogatePseudoSpectral( 
+          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          unsigned int increaseOrder = 0,
+          unsigned int multiplyOrder = 1,
+          std::set<std::string> evaluateSolutions = std::set<std::string>(),
+          std::set<std::string> computeSolutions = std::set<std::string>()
           );
 
       virtual ~SurrogatePseudoSpectral( );
@@ -51,7 +61,7 @@ namespace AGNOS
       std::map<std::string, T_P> evaluate( 
           std::vector< std::string >  solutionNames,
           T_S&                        parameterValues 
-          );
+          ) const ;
 
       using SurrogateModel<T_S,T_P>::l2Norm;
       std::map< std::string, T_P> l2Norm(
@@ -93,20 +103,6 @@ namespace AGNOS
   };
 
 
-/********************************************//**
- * \brief Constructor for isotropic order
- ***********************************************/
-  template<class T_S, class T_P>
-    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const Communicator&               comm,
-        PhysicsModel<T_S,T_P>*                physics,
-        const std::vector<Parameter*>     parameters,
-        const unsigned int order
-        )
-      : SurrogateModel<T_S,T_P>(comm,physics,parameters,order) 
-    {
-    }
-
 
 /********************************************//**
  * \brief Constructor for anisotropic order
@@ -118,11 +114,26 @@ namespace AGNOS
         const std::vector<Parameter*>     parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogateModel<T_S,T_P>(comm,physics,parameters,order) 
+      : SurrogateModel<T_S,T_P>( comm, physics, parameters, order) 
     {
     }
 
 
+/********************************************//*
+ * \brief Secondary constructor
+ ***********************************************/
+  template<class T_S, class T_P>
+    SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
+        const SurrogateModel<T_S,T_P>* primarySurrogate, 
+        unsigned int increaseOrder ,
+        unsigned int multiplyOrder ,
+        std::set<std::string> evaluateSolutions,
+        std::set<std::string> computeSolutions
+        )
+      : SurrogateModel<T_S,T_P>(primarySurrogate, increaseOrder, multiplyOrder,
+          evaluateSolutions, computeSolutions)
+    {
+    }
 
 
 /********************************************//**
@@ -400,6 +411,14 @@ namespace AGNOS
       //TODO if evaluation surrogate is provided set values
       std::map< std::string, T_P > contrib;
       contrib.clear();
+      std::set<std::string>::iterator evalName = this->_evalNames.begin();
+      for(; evalName != this->_evalNames.end(); evalName++)
+      {
+        contrib.insert( std::pair<std::string,T_P>( 
+              *evalName, this->_evalSurrogate->evaluate( *evalName,
+                integrationPoint ) 
+              ));
+      }
 
       
       if (AGNOS_DEBUG)
@@ -408,13 +427,20 @@ namespace AGNOS
       // get solution for this integration point
       physics->compute( integrationPoint, contrib );
 
+
+      // clear out any evaluations that were provided by evalSurrogate, and that
+      // aren't in solutionNames
+      for(evalName = this->_evalNames.begin(); 
+          evalName != this->_evalNames.end(); evalName++)
+      {
+        if ( !this->_solutionNames.count(*evalName) ) 
+          contrib.erase( *evalName );
+      }
+      
+
       if (AGNOS_DEBUG)
       {
         std::cout << "test: computeContribution( ) post compute()" << std::endl;
-        std::cout << "contrib['primal'].size():" << contrib["primal"].size() <<
-                                                    std::endl;
-        std::cout << "contrib['adjoint'].size():" << contrib["adjoint"].size() <<
-                                                    std::endl;
       }
 
       std::set<std::string>::iterator id = this->_solutionNames.begin();
@@ -435,7 +461,7 @@ namespace AGNOS
     std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
         std::vector< std::string > solutionNames,
         T_S& parameterValues /**< parameter values to evaluate*/
-        )
+        ) const
     {
       if(AGNOS_DEBUG)
         std::cout << "entering surrogate evaluate" << std::endl;
@@ -449,21 +475,27 @@ namespace AGNOS
       // get starting coeff for current rank
       unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
 
+      // get references to system variables. We can't iterate directly since
+      // this is a const member funciton
+      std::map<std::string,unsigned int> solSize = this->getSolSize();
+      std::map<std::string,std::vector<T_P> > coefficients =
+        this->getLocalCoefficients();
+
       // loop over all solutions requested
       for (unsigned int n=0; n < solutionNames.size(); n++)
       {
         std::string id = solutionNames[n];
 
-        std::vector<double> sumContrib(this->_solSize[id],0.);
+        std::vector<double> sumContrib(solSize[id],0.);
         if(AGNOS_DEBUG)
           std::cout << "evaluating surrogate model for: " << solutionNames[n] <<
             "with size:" << sumContrib.size() << std::endl;
 
-        for(unsigned int c=0; c < this->_coefficients[id].size(); c++)
+        for(unsigned int c=0; c < coefficients[id].size(); c++)
         {
           // compute current rank's contribution
-          for(unsigned int i=0; i < this->_coefficients[id][c].size(); i++)
-            sumContrib[i] += this->_coefficients[id][c](i) *
+          for(unsigned int i=0; i < coefficients[id][c].size(); i++)
+            sumContrib[i] += coefficients[id][c](i) *
               polyValues[coeffStart + c*(this->_comm.size())];
 
         } // coefficients

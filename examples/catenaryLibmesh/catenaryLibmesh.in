@@ -1,5 +1,6 @@
 [driver]
 maxIter = '1'
+adaptive = false
 []
 
 [parameters]
@@ -9,33 +10,49 @@ mins = '1.0'
 maxs = '3.0'
 []
 
-[adaptive]
-refinePhysical = true
-refineSurrogate = true
-[]
-
 [physics]
 type = 'catenaryLibmesh'
-min = '0.0'
-max = '1.0'
-nElem = '3'
-forcing = '-10.0'
+refine = true
 
-useUniformRefinement = false
-numberHRefinements = '1';
-numberPRefinements = '0';
-maxRefineSteps ='15'
+  [./catenaryLibmesh]
+  solutions='primal adjoint errorEstimate errorIndicators qoi'
+  min = '0.0'
+  max = '1.0'
+  nElem = '2'
+  forcing = '-10.0'
 
-resolveAdjoint = false
-solutions='primal adjoint errorEstimate errorIndicators qoi'
+  useUniformRefinement = false
+  numberHRefinements = '1';
+  numberPRefinements = '0';
+  maxRefineSteps ='15'
+
+  resolveAdjoint = false
+  [../]
+
 []
 
 
-[surrogateModel]
-type = 'PseudoSpectralTensorProduct'
-order = '0'
-errorOrder = '1'
+[surrogateModels]
+modelNames = 'primarySurrogate errorSurrogate'
+refine = true
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '3'
+  computeSolutions='primal adjoint errorEstimate errorIndicators qoi'
+  [../]
+
+  [./errorSurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  primarySurrogate = 'primarySurrogate'
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
+  evaluateSolutions = 'primal adjoint'
+  computeSolutions='errorEstimate qoi'
+  [../]
+
 []
+
 
 [output]
 filename = './testFile.dat'
@@ -45,4 +62,4 @@ errorCoefficients   = 1
 points              = 1
 weights             = 1
 index_set           = 1
-[]
+[../]
