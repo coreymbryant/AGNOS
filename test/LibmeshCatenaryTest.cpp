@@ -45,6 +45,7 @@ using namespace AGNOS;
       {
 
         const Communicator comm(MPI_COMM_WORLD);
+        std::cout << "comm.size(): " << comm.size() << std::endl;
         GetPot inputfile = GetPot();
         inputfile.set("solutions","primal adjoint qoi") ;
         /* inputfile.set("surrogateModels/modelNames","primary") ; */

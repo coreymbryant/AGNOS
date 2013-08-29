@@ -90,34 +90,70 @@ namespace AGNOS
         std::cout << "entering compute routine" << std::endl;
       solutionVectors.clear();
 
-      T_P primalSolution(1);
-      primalSolution(0) =  m_forcing / (8. *  paramVector(0) ) ;
-      solutionVectors.insert( 
-          std::pair<std::string,T_P>( "primal", primalSolution )
-            );
-      if(AGNOS_DEBUG)
-        std::cout << "compute -- primal solution size:" << primalSolution.size()
-          << std::endl;
+      if (!solutionVectors.count("primal"))
+      {
+        T_P primalSolution(1);
+        primalSolution(0) =  m_forcing / (8. *  paramVector(0) ) ;
+        solutionVectors.insert( 
+            std::pair<std::string,T_P>( "primal", primalSolution )
+              );
+        if(AGNOS_DEBUG)
+          std::cout << "compute -- primal solution size:" << primalSolution.size()
+            << std::endl;
+      }
 
-      T_P adjointSolution(1);
-      adjointSolution(0) =  1.0 / (4. * paramVector(0))  ;
-      solutionVectors.insert( 
-          std::pair<std::string,T_P>( "adjoint", adjointSolution )
-            );
+      if( this->_solutionNames.count("adjoint" ) 
+          || this->_solutionNames.count("errorEstimator") 
+          || this->_solutionNames.count("errorIndicators") 
+          )
+      {
+        if ( solutionVectors.count("adjoint")  )
+        {
+        }
+        else
+        {
+          T_P adjointSolution(1);
+          adjointSolution(0) =  1.0 / (4. * paramVector(0))  ;
+
+          if ( this->_solutionNames.count("adjoint") )
+          {
+            solutionVectors.insert( 
+                std::pair<std::string,T_P>( "adjoint", adjointSolution )
+                  );
+          }
+        }
+        
+        // ----------------------------------
+        // ERROR ESTIMATE AND ERROR INDICATORS
+        // Compute global error estimate if requested
+        if ( this->_solutionNames.count("errorEstimate") ) 
+        {
+          // in this case the FE solution interpolates at x=1/2 so the QoI is
+          // evaluated exactly
+          T_P error(1);
+          error.zero();
+          solutionVectors.insert( 
+                    std::pair<std::string,T_P>( "errorEstimate", error )
+                      );
+        }
+        
+        // compute indicators if they were requested
+        if (  this->_solutionNames.count("errorIndicators") )
+        {
+        }
+
+      } // end if adjoint|errorEstimate|errorIndicators
       
-      T_P qoiValue(1);
-      qoiValue(0) = primalSolution(0);
-      solutionVectors.insert( 
-                std::pair<std::string,T_P>( "qoi", qoiValue )
-                  );
+      // QUANTITY OF INTEREST
+      if ( this->_solutionNames.count("qoi") )
+      {
+        T_P qoiValue(1);
+        qoiValue(0) = solutionVectors["primal"](0) ;
+        solutionVectors.insert( 
+                  std::pair<std::string,T_P>( "qoi", qoiValue )
+                    );
+      }
 
-      // in this case the FE solution interpolates at x=1/2 so the QoI is
-      // evaluated exactly
-      T_P error(1);
-      error.zero();
-      solutionVectors.insert( 
-                std::pair<std::string,T_P>( "errorEstimate", error )
-                  );
 
       if(AGNOS_DEBUG)
       {
