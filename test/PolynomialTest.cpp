@@ -102,6 +102,7 @@ BOOST_AUTO_TEST_CASE(Linear_1D)
   mySurrogate->build( );
   std::map< std::string, std::vector<T_P> > myCoeff 
     = mySurrogate->getCoefficients( );
+  std::cout << "myCoeff.size():" << myCoeff["primal"].size() << std::endl;
 
   BOOST_CHECK_CLOSE( myCoeff["primal"][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
 }
