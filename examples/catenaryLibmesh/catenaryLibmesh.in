@@ -38,7 +38,7 @@ refine = true
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '3'
+  order = '27'
   computeSolutions='primal adjoint errorEstimate errorIndicators qoi'
   [../]
 

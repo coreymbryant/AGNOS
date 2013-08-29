@@ -94,6 +94,7 @@ namespace AGNOS
       unsigned int              _nIntegrationPoints;
       std::vector<T_S>          _integrationPoints ;
       std::vector<double>       _integrationWeights ;
+      std::vector<unsigned int> _integrationIndices;
 
       std::vector< std::vector<unsigned int> > _indexSet;
 
@@ -223,6 +224,7 @@ namespace AGNOS
       // to be defined is build routine based on computeContribution( )
       //
       unsigned int totalNCoeff = this->_totalNCoeff;
+
       std::vector< std::vector<double> > polyValues;
       polyValues.reserve(totalNCoeff);
       std::set< std::string >::iterator id;
@@ -246,18 +248,26 @@ namespace AGNOS
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
-      unsigned int nPts  
-        =  _nIntegrationPoints / this->_comm.size()  
-        + ( this->_comm.rank() < (_nIntegrationPoints % this->_comm.size() ) ) ;
-      unsigned int intPtsStart = std::min(this->_comm.rank(), _nIntegrationPoints-1);
+      unsigned int minPts = _nIntegrationPoints / this->_comm.size() ;
+      unsigned int remPts = _nIntegrationPoints % this->_comm.size() ;
+      unsigned int nPts  =  minPts + ( this->_comm.rank() < remPts ) ;
+      unsigned int intPtsStart = this->_comm.rank()*(minPts) 
+        + std::min( this->_comm.rank(), remPts ) ;
 
-
+      _integrationIndices.clear();
+      for (unsigned int i=0; i < nPts; i++)
+        _integrationIndices.push_back( intPtsStart + i );
 
       // assign the appropriate coeff to each processor
-      unsigned int nCoeffs  
-        =  totalNCoeff / this->_comm.size()  
-        + ( this->_comm.rank() < (totalNCoeff % this->_comm.size() ) ) ;
-      unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
+      unsigned int minCoeff = totalNCoeff / this->_comm.size() ;
+      unsigned int remCoeff = totalNCoeff % this->_comm.size() ;
+      unsigned int nCoeffs  =  minCoeff + ( this->_comm.rank() < remCoeff ) ;
+      unsigned int coeffStart = this->_comm.rank()*(minCoeff) 
+        + std::min( this->_comm.rank(), remCoeff ) ;
+
+      this->_coeffIndices.clear();
+      for (unsigned int i=0; i < nPts; i++)
+        this->_coeffIndices.push_back( coeffStart + i );
       // ------------------------------------
       
       
@@ -265,8 +275,6 @@ namespace AGNOS
       // Get primalSurrogate evaluations if needed
       this->_primalEvaluations.clear();
       if ( ! this->_evalNames.empty() )
-      {
-        std::cout << "_integrationPoints.size():"  << _integrationPoints.size() << std::endl;
         for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
         {
           std::cout << "pt: " << pt << std::endl;
@@ -275,12 +283,7 @@ namespace AGNOS
               this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint  )
               );
         }
-      }
-      
       // ------------------------------------
-
-
-
 
 
       this->_comm.barrier();
@@ -297,37 +300,37 @@ namespace AGNOS
       myContribs.reserve(nPts);
 
 
-      // solve for my integration points
+      // solve for my integration points;
       for(unsigned int pt=0; pt < nPts; pt++)
       {
         if (AGNOS_DEBUG)
-          std::cout << "test: beginning of pt" << std::endl;
-
+          std::cout << "DEBUG: beginning of pt" << std::endl;
 
 
         if (AGNOS_DEBUG)
-          std::cout << "test: pt (pre computeContribution)" << std::endl;
+          std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
+        /* std::cout << "rank: " << this->_comm.rank() << std::endl; */
+        /* std::cout << "size: " << this->_comm.size() << std::endl; */
+        /* std::cout << "index: " << intPtsStart + pt << std::endl; */
 
         // compute the contribution
         myContribs.push_back( computeContribution( 
             this->_physics,
-            intPtsStart + pt*this->_comm.size()
+            _integrationIndices[pt]
             ) );
 
         if (AGNOS_DEBUG)
-          std::cout << "test: pt (post computeContribution)" << std::endl;
+          std::cout << "DEBUG: pt (post computeContribution)" << std::endl;
 
         polyValues.push_back(
-            evaluateBasis( this->_indexSet, _integrationPoints[intPtsStart +
-              pt*this->_comm.size()]) 
+            evaluateBasis( this->_indexSet,
+              _integrationPoints[_integrationIndices[pt]]) 
             );
 
         if (AGNOS_DEBUG)
-          std::cout << "test: end of pt" << std::endl;
+          std::cout << "DEBUG: end of pt" << std::endl;
       }
 
-        std::cout << "rank: " << this->_comm.rank() << std::endl;
-        std::cout << "size: " << this->_comm.size() << std::endl;
       this->_comm.barrier();
 
 
@@ -389,6 +392,7 @@ namespace AGNOS
 
         for (unsigned int c=0; c < totalNCoeff; c++)
         {
+          std::cout << "surrogate build computing coeffs: " << c << std::endl ;
           std::vector<double> sumContrib(this->_solSize[*id],0.);
           
           // compute current rank's contribution
@@ -397,15 +401,28 @@ namespace AGNOS
               sumContrib[i] += myContribs[pt][*id](i) *
                 polyValues[pt][c];
 
+          std::cout << "surrogate build computing coeffs: rank: " << this->_comm.rank() << " pre sum" << std::endl ;
+          std::cout << "                  npts: " << nPts << std::endl ;
+          std::cout << "     sumContrib.size(): " << sumContrib.size() << std::endl ;
           // sum all contributions
           this->_comm.sum( sumContrib );
+          std::cout << "surrogate build computing coeffs: rank: " << this->_comm.rank() << " post sum" << std::endl ;
 
           // store if its one of mine
-          if ( (c % this->_comm.size()) == this->_comm.rank() )
-            solCoefficientVectors.push_back( T_P(sumContrib) ) ;
+          if ( !this->_coeffIndices.empty() )
+            if ( (c>=this->_coeffIndices.front()) && (c<=this->_coeffIndices.back()) )
+            {
+              std::cout << " rank: " << this->_comm.rank() << " storing coeff" << std::endl ;
+              solCoefficientVectors.push_back( T_P(sumContrib) ) ;
+            }
+
+          std::cout << " rank: " << this->_comm.rank() 
+            << " end of coeff: " << c << std::endl ;
 
         } // c
 
+        std::cout << " rank: " << this->_comm.rank() 
+          << " solCoefficientVectors.size " << solCoefficientVectors.size() << std::endl ;
         if (solCoefficientVectors.size() > 0)
         {
           this->_coefficients.insert(
@@ -415,6 +432,7 @@ namespace AGNOS
                 ) 
               );
         }
+        std::cout << " rank: " << this->_comm.rank() << " end of id: " << *id << std::endl ;
 
       } // id
 
@@ -435,7 +453,7 @@ namespace AGNOS
     {
 
       if (AGNOS_DEBUG)
-        std::cout << "test: computeContribution( ) beginning" << std::endl;
+        std::cout << "DEBUG: computeContribution( ) beginning" << std::endl;
       
 
       // get data for this integration point
@@ -447,7 +465,7 @@ namespace AGNOS
 
       
       if (AGNOS_DEBUG)
-        std::cout << "test: computeContribution( ) pre compute()" << std::endl;
+        std::cout << "DEBUG: computeContribution( ) pre compute()" << std::endl;
 
       // get solution for this integration point
       physics->compute( integrationPoint, contrib );
@@ -465,7 +483,7 @@ namespace AGNOS
 
       if (AGNOS_DEBUG)
       {
-        std::cout << "test: computeContribution( ) post compute()" << std::endl;
+        std::cout << "DEBUG: computeContribution( ) post compute()" << std::endl;
       }
 
       std::set<std::string>::iterator id = this->_solutionNames.begin();
@@ -474,7 +492,7 @@ namespace AGNOS
 
 
       if (AGNOS_DEBUG)
-        std::cout << "test: computeContribution( ) ending" << std::endl;
+        std::cout << "DEBUG: computeContribution( ) ending" << std::endl;
       return contrib;
     }
 
@@ -497,9 +515,6 @@ namespace AGNOS
       std::vector<double> polyValues =
         evaluateBasis(this->_indexSet,parameterValues) ;
 
-      // get starting coeff for current rank
-      unsigned int coeffStart = std::min(this->_comm.rank(), totalNCoeff-1);
-
       // get references to system variables. We can't iterate directly since
       // this is a const member funciton
       std::map<std::string,unsigned int> solSize = this->getSolSize();
@@ -521,7 +536,7 @@ namespace AGNOS
           // compute current rank's contribution
           for(unsigned int i=0; i < coefficients[*id][c].size(); i++)
             sumContrib[i] += coefficients[*id][c](i) *
-              polyValues[coeffStart + c*(this->_comm.size())];
+              polyValues[this->_coeffIndices[c]];
 
         } // coefficients
 

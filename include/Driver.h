@@ -372,6 +372,10 @@ namespace AGNOS
     // build error surrogate
     /* _errorSurrogate->build(); */
 
+    std::map< std::string, std::vector<T_P> > myCoeff =
+      _surrogates[0]->getCoefficients();
+
+
     
     /* // print out first iteration if requested */
     /* if (this->_outputIterations && (_comm.rank() == 0) ) */

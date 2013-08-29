@@ -169,6 +169,8 @@ namespace AGNOS
       std::map< std::string, std::vector<T_P> >           _coefficients;
       /** total number of coefficients on all vectors */
       unsigned int                                        _totalNCoeff;
+      /** indicies of coefficients corresponding to local process */
+      std::vector<unsigned int> _coeffIndices;
 
       /** dimension of coefficient vectors for each solution name */
       std::map< std::string, unsigned int>                _solSize;
@@ -300,59 +302,84 @@ namespace AGNOS
     const std::map< std::string, std::vector<T_P> >
     SurrogateModel<T_S,T_P>::getCoefficients( ) 
     {
+      if(AGNOS_DEBUG)
+        std::cout << "DEBUG: entering getCoefficients routine" << std::endl;
      
       std::map< std::string, std::vector<T_P> > allCoefficients;
 
-      unsigned int myRank = _comm.rank();
-      unsigned int commSize = _comm.size();
-      unsigned int coeffStart = std::min(_comm.rank(), _totalNCoeff-1);
+      unsigned int myRank = this->_comm.rank();
+      unsigned int minCoeff = this->_totalNCoeff / this->_comm.size() ;
+      unsigned int remCoeff = this->_totalNCoeff % this->_comm.size() ;
 
       // loop over all solution names
       std::set<std::string>::iterator id = _solutionNames.begin();
       for (; id!=_solutionNames.end(); ++id)
       {
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: getCoefficients routine: id: " << *id << std::endl;
         unsigned int solSize = _solSize[*id];
         std::vector<T_P> solutionCoeff( _totalNCoeff, T_P(solSize) );
 
         for(unsigned int c=0; c<this->_totalNCoeff; c++)
         {
-          unsigned int myC = (c-coeffStart)/commSize;
           std::vector<double> myCoeff(solSize,0.) ;
           libMesh::Parallel::MessageTag tag(c);
           libMesh::Parallel::Status stat;
-
-          if (c%commSize == myRank)
+          
+          // Is this one of my coefficients?
+          if ( !_coeffIndices.empty() )
           {
-            if (myRank == 0)
+            if ( (c>=_coeffIndices[0]) && (c<=_coeffIndices.back())  )
             {
-              // get and insert in total set
-              solutionCoeff[c] = _coefficients[*id][myC] ;
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: getCoefficients routine: coeff: " << c 
+                  << " myRank: " << myRank << " myCoeff " << std::endl;
+              unsigned int myC = c-_coeffIndices[0] ;
+              std::cout << "myC: " << myC << std::endl;
+              if (myRank == 0)
+              {
+                // get and insert in total set
+                solutionCoeff[c] = _coefficients[*id][myC] ;
+              }
+              else
+              {
+                // send my coeff to rank 0
+                for(unsigned int comp=0; comp<myCoeff.size(); comp++)
+                  myCoeff[comp]= _coefficients[*id][myC](comp) ; 
+                _comm.send(0,myCoeff,tag);
+              }
             }
             else
             {
-              // send my coeff to rank 0
-              for(unsigned int comp=0; comp<myCoeff.size(); comp++)
-                myCoeff[comp]= _coefficients[*id][myC](comp) ; 
-              _comm.send(0,myCoeff,tag);
-            }
-          }
-          else
-          {
-            if (myRank == 0)
-            {
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: getCoefficients routine: coeff: " 
+                  << c << " myRank: " << myRank << " notMyCoeff " << std::endl;
               // if im rank 0 receive all coefficients
-              stat=_comm.receive( c%commSize, myCoeff, tag);
+              if (myRank == 0)
+              {
+                // detemine receive rank
+                unsigned int recvRank ;
+                if (remCoeff == 0)
+                  recvRank = c / minCoeff ;
+                else if ( (c/(minCoeff+1)) < remCoeff)
+                  recvRank = c/(minCoeff+1);
+                else
+                  recvRank = remCoeff + (c-remCoeff*(minCoeff+1))/minCoeff ;
+                    
+              std::cout << "recvRank: " << recvRank << std::endl;
 
-              // insert into global set
-              for(unsigned int i=0; i<solSize; i++)
-                solutionCoeff[c](i) = myCoeff[i];
+                stat=_comm.receive( recvRank, myCoeff, tag);
 
+                // insert into global set
+                for(unsigned int i=0; i<solSize; i++)
+                  solutionCoeff[c](i) = myCoeff[i];
+              }
             }
           }
-
-
+          _comm.barrier();
         }
-
+        if(AGNOS_DEBUG)
+          std::cout << "DEBUG: pre add to allCoeff " << std::endl;
 
         allCoefficients.insert( 
             std::pair<std::string, std::vector<T_P> >(
@@ -360,6 +387,8 @@ namespace AGNOS
             );
       }
 
+      if(AGNOS_DEBUG)
+        std::cout << "DEBUG: leaving getCoefficients routine" << std::endl;
       return allCoefficients;
     }
 

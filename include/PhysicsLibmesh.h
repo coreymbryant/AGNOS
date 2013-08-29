@@ -335,7 +335,14 @@ namespace AGNOS
 
         if ( solutionVectors.count("adjoint") && !_resolveAdjoint )
         {
-          // TODO set adjoint solution from solutionVectors
+          // Make sure an adjoint solution exists
+          // if solving in parallel we may not have an adjoint solution in this
+          // system reference yet
+          bool has_adjoint = system.have_vector("adjoint_solution0");
+          if (!has_adjoint)
+            system.add_adjoint_solution();
+          
+          // set adjoint solution from solutionVectors
           NumericVector<Number>& adjoint_solution =
             system.get_adjoint_solution(0) ;
           for (unsigned int i=0; i<adjoint_solution.size(); i++)
