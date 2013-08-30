@@ -144,23 +144,26 @@ namespace AGNOS
       input.set_prefix("surrogateModels/") ;
     }
 
+    input.set_prefix("");
+
 
     
 
     // OUTPUT DATA SETTINGS
-    _outputFilename      = input("output/filename","cout");
+    input.set_prefix("output/") ;
+    _outputFilename      = input("filename","cout");
 
-    _solutionsToPrint.resize( input.vector_variable_size("output/solutions") );
+    _solutionsToPrint.resize( input.vector_variable_size("solutions") );
     for (unsigned int i=0; i < _solutionsToPrint.size(); i++)
-      _solutionsToPrint[i] = input("output/solutions", "",i);
+      _solutionsToPrint[i] = input("solutions", "",i);
 
-    _outputIterations    = input("output/iterations",false);
+    _outputIterations    = input("iterations",false);
 
-    _outputCoefficients  = input("output/coefficients",true);
-    _outputErrorCoefficients  = input("output/errorCoefficients",true);
-    _outputWeights       = input("output/weights",true);
-    _outputPoints        = input("output/points",true);
-    _outputIndexSet      = input("output/index_set",true);
+    _outputCoefficients  = input("coefficients",true);
+    _outputErrorCoefficients  = input("errorCoefficients",true);
+    _outputWeights       = input("weights",true);
+    _outputPoints        = input("points",true);
+    _outputIndexSet      = input("index_set",true);
 
   }
 
@@ -362,8 +365,6 @@ namespace AGNOS
   void Driver::run( )
   {
 
-    // print out settings
-    printSettings();
     
     // build initial approximation
     for(unsigned int i=0;i<_surrogates.size(); i++)
@@ -375,6 +376,9 @@ namespace AGNOS
     std::map< std::string, std::vector<T_P> > myCoeff =
       _surrogates[0]->getCoefficients();
 
+    // print out settings
+    printSettings();
+    printSolution(1);
 
     
     /* // print out first iteration if requested */
@@ -554,14 +558,6 @@ namespace AGNOS
       std::endl;
     out << "# Parameter settings: " << std::endl;
     out << "#     dimension = " << _paramDim << std::endl;
-    /* out << "#     order = " ; */
-    /* for(unsigned int i=0; i < _paramDim; i++) */
-    /*   out << _order[i] << " " ; */
-    /* out << std::endl; */
-    /* out << "#     errorOrder = " ; */
-    /* for(unsigned int i=0; i < _paramDim; i++) */
-    /*   out << _errorOrder[i] << " " ; */
-    /* out << std::endl; */
 
     out << "#     mins = " ;
     for (unsigned int i=0; i < _paramDim; i++)
@@ -583,6 +579,25 @@ namespace AGNOS
   void Driver::printSurrogateSettings( std::ostream& out ) 
   {
     out << std::endl;
+    out << "#====================================================" <<
+      std::endl;
+    out << "# Surrogate settings: " << std::endl;
+
+    std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
+    for(; sid !=_surrogateNames.end(); sid++)
+    {
+      out << "#----------------------------------------------------" <<
+        std::endl;
+      out << "#     " << sid->first << ": " << std::endl;
+      out << "#     order = " ;
+      std::vector<unsigned int> order = _surrogates[sid->second]->getExpansionOrder();
+      for(unsigned int i=0; i < _paramDim; i++)
+        out << order[i] << " " ;
+      out << std::endl;
+      out << "#----------------------------------------------------" <<
+        std::endl;
+    }
+    out << std::endl;
     return;
   }
 
@@ -592,24 +607,41 @@ namespace AGNOS
  ***********************************************/
   void Driver::printSolutionData( std::ostream& out ) 
   {
-    /* //TODO update this to new structure */
-    /*   if (_outputCoefficients) */
-    /*     for(unsigned int i=0; i<_surrogates.size(); i++) */
-    /*       _surrogates[i]->printCoefficients( _solutionsToPrint, out ); */
-    /*   if (_outputErrorCoefficients) */
-    /*   { */
-    /*     std::vector<std::string> errorSols; */
-    /*     errorSols.push_back("error"); */
-    /*     _errorSurrogate->printCoefficients( errorSols, out ); */
-    /*   } */
-    /*   if (_outputWeights) */
-    /*     _surrogate->printIntegrationWeights( out ); */
-    /*   if (_outputPoints) */
-    /*     _surrogate->printIntegrationPoints( out ); */
-    /*   if (_outputIndexSet) */
-    /*     _surrogate->printIndexSet( out ); */
+    // Per surrogate options
+    if (this->_comm.rank() == 0)
+    {
+      out << std::endl;
+      out << "#====================================================" <<
+        std::endl;
+      out << "# Surrogate Coefficients: " << std::endl;
+    }
 
-    /* out << std::endl; */
+    std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
+    for(; sid !=_surrogateNames.end(); ++sid)
+    {
+      if (this->_comm.rank() == 0)
+      {
+        out << "#----------------------------------------------------" <<
+          std::endl;
+        out << "#     " << sid->first << ": " << std::endl;
+      }
+
+      if (_outputCoefficients)
+        _surrogates[sid->second]->printCoefficients( _solutionsToPrint, out );
+      if (_outputWeights)
+        _surrogates[sid->second]->printIntegrationWeights( out );
+      if (_outputPoints)
+        _surrogates[sid->second]->printIntegrationPoints( out );
+      if (_outputIndexSet)
+        _surrogates[sid->second]->printIndexSet( out );
+
+      if (this->_comm.rank() == 0)
+      {
+        out << "#----------------------------------------------------" <<
+          std::endl;
+      }
+    }
+
     return;
   }
 

@@ -38,7 +38,7 @@ refine = true
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '27'
+  order = '3'
   computeSolutions='primal adjoint errorEstimate errorIndicators qoi'
   [../]
 
@@ -56,10 +56,9 @@ refine = true
 
 [output]
 filename = './testFile.dat'
-solutions = 'primal adjoint qoi'
+solutions = 'errorEstimate qoi'
 coefficients        = 1
-errorCoefficients   = 1
 points              = 1
 weights             = 1
 index_set           = 1
-[../]
+[]

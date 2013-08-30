@@ -400,63 +400,90 @@ namespace AGNOS
         std::vector<std::string> solutionNames,
         std::ostream& out ) 
     {
-      unsigned int myRank = _comm.rank();
-      unsigned int commSize = _comm.size();
-      unsigned int coeffStart = std::min(_comm.rank(), _totalNCoeff-1);
 
-      if ( myRank == 0)
+      std::map<std::string,std::vector<T_P> > coefficients =
+        this->getCoefficients();
+
+      if ( this->_comm.rank() == 0)
+      {
         out << "#" << std::string(75,'=') << std::endl;
 
-      for (unsigned int i=0; i < solutionNames.size(); i++)
-      {
-        std::string id = solutionNames[i];
-
-        if (myRank == 0)
+        for (unsigned int i=0; i < solutionNames.size(); i++)
         {
+          std::string id = solutionNames[i];
           out << "#" << std::string(75,'-') << std::endl;
           out << "#" << "\t Solution: " << id << std::endl;
           out << "#" << std::string(75,'-') << std::endl;
-        }
 
-        for(unsigned int c=0; c<this->_totalNCoeff; c++)
-        {
-          unsigned int myC = (c-coeffStart)/commSize;
-          std::vector<double> myCoeff(_solSize[id],0.);
-          libMesh::Parallel::MessageTag tag(c);
-          libMesh::Parallel::Status stat;
-
-          if (c%commSize == myRank)
+          for(unsigned int c=0; c<this->_totalNCoeff; c++)
           {
-            if (myRank == 0)
-            {
-              for(unsigned int comp=0; comp < (_coefficients[id])[myC].size(); comp++)
-                out << std::setprecision(5) << std::scientific 
-                  << (_coefficients[id])[myC](comp) << " " ;
-              out << std::endl;
-            }
-            else
-            {
-              for(unsigned int comp=0; comp<myCoeff.size(); comp++)
-                myCoeff[comp]= _coefficients[id][myC](comp) ; 
-              _comm.send(0,myCoeff,tag);
-
-            }
+            for(unsigned int comp=0; comp < (coefficients[id])[c].size(); comp++)
+              out << std::setprecision(5) << std::scientific 
+                << (coefficients[id])[c](comp) << " " ;
+            out << std::endl;
           }
-          else
-          {
-            if (myRank == 0)
-            {
-              stat=_comm.receive( c%commSize, myCoeff, tag);
-              for(unsigned int comp=0; comp < myCoeff.size(); comp++)
-                out << std::setprecision(5) << std::scientific 
-                  << myCoeff[comp] << " " ;
-              out << std::endl;
-            }
-          }
-
-
         }
       }
+
+
+
+      /* unsigned int myRank = _comm.rank(); */
+      /* unsigned int commSize = _comm.size(); */
+      /* unsigned int coeffStart = std::min(_comm.rank(), _totalNCoeff-1); */
+
+      /* if ( myRank == 0) */
+      /*   out << "#" << std::string(75,'=') << std::endl; */
+
+      /* for (unsigned int i=0; i < solutionNames.size(); i++) */
+      /* { */
+      /*   std::string id = solutionNames[i]; */
+
+      /*   if (myRank == 0) */
+      /*   { */
+      /*     out << "#" << std::string(75,'-') << std::endl; */
+      /*     out << "#" << "\t Solution: " << id << std::endl; */
+      /*     out << "#" << std::string(75,'-') << std::endl; */
+      /*   } */
+
+      /*   for(unsigned int c=0; c<this->_totalNCoeff; c++) */
+      /*   { */
+      /*     unsigned int myC = (c-coeffStart)/commSize; */
+      /*     std::vector<double> myCoeff(_solSize[id],0.); */
+      /*     libMesh::Parallel::MessageTag tag(c); */
+      /*     libMesh::Parallel::Status stat; */
+
+      /*     if (c%commSize == myRank) */
+      /*     { */
+      /*       if (myRank == 0) */
+      /*       { */
+      /*         for(unsigned int comp=0; comp < (_coefficients[id])[myC].size(); comp++) */
+      /*           out << std::setprecision(5) << std::scientific */ 
+      /*             << (_coefficients[id])[myC](comp) << " " ; */
+      /*         out << std::endl; */
+      /*       } */
+      /*       else */
+      /*       { */
+      /*         for(unsigned int comp=0; comp<myCoeff.size(); comp++) */
+      /*           myCoeff[comp]= _coefficients[id][myC](comp) ; */ 
+      /*         _comm.send(0,myCoeff,tag); */
+
+      /*       } */
+      /*     } */
+      /*     else */
+      /*     { */
+      /*       if (myRank == 0) */
+      /*       { */
+      /*         stat=_comm.receive( c%commSize, myCoeff, tag); */
+      /*         for(unsigned int comp=0; comp < myCoeff.size(); comp++) */
+      /*           out << std::setprecision(5) << std::scientific */ 
+      /*             << myCoeff[comp] << " " ; */
+      /*         out << std::endl; */
+      /*       } */
+      /*     } */
+
+
+      /*   } */
+      /* } */
 
 
     }
