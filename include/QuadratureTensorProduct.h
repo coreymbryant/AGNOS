@@ -21,7 +21,7 @@ namespace AGNOS
     public:
 
       QuadratureTensorProduct( 
-          const std::vector<Parameter*>& parameters,
+          const std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters,
           const std::vector<unsigned int>& order
           );
 
@@ -31,7 +31,7 @@ namespace AGNOS
     protected:
 
       void recurQuad(
-          const std::vector<Parameter*>& parameters,
+          const std::vector<std::shared_ptr<Parameter> >& parameters, 
           const int dim, const std::vector<unsigned int>& order, 
           double currentWeights[], double* currentPoints[] );
 
@@ -47,7 +47,7 @@ namespace AGNOS
  * 
  ***********************************************/
   QuadratureTensorProduct::QuadratureTensorProduct( 
-      const std::vector<Parameter*>& parameters, 
+      const std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters,
       const std::vector<unsigned int>& order 
       )
   {
@@ -81,7 +81,7 @@ namespace AGNOS
  *
  ***********************************************/
   void QuadratureTensorProduct::recurQuad(
-      const std::vector<Parameter*>& parameters,
+      const std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters,
       const int dim, const std::vector<unsigned int>& order, 
       double currentWeights[], double* currentPoints[] )
   {
