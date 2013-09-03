@@ -84,7 +84,7 @@ else
    CXXFLAGS="-O0 -g -fno-unsafe-math-optimizations"
 fi
 
-CXXFLAGS+=" -std=c++11"
+CXXFLAGS+=" -std=c++0x"
 
 dnl -Wall warnings, -Wall the time.
 dnl AX_CXXFLAGS_WARN_ALL
