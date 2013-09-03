@@ -10,7 +10,7 @@
 
 #include "agnosDefines.h"
 #undef AGNOS_DEBUG
-#define AGNOS_DEBUG 1
+#define AGNOS_DEBUG 0
 #include <mpi.h>
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
