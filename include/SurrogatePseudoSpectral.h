@@ -287,22 +287,8 @@ namespace AGNOS
         assert( polyValues->row_start() == this->_coeffIndices.front() );
         assert( polyValues->row_stop() == this->_coeffIndices.back()+1  );
       }
-
-      /* std::cout << "polyValues.m(): " << polyValues->m() << std::endl; */
-      /* std::cout << "polyValues.n(): " << polyValues->n() << std::endl; */
-      /* std::cout << "rank: " << this->_comm.rank() << " polyValues.row_start(): " */
-      /*   << polyValues->row_start() << std::endl; */
-      /* std::cout << "rank: " << this->_comm.rank() << " polyValues.row_stop(): " */
-      /*   << polyValues->row_stop() << std::endl; */
-
-      std::map<std::string, std::shared_ptr<DistMatrix> > contrib;
       // ------------------------------------
       
-      /* std::cout << "coeffIndices.size(): " << this->_coeffIndices.size() << */
-      /*                                     std::endl; */
-      /* for(unsigned int i=0; i<this->_coeffIndices.size(); i++) */
-      /*   std::cout << "coeffIndices[" << i << "]:" << this->_coeffIndices[i] << */
-      /*     std::endl; */
       
       
       // ------------------------------------
@@ -311,7 +297,10 @@ namespace AGNOS
       if ( ! this->_evalNames.empty() )
         for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
         {
-          std::cout << "pt: " << pt << std::endl;
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
+              << std::endl;
+
           T_S integrationPoint = _integrationPoints[pt];
           this->_primalEvaluations.push_back( 
               this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint  )
@@ -341,9 +330,6 @@ namespace AGNOS
 
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
-        /* std::cout << "rank: " << this->_comm.rank() << std::endl; */
-        /* std::cout << "size: " << this->_comm.size() << std::endl; */
-        /* std::cout << "index: " << intPtsStart + pt << std::endl; */
 
         // compute the contribution
         myContribs.push_back(
@@ -366,9 +352,9 @@ namespace AGNOS
       this->_comm.barrier();
 
 
+      // add my poly evaluations to global matrix
       if (AGNOS_DEBUG)
         std::cout << "DEBUG: begin copy poly evals" << std::endl;
-      // add my poly evaluations to global matrix
       for(unsigned int i=0; i<myPolyVals.size(); i++)
         for(unsigned int j=0; j<myPolyVals[i].size(); j++)
         {
@@ -382,8 +368,10 @@ namespace AGNOS
         std::cout << "DEBUG: end copy poly evals" << std::endl;
 
 
+      
       this->_comm.barrier();
       
+
       // need to know size of solution vector on all processes (in case some
       // don't have any work but will still be called in reduce operation)
       unsigned int tempSize;
@@ -432,7 +420,7 @@ namespace AGNOS
           id!=this->_solutionNames.end(); id++)
       {
         if(AGNOS_DEBUG)
-          std::cout << "surrogate build computing coeffs: " << *id << std::endl ;
+          std::cout << "DEBUG: surrogate build computing coeffs: " << *id << std::endl ;
 
         unsigned int solSize = this->_solSize[*id] ;
 
@@ -482,34 +470,10 @@ namespace AGNOS
             &resultMat
             );
 
-        /* const char* rType; */
-        /* ierr = MatGetType(resultMat,&rType); */
-        /* std::cout << "resultType:" << rType << std::endl; */
 
         // Create libmesh DistMatrix from Petsc Mat 
         std::shared_ptr<DistMatrix> coeffMatrix(new
             DistMatrix(resultMat,this->_comm) ) ;
-
-        /* std::cout << "coeffMatrix.m(): " << coeffMatrix->m() << std::endl; */
-        /* std::cout << "coeffMatrix.n(): " << coeffMatrix->n() << std::endl; */
-        /* std::cout << "coeffMatrix.row_start(): " << coeffMatrix->row_start() << std::endl; */
-        /* std::cout << "coeffMatrix.row_stop(): " << coeffMatrix->row_stop() << std::endl; */
-
-        /* for(unsigned int i=coeffMatrix->row_start(); */
-        /*     i<coeffMatrix->row_stop(); i++) */
-        /*   for(unsigned int j=0; j<coeffMatrix->n();j++) */
-        /*     std::cout << "coeff("<<i<<","<<j<<")=" << */
-        /*       (*coeffMatrix)(i,j) << std::endl; */
-
-        /* std::cout << "polyValues.m(): " << polyValues->m() << std::endl; */
-        /* std::cout << "polyValues.n(): " << polyValues->n() << std::endl; */
-        /* std::cout << "polyValues.row_start(): " << polyValues->row_start() << std::endl; */
-        /* std::cout << "polyValues.row_stop(): " << polyValues->row_stop() << std::endl; */
-
-        /* std::cout << "contrib.m(): " << solContrib->m() << std::endl; */
-        /* std::cout << "contrib.n(): " << solContrib->n() << std::endl; */
-        /* std::cout << "solContrib.row_start(): " << solContrib->row_start() << std::endl; */
-        /* std::cout << "solContrib.row_stop(): " << solContrib->row_stop() << std::endl; */
 
 
         // Save solution coefficients in coefficient container
@@ -574,6 +538,7 @@ namespace AGNOS
         std::cout << "DEBUG: computeContribution( ) post compute()" << std::endl;
       }
 
+      // -- loop over solution names
       std::set<std::string>::iterator id = this->_solutionNames.begin();
       for(;id!=this->_solutionNames.end();++id)
         contrib[*id].scale( integrationWeight );
@@ -597,36 +562,35 @@ namespace AGNOS
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: entering surrogate evaluate" << std::endl;
 
+      // initalize some data structure
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::map< std::string, T_P> surrogateValue;
 
-      // get polyValues
+      // initalize polyValues data structure
+      // NOTE: we will fill all polys on each proc, 
+      //        i.e. global m = comm.size
+      //        local m = 1
       DistMatrix polyValues(this->_comm);
       polyValues.init( 
-          this->_comm.size(),         // global dim n
-          totalNCoeff,                // global dim m
-          1,                          // local dim n
-          this->_coeffIndices.size(), // local dim m
+          this->_comm.size(),         // global dim m
+          totalNCoeff,                // global dim n
+          1,                          // local dim m
+          this->_coeffIndices.size(), // local dim n
           totalNCoeff,                // # non-zero/row on proc
           totalNCoeff                 // # non-zero/row off proc
           );
       polyValues.zero();
 
-        /* std::cout << "polyValues.m(): " << polyValues.m() << std::endl; */
-        /* std::cout << "polyValues.n(): " << polyValues.n() << std::endl; */
-        /* std::cout << "polyValues.row_start(): " << polyValues.row_start() << std::endl; */
-        /* std::cout << "polyValues.row_stop(): " << polyValues.row_stop() << std::endl; */
 
-
+      // evaluate all basis polys at given parameterValue
       std::vector<double> myPolyVals = evaluateBasis( 
           this->_indexSet,
           parameterValues 
           );
-      /* std::cout << "rank: " << this->_comm.rank() << " post evaluateBasis" << std::endl; */
 
+      // copy poly vals into Petsc data structure
       for(unsigned int i=0; i<myPolyVals.size(); i++)
         polyValues.set( this->_comm.rank(), i , myPolyVals[i] ) ;
-      /* std::cout << "rank: " << this->_comm.rank() << " post save polyVals " << std::endl; */
       polyValues.close();
 
 
@@ -639,7 +603,7 @@ namespace AGNOS
       std::set<std::string>::iterator id = solutionNames.begin();
       for (; id != solutionNames.end(); id++)
       {
-        // get solution size
+        // reference for solution size
         unsigned int solSize 
           = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
 
@@ -647,48 +611,8 @@ namespace AGNOS
           std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
             "with size:" <<  solSize << std::endl;
 
-        /* std::cout << "coeff.m(): " << const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->m() << std::endl; */
-        /* std::cout << "coeff.n(): " << const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->n() << std::endl; */
-        /* std::cout << "coeff.row_start(): " << const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->row_start() << std::endl; */
-        /* std::cout << "coeff.row_stop(): " << const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->row_stop() << std::endl; */
 
-
-
-        /* if ( !this->_coeffIndices.empty() ) */ 
-        /*   for(unsigned int i=this->_coeffIndices.front(); */
-        /*       i<=this->_coeffIndices.back(); i++) */
-        /*     for(unsigned int j=0; j<solSize;j++) */
-        /*       std::cout << "coeff("<<i<<","<<j<<")=" << */
-        /*         (*const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])(i,j) << std::endl; */
-
-        /* double r= 0; */
-        /* for(unsigned int i=const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->row_start(); */
-        /*     i<const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->row_stop();i++) */
-        /*   /1* r+= (*const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])(i,0) * polyValues(i) ; *1/ */
-        /*   r+= (*const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])(i,0) * polyValues(this->_comm.rank(),i) ; */
-
-        /* std::vector<double> rvec(1,r); */
-        /* this->_comm.sum(rvec); */
-        /* std::cout << "result=" << rvec[0]<<std::endl; */
-          
-
-        /* PetscVector<double> result(this->_comm, solSize); */
-        /* result.init(0); */
-        /* result.init(solSize); */
-        /* result.zero(); */
-        /* unsigned int minComp = solSize / this->_comm.size() ; */
-        /* unsigned int remComp = solSize % this->_comm.size() ; */
-        /* unsigned int nComp  =  minComp + ( this->_comm.rank() < remComp ) ; */
-        /* PetscErrorCode ierr =0; */
-        /* Vec resultVec; */
-        /* ierr = VecCreateMPI(this->_comm.get(), nComp, solSize, &resultVec ) ; */
-
-        /* ierr = MatMultTranspose( */
-        /*     (const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])->mat(), */
-        /*     polyValues.vec(), */
-        /*     resultVec */
-        /*     ); */
-
+        // compute matrix matrix product b/w polyValues and coefficient matrix
         Mat resultMat ;
         PetscErrorCode ierr;
         ierr = MatMatMult( 
@@ -698,13 +622,11 @@ namespace AGNOS
             &resultMat
             );
 
-        std::shared_ptr<DistMatrix> coeffMatrix(new
-            DistMatrix(resultMat,this->_comm) ) ;
-        /* std::cout << "coeffMatrix.m(): " << coeffMatrix->m() << std::endl; */
-        /* std::cout << "coeffMatrix.n(): " << coeffMatrix->n() << std::endl; */
-        /* std::cout << "coeffMatrix.row_start(): " << coeffMatrix->row_start() << std::endl; */
-        /* std::cout << "coeffMatrix.row_stop(): " << coeffMatrix->row_stop() << std::endl; */
+        // initiate matrix from MM product result
+        std::shared_ptr<DistMatrix> coeffMatrix(
+            new DistMatrix(resultMat,this->_comm) ) ;
 
+        // localize result on each processor
         std::vector<double> localResult(solSize,0.);
         for (unsigned int i=coeffMatrix->row_start(); 
             i<coeffMatrix->row_stop(); i++)
@@ -714,49 +636,7 @@ namespace AGNOS
         }
 
 
-        /* PetscVector<double> result(resultVec,this->_comm); */
-        /* std::cout << "rank: " << this->_comm.rank() << " result.size " */ 
-        /*   << result.size() << std::endl; */
-        /* std::cout << "rank: " << this->_comm.rank() */ 
-        /*   << " result.first_local_index " << result.first_local_index() << std::endl; */
-        /* std::cout << "rank: " << this->_comm.rank() */ 
-        /*   << " result.last_local_index " << result.last_local_index() << std::endl; */
-
-        // we need to take the transpose of the coeff matrix
-        /* DistMatrix coeffTran(this->_comm); */
-        /* const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id]->get_transpose(coeffTran); */
-
-        /* std::cout << "rank: " << this->_comm.rank() << " coeffTran.row-start " */ 
-        /*   << coeffTran.row_start() << std::endl; */
-        /* std::cout << "rank: " << this->_comm.rank() << " coeffTran.row-stop " */ 
-        /*   << coeffTran.row_stop() << std::endl; */
-
-        /* if ( !this->_coeffIndices.empty() ) */ 
-        /*   for(unsigned int j=0; j<solSize;j++) */
-        /*     for(unsigned int i=this->_coeffIndices.front(); */
-        /*         i<=this->_coeffIndices.back(); i++) */
-        /*       std::cout << "coeffTran("<<j<<","<<i<<")=" << */
-        /*         coeffTran(j,i) << std::endl; */
-
-        // compute the surrogate value from (coeff)^T * polyValues
-        // initialize Petsc vector for the solution
-        /* PetscVector<double> result(this->_comm, solSize); */
-        /* result.init(0); */
-        /* result.init(solSize); */
-        /* result.zero(); */
-
-        /* coeffTran.vector_mult(result, polyValues) ; */
-
-        /* result.print_global(); */
-        /* polyValues.print_global() ; */
-
-
-        // localize result to all processors
-        /* std::vector<double> localResult; */ 
-        /* result.localize(localResult); */
-
-
-        // svae result in return map
+        // save result in return map
         surrogateValue.insert(
             std::pair< std::string, T_P >(*id, T_P(localResult) ) 
             ) ;
