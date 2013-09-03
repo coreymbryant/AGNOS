@@ -385,9 +385,9 @@ namespace AGNOS
     // build initial approximation
     for(unsigned int i=0;i<_surrogates.size(); i++)
     {
-      std::cout << "pre surrogate build" << i << std::endl;
+      std::cout << "pre surrogate build " << i << std::endl;
       _surrogates[i]->build();
-      std::cout << "post surrogate build" << i << std::endl;
+      std::cout << "post surrogate build " << i << std::endl;
     }
 
     // build error surrogate
