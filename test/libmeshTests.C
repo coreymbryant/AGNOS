@@ -21,8 +21,7 @@ int main( int argc, char **argv)
     runner.run();
   }
 
-#if AGNOS_USING_MPICH
-#else
+#ifndef AGNOS_USING_MPICH
   int ierr;
   comm.barrier();
   MPI_Finalize();
