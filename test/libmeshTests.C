@@ -3,7 +3,6 @@
 
 // local includes
 #include "agnosDefines.h"
-#include <mpi.h>
 
 int main( int argc, char **argv)
 {
@@ -22,8 +21,11 @@ int main( int argc, char **argv)
     runner.run();
   }
 
+#if AGNOS_USING_MPICH
+#else
   int ierr;
   comm.barrier();
-  ierr = MPI_Finalize();
+  MPI_Finalize();
+#endif
   return 0;
 }

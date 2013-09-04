@@ -36,9 +36,12 @@ int main(int argc, char* argv[])
     /* LibMeshInit libmesh_init(argc, argv); */
   }
 
+#if AGNOS_USING_MPICH
+#else
   int ierr;
-  ierr = MPI_Barrier(MPI_COMM_WORLD);
-  ierr = MPI_Finalize();
+  comm.barrier();
+  MPI_Finalize();
+#endif
   return 0;
 }
 
