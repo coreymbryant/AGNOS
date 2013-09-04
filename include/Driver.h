@@ -57,15 +57,15 @@ namespace AGNOS
 
       // PARAMETERS VARIABLES
       unsigned int              _paramDim;
-      std::vector<Parameter*>   _parameters;
+      std::vector<std::shared_ptr<AGNOS::Parameter> >   _parameters;
       
       // SURROGATE VARIABLES
       std::map<std::string, unsigned int> _surrogateNames;
-      std::vector< SurrogateModel<T_S,T_P>* >  _surrogates;
+      std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >  _surrogates;
       bool _refineSurrogates;
 
       // PHYSICS VARIABLES
-      std::vector< PhysicsModel<T_S,T_P>* >    _physics;
+      std::vector< std::shared_ptr<PhysicsModel<T_S,T_P> > >    _physics;
       bool _refinePhysical;
 
       // OUTPUT VARIABLES
@@ -106,12 +106,14 @@ namespace AGNOS
     // PARAMETER SETTINGS
     _paramDim = input("parameters/dimension", 1);
 
-    _parameters.resize(_paramDim);
+    _parameters.reserve(_paramDim);
     for (unsigned int i=0; i < _paramDim; i++)
-      _parameters[i] = new AGNOS::Parameter( 
-          input("parameters/types",0,i),
-          input("parameters/mins",-1.0,i),
-          input("parameters/maxs", 1.0,i)
+      _parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
+            new AGNOS::Parameter( 
+              input("parameters/types",0,i),
+              input("parameters/mins",-1.0,i), 
+              input("parameters/maxs", 1.0,i))
+            )
           );
     
 
@@ -150,20 +152,20 @@ namespace AGNOS
     
 
     // OUTPUT DATA SETTINGS
-    input.set_prefix("output/") ;
-    _outputFilename      = input("filename","cout");
+    /* input.set_prefix("output/") ; */
+    /* _outputFilename      = input("filename","cout"); */
 
-    _solutionsToPrint.resize( input.vector_variable_size("solutions") );
-    for (unsigned int i=0; i < _solutionsToPrint.size(); i++)
-      _solutionsToPrint[i] = input("solutions", "",i);
+    /* _solutionsToPrint.reserve( input.vector_variable_size("solutions") ); */
+    /* for (unsigned int i=0; i < _solutionsToPrint.size(); i++) */
+    /*   _solutionsToPrint.push_back(input("solutions", "",i) ); */
 
-    _outputIterations    = input("iterations",false);
+    /* _outputIterations    = input("iterations",false); */
 
-    _outputCoefficients  = input("coefficients",true);
-    _outputErrorCoefficients  = input("errorCoefficients",true);
-    _outputWeights       = input("weights",true);
-    _outputPoints        = input("points",true);
-    _outputIndexSet      = input("index_set",true);
+    /* _outputCoefficients  = input("coefficients",true); */
+    /* _outputErrorCoefficients  = input("errorCoefficients",true); */
+    /* _outputWeights       = input("weights",true); */
+    /* _outputPoints        = input("points",true); */
+    /* _outputIndexSet      = input("index_set",true); */
 
   }
 
@@ -173,15 +175,19 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
-    for(unsigned int i=0; i < _physics.size(); i++)
-      delete _physics[i];
-    _physics.clear();
+    /* std::cout << "_parameters.size(): " << _parameters.size() << std::endl; */
+    /* for(std::vector<AGNOS::Parameter*>::iterator it=_parameters.begin(); */ 
+    /*     it!=_parameters.end(); ++it) */
+    /*   delete *it; */
+    /* _parameters.clear(); */
 
-    /* std::map< std::string, SurrogateModel<T_S,T_P>* >::iterator sit */
-    /*   = _surrogates.begin(); */
-    /* for(; sit != _surrogates.end(); sit++) */
-    /*   delete sit; */
-    _surrogates.clear();
+    /* for(unsigned int i=0; i < _physics.size(); i++) */
+    /*   delete _physics[i]; */
+    /* _physics.clear(); */
+
+    /* for(unsigned int i=0; i<_surrogates.size(); i++) */ 
+    /*   delete _surrogates[i]; */
+    /* _surrogates.clear(); */
 
   }
 
@@ -204,16 +210,20 @@ namespace AGNOS
     {
       input.set_prefix("physics/viscousBurgers/");
       _physics.push_back( 
-          new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
-            _physicsComm, input )
+          std::shared_ptr<AGNOS::PhysicsViscousBurgers<T_S,T_P> >(
+            new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
+              _physicsComm, input )
+            )
           );
       input.set_prefix("");
     }
     else if ( physicsName == "catenaryLibmesh" )
     {
       input.set_prefix("physics/catenaryLibmesh/");
-      _physics.push_back(
-          new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( _physicsComm, input )
+      _physics.push_back( 
+          std::shared_ptr<AGNOS::PhysicsCatenaryLibmesh<T_S,T_P> >(
+            new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( _physicsComm, input )
+            )
           );
       input.set_prefix("");
     }
@@ -221,8 +231,10 @@ namespace AGNOS
     {
       input.set_prefix("physics/catenary/");
       _physics.push_back(
-          new AGNOS::PhysicsCatenary<T_S,T_P>(
-            _physicsComm, input )
+          std::shared_ptr<AGNOS::PhysicsCatenary<T_S,T_P> >(
+            new AGNOS::PhysicsCatenary<T_S,T_P>(
+              _physicsComm, input )
+            )
           );
       input.set_prefix("");
     }
@@ -305,23 +317,27 @@ namespace AGNOS
           if ( primarySurrogate.empty() )
           {
             _surrogates.push_back( 
-                new PseudoSpectralTensorProduct<T_S,T_P>( 
-                  _comm, 
-                  _physics[0],
-                  _parameters, 
-                  order  )
+                std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                  new PseudoSpectralTensorProduct<T_S,T_P>( 
+                    _comm, 
+                    _physics[0].get(),
+                    _parameters, 
+                    order  )
+                  )
                 );
           }
           /** secondary surrogate  */
           else 
           {
             _surrogates.push_back( 
-                new PseudoSpectralTensorProduct<T_S,T_P>( 
-                  _surrogates[_surrogateNames[primarySurrogate]],
-                  increaseOrder,
-                  multiplyOrder,
-                  evaluateSolutions,
-                  computeSolutions
+                std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                  new PseudoSpectralTensorProduct<T_S,T_P>( 
+                    _surrogates[_surrogateNames[primarySurrogate]].get(),
+                    increaseOrder,
+                    multiplyOrder,
+                    evaluateSolutions,
+                    computeSolutions
+                    )
                   )
                 );
           }
@@ -368,12 +384,16 @@ namespace AGNOS
     
     // build initial approximation
     for(unsigned int i=0;i<_surrogates.size(); i++)
+    {
+      std::cout << "pre surrogate build " << i << std::endl;
       _surrogates[i]->build();
+      std::cout << "post surrogate build " << i << std::endl;
+    }
 
     // build error surrogate
     /* _errorSurrogate->build(); */
 
-    std::map< std::string, std::vector<T_P> > myCoeff =
+    std::map< std::string, LocalMatrix > myCoeff =
       _surrogates[0]->getCoefficients();
 
     // print out settings

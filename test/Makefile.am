@@ -32,12 +32,11 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-polynomialTest_SOURCES 			= PolynomialTest.cpp
-catenaryTest_SOURCES 				= CatenaryTest.cpp
-evaluationTest_SOURCES 			= EvaluationTest.cpp
-parallelCatenary_SOURCES 		= ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES = libmeshTests.C \
-																LibmeshCatenaryTest.cpp
+polynomialTest_SOURCES 			= libmeshTests.C PolynomialTest.cpp
+catenaryTest_SOURCES 				= libmeshTests.C CatenaryTest.cpp
+evaluationTest_SOURCES 			= libmeshTests.C EvaluationTest.cpp
+parallelCatenary_SOURCES 		= libmeshTests.C ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES = libmeshTests.C LibmeshCatenaryTest.cpp
 
 
 TESTS  = polynomialTest.sh
