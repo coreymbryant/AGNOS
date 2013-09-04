@@ -475,6 +475,14 @@ namespace AGNOS
         std::shared_ptr<DistMatrix> coeffMatrix(new
             DistMatrix(resultMat,this->_comm) ) ;
 
+        /* std::cout << "coeffMatrx.m: " << coeffMatrix->m() << std::endl; */
+        /* std::cout << "coeffMatrx.n: " << coeffMatrix->n() << std::endl; */
+        /* for (unsigned int i=coeffMatrix->row_start(); i<coeffMatrix->row_stop(); */
+        /*     i++) */
+        /*   for (unsigned int j=0; j<coeffMatrix->n(); j++) */
+        /*     std::cout << "coeff("<<i<<","<<j<<"): " << (*coeffMatrix)(i,j) */ 
+        /*          << "rank: " << this->_comm.rank() << std::endl; */
+
 
         // Save solution coefficients in coefficient container
         this->_coefficients.insert( std::pair<std::string,std::shared_ptr<DistMatrix> >(
