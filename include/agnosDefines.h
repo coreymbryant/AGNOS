@@ -2,7 +2,7 @@
 #ifndef AGNOS_DEFINES_H
 #define AGNOS_DEFINES_H
 
-#ifndef  NDEBUG
+#ifndef  DEBUG
 #define AGNOS_DEBUG 0
 #else
 #define AGNOS_DEBUG 1
