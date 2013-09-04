@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-/* #include "agnosDefines.h" */
+#include "agnosDefines.h"
 #undef AGNOS_DEBUG
 #define AGNOS_DEBUG 1
 
@@ -128,9 +128,10 @@ using namespace AGNOS;
         std::map< std::string, LocalMatrix > myCoeff
           = mySurrogate->getCoefficients( );
 
-        CPPUNIT_ASSERT( 
-          std::abs( myCoeff["primal"](0,1) - std::sqrt(1.0/3.0) ) <= 1e-9 
-        );
+        if (comm.rank() == 0)
+          CPPUNIT_ASSERT( 
+            std::abs( myCoeff["primal"](1,0) - std::sqrt(1.0/3.0) ) <= 1e-9 
+          );
 
         delete mySurrogate;
         delete myPhysics;
@@ -168,13 +169,14 @@ using namespace AGNOS;
           = mySurrogate->getCoefficients( );
 
 
-        CPPUNIT_ASSERT( 
-            std::abs( 
-              myCoeff["primal"](0,myCoeff["primal"].n()-1) 
-              - 
-              std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
-                static_cast<int>(dimension))
-              ) <= 1e-4 );
+        if (comm.rank() == 0)
+          CPPUNIT_ASSERT( 
+              std::abs( 
+                myCoeff["primal"](myCoeff["primal"].m()-1,0) 
+                - 
+                std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
+                  static_cast<int>(dimension))
+                ) <= 1e-4 );
 
         delete mySurrogate;
         delete myPhysics;
@@ -210,10 +212,13 @@ using namespace AGNOS;
         std::map< std::string, LocalMatrix > myCoeff
           = mySurrogate->getCoefficients( );
 
-        CPPUNIT_ASSERT( std::abs( myCoeff["primal"](0,0) - 1.0/3.0 ) <=  1e-9 );
-        CPPUNIT_ASSERT( 
-            std::abs( myCoeff["primal"](0,2) - 2.0/3.0 * std::sqrt(1.0/5.0) ) 
-            <= 1e-9 );
+        if (comm.rank() == 0)
+        {
+          CPPUNIT_ASSERT( std::abs( myCoeff["primal"](0,0) - 1.0/3.0 ) <=  1e-9 );
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](0,2) - 2.0/3.0 * std::sqrt(1.0/5.0) ) 
+              <= 1e-9 );
+        }
 
         delete mySurrogate;
         delete myPhysics;
@@ -249,16 +254,19 @@ using namespace AGNOS;
         std::map< std::string, LocalMatrix > myCoeff
           = mySurrogate->getCoefficients( );
 
-        CPPUNIT_ASSERT( 
-            std::abs( 
-              myCoeff["primal"](0,0)  - 
-              std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)) 
-              ) <= 1e-9 );
-        CPPUNIT_ASSERT( 
-            std::abs( myCoeff["primal"](0,myCoeff["primal"].n()-1) - 
-              std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
-              static_cast<int>(dimension)) 
-              ) <= 1e-9 );
+        if (comm.rank() == 0)
+        {
+          CPPUNIT_ASSERT( 
+              std::abs( 
+                myCoeff["primal"](0,0)  - 
+                std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)) 
+                ) <= 1e-9 );
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](myCoeff["primal"].m()-1,0) - 
+                std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
+                static_cast<int>(dimension)) 
+                ) <= 1e-9 );
+        }
         delete mySurrogate;
         delete myPhysics;
       }
@@ -306,28 +314,31 @@ using namespace AGNOS;
         /*     std::cout << "coeff[" << coeff << "](" << dim << ") = " */ 
         /*       << myCoeff[coeff](dim) << std::endl; */
 
-        // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
-        CPPUNIT_ASSERT( 
-            std::abs( myCoeff["primal"](0,4)  - std::sqrt(1.0/3.0) )
-            <= 1e-9 );
+        if (comm.rank() == 0)
+        {
+          // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](4,0)  - std::sqrt(1.0/3.0) )
+              <= 1e-9 );
 
-        // 1 2 0 0 0  = 1
-        // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
-        CPPUNIT_ASSERT(
-            std::abs( myCoeff["primal"](0,40) - 2.0/(3.0 * std::sqrt(3.0*5.0)) )
-            <= 1e-9 );
-        CPPUNIT_ASSERT(
-            std::abs( myCoeff["primal"](0,24) - 1.0 / ( 3.0 * std::sqrt(3.0) ) )
-            <= 1e-9 );
+          // 1 2 0 0 0  = 1
+          // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](40,0) - 2.0/(3.0 * std::sqrt(3.0*5.0)) )
+              <= 1e-9 );
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](24,0) - 1.0 / ( 3.0 * std::sqrt(3.0) ) )
+              <= 1e-9 );
 
-        // 0 0 0 3 0  = 1
-        // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
-        CPPUNIT_ASSERT(
-            std::abs( myCoeff["primal"](0,3) - 2.0 / ( 5.0 * std::sqrt(7.0) ) )
-            <= 1e-9 );
-        CPPUNIT_ASSERT(
-             std::abs( myCoeff["primal"](0,1) - 3.0 / ( 5.0 * std::sqrt(3.0) ))
-             <= 1e-9 );
+          // 0 0 0 3 0  = 1
+          // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](3,0) - 2.0 / ( 5.0 * std::sqrt(7.0) ) )
+              <= 1e-9 );
+          CPPUNIT_ASSERT(
+               std::abs( myCoeff["primal"](1,0) - 3.0 / ( 5.0 * std::sqrt(3.0) ))
+               <= 1e-9 );
+        }
         delete mySurrogate;
         delete myPhysics;
       }
