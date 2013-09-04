@@ -216,7 +216,7 @@ using namespace AGNOS;
         {
           CPPUNIT_ASSERT( std::abs( myCoeff["primal"](0,0) - 1.0/3.0 ) <=  1e-9 );
           CPPUNIT_ASSERT( 
-              std::abs( myCoeff["primal"](0,2) - 2.0/3.0 * std::sqrt(1.0/5.0) ) 
+              std::abs( myCoeff["primal"](2,0) - 2.0/3.0 * std::sqrt(1.0/5.0) ) 
               <= 1e-9 );
         }
 
