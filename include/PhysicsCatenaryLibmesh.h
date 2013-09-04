@@ -39,8 +39,6 @@ namespace AGNOS
       /** destructor */
       virtual ~PhysicsCatenaryLibmesh( );
 
-      void setParameterValues( const T_S& parameterValues ) ;
-
     protected:
       /** Geometry and boundary data */
       double          _min;
@@ -87,30 +85,32 @@ namespace AGNOS
     delete this->_mesh;
     this->_mesh = new libMesh::Mesh(this->_communicator);
 
-    
-    //----------------------------------------------
+
     // build mesh refinement object 
     if (AGNOS_DEBUG)
-      std::cout << "test: pre mesh_refinement " << std::endl;
+      std::cout << "DEBUG: pre mesh_refinement " << std::endl;
     this->_buildMeshRefinement();
-
     //----------------------------------------------
+
+
     // build mesh 
     libMesh::MeshTools::Generation::build_line(
         *this->_mesh,this->_nElem,_min,_max,EDGE2);
     this->_mesh->print_info();
-
     //----------------------------------------------
+
+
     // define equation system
     this->_equationSystems 
       = new libMesh::EquationSystems(*this->_mesh);
     this->_system = &( 
         this->_equationSystems->template add_system<CatenarySystem>("Catenary")
         ) ;
-
     if (AGNOS_DEBUG)
-      std::cout << "post add system" << std::endl;
+      std::cout << "DEBUG: post add system" << std::endl;
+    //----------------------------------------------
     
+
     // No transient time solver
     this->_system->time_solver =
         AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
@@ -150,10 +150,10 @@ namespace AGNOS
 
     // build error estimator object
     this->_buildErrorEstimator();
-    //----------------------------------------------
-
     if (AGNOS_DEBUG)
       std::cout << "debug: post error estimator " << std::endl;
+    //----------------------------------------------
+
     
 
 
