@@ -54,6 +54,9 @@ AC_PROG_CXX
 AC_LANG([C++])
 ACX_MPI([CXX="$MPICXX"], [AC_MSG_ERROR([Could not find MPI.])])
 
+AC_CHECK_LIB(mpich, MPI_Init, [USING_MPICH=1
+                             AC_DEFINE(USING_MPICH,1,[Define if we are using
+                                                      mpich])])
 #---------------------------------------------------------
 # Checks for library prerequisites for other libraries...
 #---------------------------------------------------------
