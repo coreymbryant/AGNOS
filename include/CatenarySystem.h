@@ -45,10 +45,6 @@ public:
     }
 
 
-  /* // Postprocessing function which we are going to override for this application */
-
-  /* virtual void postprocess(void); */
-
   double _forcing; 
   double _coeff;
   double exact_solution (const Point&);
@@ -65,9 +61,6 @@ public:
   virtual bool element_time_derivative (bool request_jacobian,
 					DiffContext &context);
 
-  // Overloading the postprocess function
-  /* virtual void element_postprocess(DiffContext &context); */
-
 
   // Overloading the qoi function on elements
   virtual void element_qoi_derivative
@@ -82,28 +75,25 @@ void CatenarySystem::init_data ()
 {
   unsigned int u_var = this->add_variable ("u",FIRST) ;
   this->time_evolving(u_var);
-  // TODO update using setParameters
-  /* _coeff = 1.0; */
+
   _forcing = -10.0;
 
-    /** set up boundary conditions */
-    std::set<boundary_id_type> minusBoundaries;
-    minusBoundaries.insert(0);
-    std::set<boundary_id_type> plusBoundaries;
-    plusBoundaries.insert(1);
+  /** set up boundary conditions */
+  std::set<boundary_id_type> minusBoundaries;
+  minusBoundaries.insert(0);
+  std::set<boundary_id_type> plusBoundaries;
+  plusBoundaries.insert(1);
 
-    std::vector<unsigned int> variables(1,u_var);
-    ZeroFunction<double> zf;
+  std::vector<unsigned int> variables(1,u_var);
+  ZeroFunction<double> zf;
 
-    /* libMesh::DirichletBoundary minus_bc(minusBoundaries,variables,&uMinus); */
-    /* libMesh::DirichletBoundary plus_bc(plusBoundaries,variables,&uPlus); */
-    this->get_dof_map().add_dirichlet_boundary(
-        DirichletBoundary(minusBoundaries,variables,&zf) );
-    this->get_dof_map().add_dirichlet_boundary(
-        DirichletBoundary(plusBoundaries,variables,&zf) );
-    if (AGNOS_DEBUG)
-      std::cout << "post BC set up" << std::endl;
-    //---------------------------------------------
+  this->get_dof_map().add_dirichlet_boundary(
+      DirichletBoundary(minusBoundaries,variables,&zf) );
+  this->get_dof_map().add_dirichlet_boundary(
+      DirichletBoundary(plusBoundaries,variables,&zf) );
+  if (AGNOS_DEBUG)
+    std::cout << "post BC set up" << std::endl;
+  //---------------------------------------------
 
   // Do the parent's initialization after variables are defined
   FEMSystem::init_data();
@@ -122,11 +112,6 @@ void CatenarySystem::init_context(DiffContext &context)
   elem_fe->get_phi();
   elem_fe->get_dphi();
 
-/*   FEBase* side_fe = NULL; */
-/*   c.get_side_fe( 0, side_fe ); */
-/*   side_fe->get_JxW(); */
-/*   side_fe->get_phi(); */
-/*   side_fe->get_dphi(); */
 }
 
 #define optassert(X) {if (!(X)) libmesh_error();}
@@ -191,19 +176,6 @@ bool CatenarySystem::element_time_derivative (bool request_jacobian,
   return request_jacobian;
 }
 
-/* // Override the default DiffSystem postprocess function to compute the */
-/* // approximations to the QoIs */
-/* void CatenarySystem::postprocess() */
-/* { */
-/*   // Reset the array holding the computed QoIs */
-/*   computed_QoI[0] = 0.0; */
-
-/*   FEMSystem::postprocess(); */
-
-/*   this->comm().sum(computed_QoI[0]); */
-
-/* } */
-
 
 // exact solution
 double CatenarySystem::exact_solution(const Point& p)// xyz location
@@ -214,48 +186,6 @@ double CatenarySystem::exact_solution(const Point& p)// xyz location
 
 }
 
-/* void CatenarySystem::element_postprocess (DiffContext &context) */
-
-/* { */
-/*   FEMContext &c = libmesh_cast_ref<FEMContext&>(context); */
-
-/*   FEBase* elem_fe = NULL; */
-/*   c.get_element_fe( 0, elem_fe ); */
-
-/*   // Element Jacobian * quadrature weights for interior integration */
-/*   const std::vector<Real> &JxW = elem_fe->get_JxW(); */
-
-/*   const std::vector<Point> &xyz = elem_fe->get_xyz(); */
-
-/*   // The number of local degrees of freedom in each variable */
-
-/*   unsigned int n_qpoints = c.get_element_qrule().n_points(); */
-
-/*   // The function R = int_{omega} T dR */
-/*   // omega is a subset of Omega (the whole domain), omega = [0.75, 1.0] x [0.0, 0.25] */
-
-/*   Number dQoI_0 = 0.; */
-
-/*   // Loop over quadrature points */
-
-/*   for (unsigned int qp = 0; qp != n_qpoints; qp++) */
-/*     { */
-/*       // Get co-ordinate locations of the current quadrature point */
-/*       const Real x = xyz[qp](0); */
-
-/*   	  // Get the solution value at the quadrature point */
-/*   	  Number u = c.interior_value(0, qp); */
-
-/*   	  // Update the elemental increment dR for each qp */
-/*       if ( x >=0.0) */
-/*         dQoI_0 += JxW[qp] * u; */
-/*     } */
-
-/*   // Update the computed value of the global functional R, by adding the contribution from this element */
-
-/*   computed_QoI[0] = computed_QoI[0] + dQoI_0; */
-
-/* } */
 
 void CatenarySystem::element_qoi (DiffContext &context,
                                             const QoISet & /* qois */)
