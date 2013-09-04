@@ -152,20 +152,18 @@ namespace AGNOS
     
 
     // OUTPUT DATA SETTINGS
-    /* input.set_prefix("output/") ; */
-    /* _outputFilename      = input("filename","cout"); */
+    input.set_prefix("output/") ;
+    _outputFilename      = input("filename","cout");
 
-    /* _solutionsToPrint.reserve( input.vector_variable_size("solutions") ); */
-    /* for (unsigned int i=0; i < _solutionsToPrint.size(); i++) */
-    /*   _solutionsToPrint.push_back(input("solutions", "",i) ); */
+    _solutionsToPrint.clear(); ;
+    for (unsigned int i=0; i < input.vector_variable_size("solutions"); i++)
+      _solutionsToPrint.push_back(input("solutions", "",i) );
 
-    /* _outputIterations    = input("iterations",false); */
-
-    /* _outputCoefficients  = input("coefficients",true); */
-    /* _outputErrorCoefficients  = input("errorCoefficients",true); */
-    /* _outputWeights       = input("weights",true); */
-    /* _outputPoints        = input("points",true); */
-    /* _outputIndexSet      = input("index_set",true); */
+    _outputIterations    = input("iterations",false);
+    _outputCoefficients  = input("coefficients",true);
+    _outputWeights       = input("weights",true);
+    _outputPoints        = input("points",true);
+    _outputIndexSet      = input("index_set",true);
 
   }
 
@@ -175,20 +173,6 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
-    /* std::cout << "_parameters.size(): " << _parameters.size() << std::endl; */
-    /* for(std::vector<AGNOS::Parameter*>::iterator it=_parameters.begin(); */ 
-    /*     it!=_parameters.end(); ++it) */
-    /*   delete *it; */
-    /* _parameters.clear(); */
-
-    /* for(unsigned int i=0; i < _physics.size(); i++) */
-    /*   delete _physics[i]; */
-    /* _physics.clear(); */
-
-    /* for(unsigned int i=0; i<_surrogates.size(); i++) */ 
-    /*   delete _surrogates[i]; */
-    /* _surrogates.clear(); */
-
   }
 
 /********************************************//**
@@ -198,8 +182,7 @@ namespace AGNOS
  ***********************************************/
   void Driver::_initPhysics( GetPot& input)
   {
-    //TODO make more general 
-    // deal with parallel issue
+    //TODO  deal with parallel issue
     std::string physicsName = input("physics/type","");
     _refinePhysical = input("refine",false);
 
