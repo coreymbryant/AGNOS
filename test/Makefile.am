@@ -32,23 +32,24 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-polynomialTest_SOURCES 			= libmeshTests.C PolynomialTest.cpp
-catenaryTest_SOURCES 				= libmeshTests.C CatenaryTest.cpp
-evaluationTest_SOURCES 			= libmeshTests.C EvaluationTest.cpp
-parallelCatenary_SOURCES 		= libmeshTests.C ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES = libmeshTests.C LibmeshCatenaryTest.cpp
+polynomialTest_SOURCES 			= driver.C PolynomialTest.cpp
+catenaryTest_SOURCES 				= driver.C CatenaryTest.cpp
+evaluationTest_SOURCES 			= driver.C EvaluationTest.cpp
+parallelCatenary_SOURCES 		= driver.C ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES = driver.C LibmeshCatenaryTest.cpp
 
 
 TESTS  = polynomialTest.sh
 TESTS += catenaryTest.sh
 TESTS += evaluationTest.sh
 TESTS += parallelCatenary.sh
-TESTS += catenaryLibmeshTest
+TESTS += catenaryLibmeshTest.sh
 
 shellfiles_src = polynomialTest.sh \
 								 catenaryTest.sh \
 								 evaluationTest.sh \
-								 parallelCatenary.sh
+								 parallelCatenary.sh \
+								 catenaryLibmeshTest.sh
 
 # Want these put with the distro so we can run make check
 EXTRA_DIST = $(shellfiles_src) input_files test_data 
