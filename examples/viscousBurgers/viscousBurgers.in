@@ -1,43 +1,59 @@
 [driver]
 maxIter = '1'
-[../]
+adaptive = false
+[]
 
 [parameters]
 dimension = '2'
 types ='UNIFORM UNIFORM'
 mins = '-1.0 -1.0'
 maxs = '1.0 1.0'
-[../]
+[]
 
-[adaptive]
-refinePhysical = true
-refineSurrogate = true
-[../]
 
 [physics]
 type = 'viscousBurgers'
-min = '-10.0'
-max = '10.0'
+refine = true
 
-n = '4'
-useUniformRefinement = true
-numberHRefinements = '1'
-numberPRefinements = '0'
-maxRefineSteps ='15'
+  [./viscousBurgers]
+  solutions='primal adjoint errorEstimate errorIndicators qoi'
+  L = '10.0'
+  nElem = '4'
 
-nNonlinearSteps='15'
-nonlinearTolerance='1.e-9'
+  nNonlinearSteps='15'
+  nonlinearTolerance='1.e-9'
 
-resolveAdjoint = false
-solutions='primal adjoint qoi'
-[../]
+  useUniformRefinement = true
+  numberHRefinements = '1'
+  numberPRefinements = '0'
+  maxRefineSteps ='15'
+
+  resolveAdjoint = false
+  [../]
+[]
 
 
-[surrogateModel]
-type = 'PseudoSpectralTensorProduct'
-order = '0'
-errorOrder = '1'
-[../]
+[surrogateModels]
+modelNames = 'primarySurrogate errorSurrogate'
+refine = true
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '0'
+  computeSolutions='primal adjoint errorEstimate errorIndicators qoi'
+  [../]
+
+  [./errorSurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  primarySurrogate = 'primarySurrogate'
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
+  evaluateSolutions = 'primal adjoint'
+  computeSolutions='errorEstimate qoi'
+  [../]
+
+[]
+
 
 [output]
 filename = './testFile.dat'
