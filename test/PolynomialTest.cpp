@@ -1,9 +1,7 @@
 
 
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE Polynomials
-#include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <cppunit/extensions/HelperMacros.h>
+#include <cppunit/TestCase.h>
 
 // local includes
 #include <iostream>
@@ -12,7 +10,7 @@
 
 #include "agnosDefines.h"
 #undef AGNOS_DEBUG
-#define AGNOS_DEBUG 0
+#define AGNOS_DEBUG 1
 
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
@@ -68,222 +66,287 @@ using namespace AGNOS;
     solutionVectors.insert(std::pair<std::string,T_P>("primal",returnVec) );
   }
 
-BOOST_AUTO_TEST_SUITE(Polynomials_tensorProduct)
 
-  const Communicator comm( MPI_COMM_NULL );
-  const GetPot inputfile = GetPot();
+  class PolynomialTest : public CppUnit::TestFixture
+  {
 
-BOOST_AUTO_TEST_CASE(Linear_1D)
-{
+    CPPUNIT_TEST_SUITE( PolynomialTest );
+    CPPUNIT_TEST( Linear_1D );
+    CPPUNIT_TEST( Linear_ND );
+    CPPUNIT_TEST( Quad_1D );
+    CPPUNIT_TEST( Quad_ND );
+    CPPUNIT_TEST( OrderN_1D );
+    CPPUNIT_TEST_SUITE_END();
 
+    public:
+      Communicator comm, physicsComm;
+      GetPot inputfile;
 
-  BOOST_TEST_MESSAGE(" Testing 1D linear approximation");
+      void setUp( )
+      {
+        comm = Communicator(MPI_COMM_WORLD);
+        inputfile = GetPot() ;
 
-  unsigned int dimension = 1;
-  std::vector<unsigned int> myOrder(dimension,3);
+        MPI_Comm subComm;
+        int mpiSplit =  
+          MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &subComm);
+        physicsComm = Communicator(subComm) ;
+      }
 
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, -1.0,1.0)
-      ); 
-
-  PhysicsModel<T_S,T_P>* myPhysics=
-    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
-  myPhysics->attach_compute_function(&linearFunction);
-
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        comm,
-        myPhysics, 
-        myParameters, 
-        myOrder  
-        );
-
-  mySurrogate->build( );
-  std::map< std::string, std::vector<T_P> > myCoeff 
-    = mySurrogate->getCoefficients( );
-  std::cout << "myCoeff.size():" << myCoeff["primal"].size() << std::endl;
-
-  BOOST_CHECK_CLOSE( myCoeff["primal"][1](0) , std::sqrt(1.0/3.0) , 1e-9 );
-}
-
-BOOST_AUTO_TEST_CASE(Linear_ND)
-{
-  BOOST_TEST_MESSAGE(" Testing 7D linear approximation");
-
-  unsigned int dimension = 7;
-  std::vector<unsigned int> myOrder(dimension,1);
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, -1.0,1.0)
-      ); 
-
-  PhysicsModel<T_S,T_P>* myPhysics=
-    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
-  myPhysics->attach_compute_function(&linearFunction);
-
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        comm,
-        myPhysics, 
-        myParameters, 
-        myOrder  
-        );
-
-  mySurrogate->build( );
-  std::map< std::string, std::vector<T_P> > myCoeff 
-    = mySurrogate->getCoefficients( );
+      void tearDown( )
+      {
+      }
 
 
-  BOOST_CHECK_CLOSE( 
-      myCoeff["primal"].back()(0) , 
-      std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
-        static_cast<int>(dimension)), 
-      1e-4 );
-}
+      void Linear_1D()
+      {
+        std::cout << " Testing 1D linear approximation" << std::endl;
 
-BOOST_AUTO_TEST_CASE(Quad_1D)
-{
-  BOOST_TEST_MESSAGE(" Testing 1D quadratic approximation");
+        unsigned int dimension = 1;
+        std::vector<unsigned int> myOrder(dimension,3);
 
-  unsigned int dimension = 1;
-  std::vector<unsigned int> myOrder(dimension,2);
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, -1.0,1.0)
+              )
+            ); 
 
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, -1.0,1.0)
-      ); 
+        PhysicsModel<T_S,T_P>* myPhysics=
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        myPhysics->attach_compute_function(&linearFunction);
 
-  PhysicsModel<T_S,T_P>* myPhysics=
-    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
-  myPhysics->attach_compute_function(&quadFunction);
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
 
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        comm,
-        myPhysics, 
-        myParameters, 
-        myOrder  
-        );
+        mySurrogate->build( );
+        std::map< std::string, LocalMatrix > myCoeff
+          = mySurrogate->getCoefficients( );
 
-  mySurrogate->build( );
-  std::map< std::string, std::vector<T_P> > myCoeff 
-    = mySurrogate->getCoefficients( );
+        if (comm.rank() == 0)
+          CPPUNIT_ASSERT( 
+            std::abs( myCoeff["primal"](1,0) - std::sqrt(1.0/3.0) ) <= 1e-9 
+          );
 
-  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , 1.0/3.0 , 1e-9 );
-  BOOST_CHECK_CLOSE( myCoeff["primal"][2](0) , 2.0/3.0 * std::sqrt(1.0/5.0), 1e-9 );
-}
+        delete mySurrogate;
+        delete myPhysics;
 
-BOOST_AUTO_TEST_CASE(Quad_ND)
-{
-  BOOST_TEST_MESSAGE(" Testing 3D quadratic approximation");
+      }
 
-  unsigned int dimension = 3;
-  std::vector<unsigned int> myOrder(dimension,2);
 
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, -1.0,1.0)
-      ); 
+      void Linear_ND()
+      {
+        std::cout << " Testing 7D linear approximation" << std::endl;
 
-  PhysicsModel<T_S,T_P>* myPhysics=
-    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
-  myPhysics->attach_compute_function(&quadFunction);
+        unsigned int dimension = 7;
+        std::vector<unsigned int> myOrder(dimension,1);
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, -1.0,1.0)
+              )
+            ); 
 
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        comm,
-        myPhysics, 
-        myParameters, 
-        myOrder  
-        );
+        PhysicsModel<T_S,T_P>* myPhysics=
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        myPhysics->attach_compute_function(&linearFunction);
 
-  mySurrogate->build( );
-  std::map< std::string, std::vector<T_P> > myCoeff 
-    = mySurrogate->getCoefficients( );
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
 
-  BOOST_CHECK_CLOSE( myCoeff["primal"][0](0) , 
-      std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)), 
-      1e-9 );
-  BOOST_CHECK_CLOSE( 
-      myCoeff["primal"].back()(0) , 
-      std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
-        static_cast<int>(dimension)), 
-      1e-9 );
-}
+        mySurrogate->build( );
+        std::map< std::string, LocalMatrix > myCoeff
+          = mySurrogate->getCoefficients( );
 
-BOOST_AUTO_TEST_CASE(OrderN_1D)
-{
-  BOOST_TEST_MESSAGE(" Testing mixed-order 5 dimensional example");
 
-  unsigned int dimension = 5;
-  std::vector<unsigned int> myOrder(dimension,0);
-  myOrder[0] = 1;
-  myOrder[1] = 2;
-  myOrder[2] = 1;
-  myOrder[3] = 3;
-  myOrder[4] = 0;
+        if (comm.rank() == 0)
+          CPPUNIT_ASSERT( 
+              std::abs( 
+                myCoeff["primal"](myCoeff["primal"].m()-1,0) 
+                - 
+                std::pow(static_cast<double>(std::sqrt(1.0/3.0)),
+                  static_cast<int>(dimension))
+                ) <= 1e-4 );
 
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, -1.0,1.0)
-      ); 
+        delete mySurrogate;
+        delete myPhysics;
+      }
 
-  PhysicsModel<T_S,T_P>* myPhysics=
-    new PhysicsModel<T_S,T_P>(comm,inputfile) ;
-  myPhysics->attach_compute_function(&mixedFunction);
+      void Quad_1D()
+      {
+        std::cout << " Testing 1D quadratic approximation" << std::endl;
 
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        comm,
-        myPhysics, 
-        myParameters, 
-        myOrder  
-        );
+        unsigned int dimension = 1;
+        std::vector<unsigned int> myOrder(dimension,2);
 
-  mySurrogate->build( );
-  std::map< std::string, std::vector<T_P> > myCoeff 
-    = mySurrogate->getCoefficients( );
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, -1.0,1.0)
+              )
+            ); 
 
-  /* mySurrogate->printIntegrationWeights() ; */
-  /* mySurrogate->printIntegrationPoints() ; */
-  /* mySurrogate->printIndexSet() ; */
-  /* for(unsigned int coeff=0; coeff<myCoeff.size(); coeff++) */
-  /*   for(unsigned int dim=0; dim<myCoeff[coeff].size(); dim++) */
-  /*     std::cout << "coeff[" << coeff << "](" << dim << ") = " */ 
-  /*       << myCoeff[coeff](dim) << std::endl; */
+        PhysicsModel<T_S,T_P>* myPhysics=
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        myPhysics->attach_compute_function(&quadFunction);
 
-  // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
-  BOOST_CHECK_CLOSE( 
-      myCoeff["primal"][4](0) , 
-      std::sqrt(1.0/3.0),
-      1e-9 );
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
 
-  // 1 2 0 0 0  = 1
-  // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
-  BOOST_CHECK_CLOSE(
-      myCoeff["primal"][40](0),
-      2.0/(3.0 * std::sqrt(3.0*5.0)) ,
-      1e-9 );
-  BOOST_CHECK_CLOSE(
-      myCoeff["primal"][24](0),
-      1.0 / ( 3.0 * std::sqrt(3.0) ),
-      1e-9 );
+        mySurrogate->build( );
+        std::map< std::string, LocalMatrix > myCoeff
+          = mySurrogate->getCoefficients( );
 
-  // 0 0 0 3 0  = 1
-  // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
-  BOOST_CHECK_CLOSE(
-      myCoeff["primal"][3](0),
-      2.0 / ( 5.0 * std::sqrt(7.0) ),
-      1e-9 );
-  BOOST_CHECK_CLOSE(
-       myCoeff["primal"][1](0),
-       3.0 / ( 5.0 * std::sqrt(3.0) ), 
-       1e-9 );
-}
+        if (comm.rank() == 0)
+        {
+          CPPUNIT_ASSERT( std::abs( myCoeff["primal"](0,0) - 1.0/3.0 ) <=  1e-9 );
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](2,0) - 2.0/3.0 * std::sqrt(1.0/5.0) ) 
+              <= 1e-9 );
+        }
 
-BOOST_AUTO_TEST_SUITE_END()
+        delete mySurrogate;
+        delete myPhysics;
+      }
 
+      void Quad_ND()
+      {
+        std::cout << " Testing 3D quadratic approximation" << std::endl;
+
+        unsigned int dimension = 3;
+        std::vector<unsigned int> myOrder(dimension,2);
+
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, -1.0,1.0)
+              )
+            ); 
+
+        PhysicsModel<T_S,T_P>* myPhysics=
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        myPhysics->attach_compute_function(&quadFunction);
+
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
+
+        mySurrogate->build( );
+        std::map< std::string, LocalMatrix > myCoeff
+          = mySurrogate->getCoefficients( );
+
+        if (comm.rank() == 0)
+        {
+          CPPUNIT_ASSERT( 
+              std::abs( 
+                myCoeff["primal"](0,0)  - 
+                std::pow(static_cast<double>(1.0/3.0), static_cast<int>(dimension)) 
+                ) <= 1e-9 );
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](myCoeff["primal"].m()-1,0) - 
+                std::pow( static_cast<double>(std::sqrt(1.0/5.0) * 2.0/3.0),
+                static_cast<int>(dimension)) 
+                ) <= 1e-9 );
+        }
+        delete mySurrogate;
+        delete myPhysics;
+      }
+
+      void OrderN_1D()
+      {
+        std::cout << " Testing mixed-order 5 dimensional example" << std::endl;
+
+        unsigned int dimension = 5;
+        std::vector<unsigned int> myOrder(dimension,0);
+        myOrder[0] = 1;
+        myOrder[1] = 2;
+        myOrder[2] = 1;
+        myOrder[3] = 3;
+        myOrder[4] = 0;
+
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, -1.0,1.0)
+              )
+            ); 
+
+        PhysicsModel<T_S,T_P>* myPhysics=
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        myPhysics->attach_compute_function(&mixedFunction);
+
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
+
+        mySurrogate->build( );
+        std::map< std::string, LocalMatrix > myCoeff
+          = mySurrogate->getCoefficients( );
+
+        /* mySurrogate->printIntegrationWeights() ; */
+        /* mySurrogate->printIntegrationPoints() ; */
+        /* mySurrogate->printIndexSet() ; */
+        /* for(unsigned int coeff=0; coeff<myCoeff.size(); coeff++) */
+        /*   for(unsigned int dim=0; dim<myCoeff[coeff].size(); dim++) */
+        /*     std::cout << "coeff[" << coeff << "](" << dim << ") = " */ 
+        /*       << myCoeff[coeff](dim) << std::endl; */
+
+        if (comm.rank() == 0)
+        {
+          // 0 0 1 0 0  = 1 * 1/norm(psi) from normailziation
+          CPPUNIT_ASSERT( 
+              std::abs( myCoeff["primal"](4,0)  - std::sqrt(1.0/3.0) )
+              <= 1e-9 );
+
+          // 1 2 0 0 0  = 1
+          // have to use combination of terms since psi_2 = 1/2*(3x^2-1) 
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](40,0) - 2.0/(3.0 * std::sqrt(3.0*5.0)) )
+              <= 1e-9 );
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](24,0) - 1.0 / ( 3.0 * std::sqrt(3.0) ) )
+              <= 1e-9 );
+
+          // 0 0 0 3 0  = 1
+          // have to use combination of terms since psi_2 = 1/2*(5x^3-3x) 
+          CPPUNIT_ASSERT(
+              std::abs( myCoeff["primal"](3,0) - 2.0 / ( 5.0 * std::sqrt(7.0) ) )
+              <= 1e-9 );
+          CPPUNIT_ASSERT(
+               std::abs( myCoeff["primal"](1,0) - 3.0 / ( 5.0 * std::sqrt(3.0) ))
+               <= 1e-9 );
+        }
+        delete mySurrogate;
+        delete myPhysics;
+      }
+
+
+  };
+
+  CPPUNIT_TEST_SUITE_REGISTRATION( PolynomialTest );
 //________________________________________________________________//
 
 // EOF

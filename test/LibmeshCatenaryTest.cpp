@@ -32,9 +32,18 @@ using namespace AGNOS;
     CPPUNIT_TEST_SUITE_END();
 
     public:
+      Communicator comm, physicsComm;
+      GetPot inputfile;
 
       void setUp( )
       {
+        comm = Communicator(MPI_COMM_WORLD);
+        inputfile = GetPot() ;
+
+        MPI_Comm subComm;
+        int mpiSplit =  
+          MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &subComm);
+        physicsComm = Communicator(subComm) ;
       }
 
       void tearDown( )
@@ -44,23 +53,22 @@ using namespace AGNOS;
       void runTest( )
       {
 
-        const Communicator comm(MPI_COMM_WORLD);
         std::cout << "comm.size(): " << comm.size() << std::endl;
-        GetPot inputfile = GetPot();
         inputfile.set("solutions","primal adjoint qoi") ;
-        /* inputfile.set("surrogateModels/modelNames","primary") ; */
-        /* inputfile.set("surrogateModels/primary/solutions","primal adjoint qoi") ; */
+
 
         unsigned int dimension = 1;
         
-        std::vector<AGNOS::Parameter*> myParameters(
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
             dimension, 
-            new Parameter(UNIFORM, 1.0,3.0)
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, 1.0,3.0)
+            )
             ); 
 
 
         PhysicsCatenaryLibmesh<T_S,T_P>* myPhysics = new PhysicsCatenaryLibmesh<T_S,T_P>(
-            comm, inputfile );
+            physicsComm, inputfile );
 
         std::vector<unsigned int> myOrder(dimension,4);
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -98,9 +106,6 @@ using namespace AGNOS;
 
         delete mySurrogate;
         delete myPhysics;
-        for (unsigned int i=0; i<myParameters.size(); i++)
-          delete myParameters[i] ;
-        myParameters.clear();
       }
 
   };
