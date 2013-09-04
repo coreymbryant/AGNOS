@@ -1,4 +1,5 @@
 
+#include <mpi.h>
 #include "agnosDefines.h"
 #include "Driver.h"
 
@@ -19,22 +20,25 @@ int main(int argc, char* argv[])
   MPI_Init(&argc,&argv);
   Communicator comm(MPI_COMM_WORLD);
 
-  MPI_Comm myComm;
-  int mpiSplit =  
-    MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm);
+  {
+    MPI_Comm myComm;
+    int mpiSplit =  
+      MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &myComm);
 
-  LibMeshInit libmesh_init(argc, argv, myComm);
-  
-  libMesh::Parallel::Communicator physicsComm(myComm);
+    LibMeshInit libmesh_init(argc, argv, myComm);
+    
+    libMesh::Parallel::Communicator physicsComm(myComm);
 
-  AGNOS::Driver agnos( comm, physicsComm, inputfile );
+    AGNOS::Driver agnos( comm, physicsComm, inputfile );
 
-  agnos.run( );
-  
-  /* LibMeshInit libmesh_init(argc, argv); */
+    agnos.run( );
+    
+    /* LibMeshInit libmesh_init(argc, argv); */
+  }
 
-
-  /* MPI_Finalize(); */
+  int ierr;
+  ierr = MPI_Barrier(MPI_COMM_WORLD);
+  ierr = MPI_Finalize();
   return 0;
 }
 
