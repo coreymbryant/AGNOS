@@ -41,8 +41,6 @@ namespace AGNOS
     protected:
       /** Geometry and boundary data */
       double          _L;
-      double          _uMinus;
-      double          _uPlus;
       int             _nElem;
 
       Number          _mu;
@@ -76,86 +74,75 @@ namespace AGNOS
 
     // read in parameters unique to this model
     _L      = input("L",10.);
-    _uMinus = input("uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
-    _uPlus  = input("uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
     _nElem  = input("nElem",4);
+    /* _uMinus = input("uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) )); */
+    /* _uPlus  = input("uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) ); */
 
     // and some nonlinear solver parameters
     _nonlinearSteps      = input("nNonlinearSteps",15);
     _nonlinearTolerance  = input("nonlinearTolerance",1.e-9);
+    //----------------------------------------------
+    
+
+
+    // initialize mesh object
+    delete this->_mesh;
+    this->_mesh = new libMesh::Mesh(this->_communicator);
+    //----------------------------------------------
+    
+
+
+    // build mesh refinement object 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: pre mesh_refinement " << std::endl;
+    this->_buildMeshRefinement();
+    //----------------------------------------------
+    
+
+    // build mesh 
+    libMesh::MeshTools::Generation::build_line(
+        *this->_mesh,this->_nElem,-1.*_L,_L,EDGE2);
+    this->_mesh->print_info();
 
     //----------------------------------------------
-    // construct a 1d mesh 
-    this->_mesh = new libMesh::Mesh(this->_communicator,1);
-    /* libMesh::Mesh* mesh = new libMesh::Mesh(this->_communicator); */
-    libMesh::MeshTools::Generation::build_line(
-        *this->_mesh, _nElem, -1.*_L, _L, EDGE3);
-    this->_mesh->print_info();
+
 
     // define equation system
     this->_equationSystems 
       = new libMesh::EquationSystems(*this->_mesh);
-
-    // add system and set parent pointer 
     this->_system = 
       &( this->_equationSystems->template add_system<BurgersSystem>("Burgers") );
+    static_cast<BurgersSystem*>(this->_system)->_L = _L ; 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: post add system" << std::endl;
+    //----------------------------------------------
     
+
     // No transient time solver
     this->_system->time_solver =
         AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
-
-    // Nonlinear solver options
     {
       NewtonSolver *solver = new NewtonSolver(*this->_system);
       this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
-
+      
       //TODO read in these setting?
-    solver->quiet                       = true;
-    solver->verbose                     = false;
-    /* solver->max_nonlinear_iterations    = param.max_nonlinear_iterations; */
-    /* solver->minsteplength               = param.min_step_length; */
-    /* solver->relative_step_tolerance     = param.relative_step_tolerance; */
-    /* solver->absolute_residual_tolerance = param.absolute_residual_tolerance; */
-    /* solver->relative_residual_tolerance = param.relative_residual_tolerance; */
-    /* solver->require_residual_reduction  = param.require_residual_reduction; */
-    /* solver->linear_tolerance_multiplier = param.linear_tolerance_multiplier; */
-    /* if (system.time_solver->reduce_deltat_on_diffsolver_failure) */
-    /*   { */
-	solver->continue_after_max_iterations = true;
-	solver->continue_after_backtrack_failure = true;
-      /* } */
-
-    // And the linear solver options
-    /* solver->max_linear_iterations       = param.max_linear_iterations; */
-    /* solver->initial_linear_tolerance    = param.initial_linear_tolerance; */
-    /* solver->minimum_linear_tolerance    = param.minimum_linear_tolerance; */
+      solver->quiet                       = true;
+      solver->verbose                     = false;
+      solver->max_nonlinear_iterations    = 1;
+      solver->continue_after_max_iterations = true;
+      solver->continue_after_backtrack_failure = true;
+      
     }
+    if (AGNOS_DEBUG)
+      std::cout << "post solver set up" << std::endl;
 
+    //---------------------------------------------
+    /** initialize equation system */
     this->_equationSystems->init ();
-    //----------------------------------------------
-
-    //----------------------------------------------
-    //---- set up nonlinear solver
-    // TODO do we need to initialize ourselves
-    // initalize the nonlinear solver
-    /* this->_equationSystems->template */
-    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
-
-    /* //---------------------------------------------- */
-    /* // TODO set from input file ? */
-    /* // set solver settings */
-    /* this->_equationSystems->parameters.template set<Real> */
-    /*   ("nonlinear solver relative residual tolerance") = _nonlinearTolerance; */
-    /* this->_equationSystems->parameters.template set<Real> */
-    /*   ("nonlinear solver absolute residual tolerance") = 1.e-35; */
-    /* this->_equationSystems->parameters.template set<Real> */
-    /*   ("nonlinear solver absolute step tolerance") = 1.e-12; */
-    /* this->_equationSystems->parameters.template set<Real> */
-    /*   ("nonlinear solver relative step tolerance") = 1.e-12; */
-    /* this->_equationSystems->parameters.template set<unsigned int> */
-    /*   ("nonlinear solver maximum iterations") = 50; */
-    /* //---------------------------------------------- */
+    if (AGNOS_DEBUG)
+      std::cout << "post init system" << std::endl;
     
+
 
     //----------------------------------------------
     // set up QoISet object 
@@ -168,38 +155,38 @@ namespace AGNOS
     this->_qois->set_weight(0, 1.0);
     //----------------------------------------------
 
-    if (AGNOS_DEBUG)
-      std::cout << "test: pre mesh_refinement " << std::endl;
     
-    //----------------------------------------------
-    // build mesh refinement object 
-    this->_buildMeshRefinement();
-
     // build error estimator object
     this->_buildErrorEstimator();
+    if (AGNOS_DEBUG)
+      std::cout << "debug: post error estimator " << std::endl;
+    //----------------------------------------------
+    
+    // build mesh refinement object 
+    this->_buildMeshRefinement();
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre mesh_refinement " << std::endl;
     //----------------------------------------------
 
-    if (AGNOS_DEBUG)
-      std::cout << "test: post error estimator " << std::endl;
-    
 
-    this->_equationSystems->init ();
-    if (AGNOS_DEBUG)
-      std::cout << "test: pre print info " << std::endl;
 
     // Print information about the mesh and system to the screen.
-
     this->_equationSystems->print_info();
-
-    std::cout << "test: system initialized" << std::endl;
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: leaving model specific setup" << std::endl;
+    //----------------------------------------------
   }
 
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
   template<class T_S,class T_P>
   void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
-    //TODO 
+    static_cast<BurgersSystem*>(this->_system)->_mu 
+      = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ;
   }
 
 
