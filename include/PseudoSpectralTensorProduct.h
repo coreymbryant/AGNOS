@@ -24,7 +24,7 @@ namespace AGNOS
       PseudoSpectralTensorProduct( 
         const Communicator&               comm,
         PhysicsModel<T_S,T_P>*                physics,
-          const std::vector<Parameter*>     parameters,
+          const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
           const std::vector<unsigned int>&  order
           );
 
@@ -75,7 +75,7 @@ namespace AGNOS
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
         const Communicator&               comm,
         PhysicsModel<T_S,T_P>*                physics,
-        const std::vector<Parameter*>     parameters,
+        const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>& order
         )
       :

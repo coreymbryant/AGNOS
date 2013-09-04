@@ -36,7 +36,7 @@ namespace AGNOS
       SurrogateModel(
           const Communicator&               comm,
           PhysicsModel<T_S,T_P>*            physics,
-          const std::vector<Parameter*>     parameters,
+          const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
           const std::vector<unsigned int>&  order
           );
 
@@ -105,9 +105,9 @@ namespace AGNOS
 
 
       /** set parameters object  */
-      void setParameters( std::vector<Parameter*> parameters );
+      void setParameters( std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters );
       /** return reference to parameters object */
-      std::vector<Parameter*>   getParameters( ) const
+      const std::vector<std::shared_ptr<AGNOS::Parameter> >   getParameters( ) const
       { return _parameters; }
 
       /** print the coefficient vectors */
@@ -120,10 +120,10 @@ namespace AGNOS
       void printCoefficients( std::ostream& out ) ;
 
       /** reference to locally stored coefficients */
-      const std::map< std::string, std::vector<T_P> >   getLocalCoefficients() const
-      { return _coefficients; }
+      /* const std::map< std::string, LocalMatrix>   getLocalCoefficients() const */
+      /* { return _coefficients; } */
       /** reference to all coefficients */
-      const std::map< std::string, std::vector<T_P> >   getCoefficients() ;
+      const std::map< std::string, LocalMatrix>   getCoefficients() ;
 
       /** print integration weights */
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
@@ -165,8 +165,8 @@ namespace AGNOS
       
       /** expansion order */
       std::vector<unsigned int>                           _order;  
-      /** coefficients vectors (local)*/
-      std::map< std::string, std::vector<T_P> >           _coefficients;
+      /** coefficients vectors */
+      std::map< std::string, std::shared_ptr<DistMatrix> >                 _coefficients;
       /** total number of coefficients on all vectors */
       unsigned int                                        _totalNCoeff;
       /** indicies of coefficients corresponding to local process */
@@ -176,7 +176,7 @@ namespace AGNOS
       std::map< std::string, unsigned int>                _solSize;
 
       /** reference to Parameter object */
-      std::vector<Parameter*>                             _parameters;
+      std::vector<std::shared_ptr<AGNOS::Parameter> >                   _parameters;
       /** Parameter dimension */
       unsigned int                                        _dimension;
 
@@ -205,7 +205,7 @@ namespace AGNOS
     SurrogateModel<T_S,T_P>::SurrogateModel( 
         const Communicator&               comm,
         PhysicsModel<T_S,T_P>*            physics,
-        const std::vector<Parameter*>     parameters,
+        const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>&          order
         )
       : 
@@ -229,6 +229,7 @@ namespace AGNOS
           << std::endl;
         assert(0);
       }
+
     }
 
 /********************************************//*
@@ -279,6 +280,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::~SurrogateModel( )
     {
+      _coefficients.clear();
     }
 
 /********************************************//**
@@ -286,7 +288,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     void SurrogateModel<T_S,T_P>::setParameters( 
-        std::vector<Parameter*> parameters)
+        std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters)
     {
       _parameters = parameters ;
       _dimension = parameters.size();
@@ -299,17 +301,15 @@ namespace AGNOS
  * broadcast to all processes
  ***********************************************/
   template<class T_S, class T_P> 
-    const std::map< std::string, std::vector<T_P> >
+    const std::map< std::string, LocalMatrix >
     SurrogateModel<T_S,T_P>::getCoefficients( ) 
     {
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: entering getCoefficients routine" << std::endl;
      
-      std::map< std::string, std::vector<T_P> > allCoefficients;
+      std::map< std::string, LocalMatrix > allCoefficients;
 
       unsigned int myRank = this->_comm.rank();
-      unsigned int minCoeff = this->_totalNCoeff / this->_comm.size() ;
-      unsigned int remCoeff = this->_totalNCoeff % this->_comm.size() ;
 
       // loop over all solution names
       std::set<std::string>::iterator id = _solutionNames.begin();
@@ -317,75 +317,116 @@ namespace AGNOS
       {
         if(AGNOS_DEBUG)
           std::cout << "DEBUG: getCoefficients routine: id: " << *id << std::endl;
+
         unsigned int solSize = _solSize[*id];
-        std::vector<T_P> solutionCoeff( _totalNCoeff, T_P(solSize) );
+        LocalMatrix solCoefficients(this->_totalNCoeff,solSize);
 
-        for(unsigned int c=0; c<this->_totalNCoeff; c++)
+        if (myRank == 0)
         {
-          std::vector<double> myCoeff(solSize,0.) ;
-          libMesh::Parallel::MessageTag tag(c);
-          libMesh::Parallel::Status stat;
-          
-          // Is this one of my coefficients?
-          if ( !_coeffIndices.empty() )
+          /* std::cout << "rank 0" << std::endl; */
+          /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
+          /*   this->_coeffIndices.front() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
+          /*   this->_coeffIndices.back() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
+          /*   this->_coefficients[*id]->row_start() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
+          /*   this->_coefficients[*id]->row_stop() << std::endl; */
+
+          // get my coeffs
+          for (unsigned int i=this->_coeffIndices.front(); 
+                i<this->_coeffIndices.back()+1; i++)
+            for (unsigned int j=0; j<solSize; j++)
+            {
+              /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
+              /*   << (*this->_coefficients[*id])(i,j) << std::endl; */
+              solCoefficients(i,j) = (*this->_coefficients[*id])(i,j)  ;
+            }
+
+
+          //receive other coeffs
+          for (unsigned int p=1; p<this->_comm.size(); p++)
           {
-            if ( (c>=_coeffIndices[0]) && (c<=_coeffIndices.back())  )
-            {
-              if(AGNOS_DEBUG)
-                std::cout << "DEBUG: getCoefficients routine: coeff: " << c 
-                  << " myRank: " << myRank << " myCoeff " << std::endl;
-              unsigned int myC = c-_coeffIndices[0] ;
-              std::cout << "myC: " << myC << std::endl;
-              if (myRank == 0)
-              {
-                // get and insert in total set
-                solutionCoeff[c] = _coefficients[*id][myC] ;
-              }
-              else
-              {
-                // send my coeff to rank 0
-                for(unsigned int comp=0; comp<myCoeff.size(); comp++)
-                  myCoeff[comp]= _coefficients[*id][myC](comp) ; 
-                _comm.send(0,myCoeff,tag);
-              }
-            }
-            else
-            {
-              if(AGNOS_DEBUG)
-                std::cout << "DEBUG: getCoefficients routine: coeff: " 
-                  << c << " myRank: " << myRank << " notMyCoeff " << std::endl;
-              // if im rank 0 receive all coefficients
-              if (myRank == 0)
-              {
-                // detemine receive rank
-                unsigned int recvRank ;
-                if (remCoeff == 0)
-                  recvRank = c / minCoeff ;
-                else if ( (c/(minCoeff+1)) < remCoeff)
-                  recvRank = c/(minCoeff+1);
-                else
-                  recvRank = remCoeff + (c-remCoeff*(minCoeff+1))/minCoeff ;
-                    
-              std::cout << "recvRank: " << recvRank << std::endl;
+            /* std::cout << "rank 0: recv from rank: " << p << std::endl; */
+            std::vector<unsigned int> jbuf;
+            std::vector<double> cbuf;
 
-                stat=_comm.receive( recvRank, myCoeff, tag);
+            this->_comm.receive(p, jbuf);
+            this->_comm.receive(p, cbuf);
 
-                // insert into global set
-                for(unsigned int i=0; i<solSize; i++)
-                  solutionCoeff[c](i) = myCoeff[i];
+            /* std::cout << "rank 0: recv from rank: " << p << " jbuf.size: " << */
+            /*   jbuf.size()<< std::endl; */
+            /* std::cout << "rank 0: recv from rank: " << p << " cbuf.size: " << */
+            /*   cbuf.size()<< std::endl; */
+
+            if (!jbuf.empty())
+            {
+              for (unsigned int i=jbuf.front(); i<jbuf.back()+1; i++)
+                for (unsigned int j=0; j<solSize; j++)
+                {
+                  unsigned int index = 
+                    (i-jbuf.front()) * solSize  // due to j index
+                    + j ;
+                  /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
+                  /*   << cbuf[index] << std::endl; */
+                  solCoefficients(i,j) = cbuf[index]  ;
+                } // loop over sol index
+            } // if jbuf not empty
+          } // for each proc
+        } // if rank 0
+        else // send my coeffs to proc 0
+        {
+          /* std::cout << "rank " << myRank << std::endl; */
+          std::vector<unsigned int> jbuf;
+          std::vector<double> cbuf;
+
+          /* std::cout << "rank " << myRank << " _coeffIndices.size: " << */
+          /*   this->_coeffIndices.size() << std::endl; */
+
+          if ( !this->_coeffIndices.empty() )
+          {
+          /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
+          /*   this->_coeffIndices.front() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
+          /*   this->_coeffIndices.back() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.m(): " << */
+          /*   this->_coefficients[*id]->m() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.n(): " << */
+          /*   this->_coefficients[*id]->n() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
+          /*   this->_coefficients[*id]->row_start() << std::endl; */
+          /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
+          /*   this->_coefficients[*id]->row_stop() << std::endl; */
+            for (unsigned int i=this->_coeffIndices.front(); 
+                  i<this->_coeffIndices.back()+1; i++)
+            {
+              jbuf.push_back(i) ;
+
+              for (unsigned int j=0; j<solSize; j++)
+              {
+                /* std::cout << "rank " << myRank << " _coefficients(i,j): " << */
+                /*   (*this->_coefficients[*id])(i,j) << std::endl; */
+                cbuf.push_back( (*this->_coefficients[*id])(i,j) )  ;
               }
-            }
+
+            } // for j in index set
           }
-          _comm.barrier();
-        }
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: pre add to allCoeff " << std::endl;
 
-        allCoefficients.insert( 
-            std::pair<std::string, std::vector<T_P> >(
-              *id, solutionCoeff )
-            );
-      }
+          /* std::cout << "rank " << myRank << " jbuf.size: " << jbuf.size() << std::endl; */
+          /* std::cout << "rank " << myRank << " cbuf.size: " << cbuf.size() << std::endl; */
+
+          this->_comm.send(0,jbuf);
+          this->_comm.send(0,cbuf);
+
+
+        } // if not proc 0
+
+
+        allCoefficients.insert(
+            std::pair<std::string,LocalMatrix>(*id,solCoefficients) 
+            ) ;
+
+        } // end id
 
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: leaving getCoefficients routine" << std::endl;
@@ -401,7 +442,7 @@ namespace AGNOS
         std::ostream& out ) 
     {
 
-      std::map<std::string,std::vector<T_P> > coefficients =
+      std::map<std::string,LocalMatrix > coefficients =
         this->getCoefficients();
 
       if ( this->_comm.rank() == 0)
@@ -415,15 +456,17 @@ namespace AGNOS
           out << "#" << "\t Solution: " << id << std::endl;
           out << "#" << std::string(75,'-') << std::endl;
 
-          for(unsigned int c=0; c<this->_totalNCoeff; c++)
+          for(unsigned int i=0; i<coefficients[id].m(); i++)
           {
-            for(unsigned int comp=0; comp < (coefficients[id])[c].size(); comp++)
+            for(unsigned int j=0; j<coefficients[id].n(); j++)
+            {
               out << std::setprecision(5) << std::scientific 
-                << (coefficients[id])[c](comp) << " " ;
+                << coefficients[id](i,j) << " " ;
+            } // j
             out << std::endl;
-          }
-        }
-      }
+          } // i
+        } // id
+      } // if rank==0
 
 
 
@@ -588,39 +631,37 @@ namespace AGNOS
 
       // some initialization
       unsigned int myRank = _comm.rank();
-      unsigned int commSize = _comm.size();
-      unsigned int coeffStart = std::min(_comm.rank(), _totalNCoeff-1);
 
       // mean is the first coefficient
       unsigned int coeff = 0 ;
 
       // some initialization
-      unsigned int myC = (coeff-coeffStart)/commSize;
       libMesh::Parallel::MessageTag tag(coeff);
       libMesh::Parallel::Status stat;
 
       std::set<std::string>::iterator id = _solutionNames.begin();
       for (; id!=_solutionNames.end(); ++id)
       {
-        std::vector<double> myCoeff(_solSize[*id],0.) ;
-        T_P solutionCoeff( _solSize[*id] );
+        unsigned int solSize = _solSize[*id];
+        std::vector<double> solutionCoeff( solSize,0. );
 
-        if (coeff%commSize == myRank)
+        if (myRank == 0) // 0 coeff is on rank 0
         {
           // set value of mean coefficient
-          for(unsigned int comp=0; comp<myCoeff.size(); comp++)
-            myCoeff[comp]= _coefficients[*id][myC](comp) ; 
+          for(unsigned int comp=0; comp<solSize; comp++)
+            solutionCoeff[comp]= (*_coefficients[*id])(comp,0) ; 
         }
 
         // if I don't have coeff 0 receive it if I do send it
-        _comm.broadcast(myCoeff, coeff%commSize);
+        _comm.broadcast(solutionCoeff);
 
-        // insert into global set
-        for(unsigned int i=0; i<solutionCoeff.size(); i++)
-          solutionCoeff(i) = myCoeff[i];
+        // convert to T_P type
+        T_P coeffVector(solutionCoeff.size());
+        for(unsigned int i=0; i<coeffVector.size(); i++)
+          coeffVector(i) = solutionCoeff[i] ;
 
         meanCoefficients.insert(
-            std::pair< std::string, T_P>( *id, solutionCoeff )
+            std::pair< std::string, T_P >( *id, coeffVector )
             );
       }
 
