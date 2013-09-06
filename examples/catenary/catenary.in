@@ -5,6 +5,7 @@ adaptive = false
 
 [parameters]
 dimension = '1'
+nInitialHRefinements = '0'
 types ='UNIFORM'
 mins = '1.0'
 maxs = '3.0'

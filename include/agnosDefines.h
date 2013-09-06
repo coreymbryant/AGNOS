@@ -18,6 +18,7 @@
 #include <cstring>
 #include <forward_list>
 #include <queue>
+#include <iterator>
 
 // libmesh includes
 #include "libmesh/getpot.h"

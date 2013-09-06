@@ -32,7 +32,7 @@ namespace AGNOS
           const Communicator&                                     comm,
           std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
           std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
-          std::shared_ptr< PhysicsModel<T_S,T_P> >                physics
+          std::shared_ptr< PhysicsModel<T_S,T_P> >&               physics
           ) ;
 
       /** Default destructor */
@@ -66,6 +66,17 @@ namespace AGNOS
       std::shared_ptr<PhysicsModel<T_S,T_P> >  physics( ) const
       { return _physics; }
 
+      /** Set surrogate model to new model */
+      void setSurrogates(
+          std::vector< std::shared_ptr< SurrogateModel<T_S,T_P> > >&
+          newSurrogates )
+      { _surrogates = newSurrogates; }
+
+      /** Set physics pointer to a different model */
+      void setPhysics(
+          std::shared_ptr< PhysicsModel<T_S,T_P> >& newPhysics )
+      { _physics = newPhysics; }
+
 
     private:
       /** reference to communicator */
@@ -91,7 +102,7 @@ namespace AGNOS
         const Communicator&                                     comm,
         std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
         std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
-        std::shared_ptr< PhysicsModel<T_S,T_P> >                  physics
+        std::shared_ptr< PhysicsModel<T_S,T_P> >&                 physics
         ) 
     :
       _comm(comm),
@@ -130,23 +141,78 @@ namespace AGNOS
       std::vector< Element<T_S,T_P> > newElements;
       newElements.reserve( nChildren ) ;
 
+      /* std::vector<std::shared_ptr<AGNOS::Parameter> > newParameters = */
+      /*   _parameters; */
+
       // TODO 
       //  split parameters
-      std::vector<std::shared_ptr<AGNOS::Parameter> > newParameters =
-        _parameters;
-      /* newParameters.reserve( dim ); */
-      /* for (unsigned int i=0; i<dim; i++ ) */
+      //  Create new 1d parameters that will be needed in tensor product
+      std::vector< std::vector< std::shared_ptr<AGNOS::Parameter> > > allParams;
+      allParams.reserve( nChildren ) ;
+      // first direction (to initialize everything)
+      {
+        double min = _parameters[0]->min() ;
+        double max = _parameters[0]->max() ;
+        double midpoint = (min + max)/ 2.0;
 
-      //  initalize new Elements with same pointers
-      for (unsigned int i=0; i<nChildren; i++)
+
+        allParams.push_back( 
+            std::vector< std::shared_ptr<AGNOS::Parameter> >(
+              1,
+              std::shared_ptr<AGNOS::Parameter>(
+                new AGNOS::Parameter( _parameters[0]->type(), min, midpoint) )
+              )
+            );
+        allParams.push_back( 
+            std::vector< std::shared_ptr<AGNOS::Parameter> >(
+              1,
+              std::shared_ptr<AGNOS::Parameter>(
+                new AGNOS::Parameter( _parameters[0]->type(), midpoint, max) )
+              )
+            );
+      }
+      // add aditional directions by building on first direction
+      for (unsigned int i=1; i<dim; i++ )
+      {
+        double min = _parameters[i]->min() ;
+        double max = _parameters[i]->max() ;
+        double midpoint = (min + max)/ 2.0;
+
+        const unsigned int oldSize = allParams.size();
+        for (unsigned int j=0; j<oldSize; j++)
+        {
+          // push back a copy of this row before we alter it 
+          allParams.push_back( allParams[j] );
+          
+          // push back this directions lesser parameter to this row
+          allParams[j].push_back( 
+                std::shared_ptr<AGNOS::Parameter>(
+                  new AGNOS::Parameter( _parameters[i]->type(), min, midpoint) )
+              );
+
+          // then add this directions greater param range to last row
+          // (the one we added at the beginning of the loop)
+          allParams.back().push_back( 
+                std::shared_ptr<AGNOS::Parameter>(
+                  new AGNOS::Parameter( _parameters[i]->type(), midpoint, max) )
+              );
+        }
+      }
+
+      // create new elements from new parameters
+      for (unsigned int c=0; c<nChildren; c++)
+      {
         newElements.push_back( 
             Element<T_S,T_P>(
               _comm,
-              newParameters,
+              allParams[c],
               _surrogates,
               _physics
               )
             );
+        
+      }
+
 
       return newElements;
     }
