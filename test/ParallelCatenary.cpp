@@ -42,7 +42,7 @@ typedef libMesh::DenseVector<double> T_S ;
 
       unsigned int dimension ;
       std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters;
-      PhysicsCatenary<T_S,T_P>* myPhysics ;
+      std::shared_ptr<PhysicsCatenary<T_S,T_P> > myPhysics ;
 
 
 
@@ -64,14 +64,15 @@ typedef libMesh::DenseVector<double> T_S ;
               )
             ); 
 
-        myPhysics = new PhysicsCatenary<T_S,T_P>( physicsComm, inputfile );
+        myPhysics = std::shared_ptr<PhysicsCatenary<T_S,T_P> >(
+            new PhysicsCatenary<T_S,T_P>( physicsComm, inputfile ) 
+            );
 
 
       }
 
       void tearDown( )
       {
-        delete myPhysics;
       }
 
       void catenaryN0()

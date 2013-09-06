@@ -112,8 +112,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&linearFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -134,7 +134,6 @@ using namespace AGNOS;
           );
 
         delete mySurrogate;
-        delete myPhysics;
 
       }
 
@@ -152,8 +151,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&linearFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -179,7 +178,6 @@ using namespace AGNOS;
                 ) <= 1e-4 );
 
         delete mySurrogate;
-        delete myPhysics;
       }
 
       void Quad_1D()
@@ -196,8 +194,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&quadFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -221,7 +219,6 @@ using namespace AGNOS;
         }
 
         delete mySurrogate;
-        delete myPhysics;
       }
 
       void Quad_ND()
@@ -238,8 +235,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&quadFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -268,7 +265,6 @@ using namespace AGNOS;
                 ) <= 1e-9 );
         }
         delete mySurrogate;
-        delete myPhysics;
       }
 
       void OrderN_1D()
@@ -290,8 +286,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) ;
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&mixedFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -340,7 +336,6 @@ using namespace AGNOS;
                <= 1e-9 );
         }
         delete mySurrogate;
-        delete myPhysics;
       }
 
 
