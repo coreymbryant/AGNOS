@@ -142,7 +142,7 @@ namespace AGNOS
         const Parameter& parameter, const unsigned int order, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
-      int myType = parameter.getType() ;
+      int myType = parameter.type() ;
       double min = parameter.min();
       double max = parameter.max();
       double scale, midpoint, scaleWeight;

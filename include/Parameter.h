@@ -29,7 +29,7 @@ namespace AGNOS
       virtual ~Parameter( );
 
       // Manipulators
-      int getType() const; /**< 0: Uniform */
+      int type() const; /**< 0: Uniform */
       double min() const;
       double max() const;
       double evalBasisPoly( int l, double x);
@@ -67,7 +67,7 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  int Parameter::getType( ) const
+  int Parameter::type( ) const
   {
     return m_type;
   }
