@@ -82,7 +82,6 @@ namespace AGNOS
     
     //------------------------
     // initialize mesh object
-    delete this->_mesh;
     this->_mesh = new libMesh::Mesh(this->_communicator);
 
 

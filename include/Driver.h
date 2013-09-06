@@ -127,7 +127,7 @@ namespace AGNOS
     
     // PARAMETER SETTINGS
     _paramDim = input("parameters/dimension", 1);
-    _nInitialHRefinements = input("parameters/nInitialHRefinements", 1);
+    _nInitialHRefinements = input("parameters/nInitialHRefinements", 0);
 
     std::vector< std::shared_ptr<AGNOS::Parameter> > parameters;
     parameters.reserve(_paramDim);
@@ -162,10 +162,30 @@ namespace AGNOS
           surrogates,
           physics
           ) ;
+    _elemsToUpdate.push(baseElement);
 
 
-    //TODO perform initial h refinements
-    _elemsToUpdate.push( baseElement );
+    //perform initial h refinements
+    for (unsigned int i=0; i<_nInitialHRefinements; i++)
+    {
+      unsigned int nElems = _elemsToUpdate.size() ;
+      for (unsigned int j=0; j < nElems; j++)
+      {
+        std::vector< Element<T_S,T_P> > children = _elemsToUpdate.front().split() ;
+        _elemsToUpdate.pop();
+
+        for (unsigned int c=0; c<children.size(); c++)
+        {
+          // cosntruct a new surrogate for this element
+          std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > childSurrogates =
+              _initSurrogate( input, children[c].parameters(), children[c].physics() ) ;
+          children[c].setSurrogates( childSurrogates ); 
+
+          // save element to update queue
+          _elemsToUpdate.push(children[c]) ;
+        } // children loop
+      } // nElems loop
+    } // nInitialHRefinements loop
 
     
 
@@ -423,17 +443,26 @@ namespace AGNOS
         std::cout << "post surrogate build " << i << std::endl;
       }
 
-      // build error surrogate
-      /* _errorSurrogate->build(); */
+      // add element to active list
+      _activeElems.push_front(elem) ;
 
-      std::map< std::string, LocalMatrix > myCoeff =
-        elem.surrogates()[0]->getCoefficients();
-
-      // print out settings
-      printSettings();
-      printSolution(1);
+      // remove element from update list
       _elemsToUpdate.pop();
     }
+
+    // loop through all active elements
+    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      _activeElems.begin();
+    for (; elit!=_activeElems.end(); elit++)
+    {
+      std::map< std::string, LocalMatrix > myCoeff =
+        elit->surrogates()[0]->getCoefficients();
+
+    }
+    
+    // print out settings
+    printSettings();
+    printSolution(1);
     
 
     
@@ -609,16 +638,22 @@ namespace AGNOS
  ***********************************************/
   void Driver::printParameterSettings( std::ostream& out ) 
   {
+    out << std::endl;
+    out << "#====================================================" <<
+      std::endl;
+    out << "# Parameter settings: " << std::endl;
+    out << "#     dimension = " << _paramDim << std::endl;
+    out << "#     nInitialHRefinements = " << _nInitialHRefinements << std::endl;
+    out << "#     nElems = " <<
+      std::distance(_activeElems.begin(),_activeElems.end()) << std::endl;
+
     std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
     for (; elit!=_activeElems.end(); elit++)
     {
-      out << std::endl;
-      out << "#====================================================" <<
-        std::endl;
-      out << "# Parameter settings: " << std::endl;
-      out << "#     dimension = " << _paramDim << std::endl;
 
+      out << std::endl;
+      out << "#--------- ELEM ------------------\n";
       out << "#     mins = " ;
       for (unsigned int i=0; i < _paramDim; i++)
         out << elit->parameters()[i]->min() << " " ;
