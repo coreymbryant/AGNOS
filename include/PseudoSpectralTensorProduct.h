@@ -23,10 +23,10 @@ namespace AGNOS
       /** Constructor:  */
       PseudoSpectralTensorProduct( 
         const Communicator&               comm,
-        PhysicsModel<T_S,T_P>*                physics,
-          const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-          const std::vector<unsigned int>&  order
-          );
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
+        const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
+        const std::vector<unsigned int>&  order
+        );
 
       /** Secondary Constructor. 
        *  ***DO NOT MISTAKE FOR A COPY CONSTRUCTOR ***
@@ -74,7 +74,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
         const Communicator&               comm,
-        PhysicsModel<T_S,T_P>*                physics,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>& order
         )

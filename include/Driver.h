@@ -11,6 +11,7 @@
 #include "PhysicsCatenaryLibmesh.h"
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
+#include "Element.h"
 
 
 
@@ -42,33 +43,53 @@ namespace AGNOS
       void printSolution( unsigned int iteration=1 ) ;
 
     protected:
-      void _initPhysics( GetPot& input );
-      void _initSurrogate( GetPot& input );
+      std::shared_ptr< PhysicsModel<T_S,T_P> > _initPhysics( GetPot& input );
+      std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > 
+        _initSurrogate( GetPot& input, 
+            std::vector< std::shared_ptr<AGNOS::Parameter> > parameters,
+            std::shared_ptr<PhysicsModel<T_S,T_P> > physics) ;
 
       const Communicator& _comm;
       const Communicator& _physicsComm;
 
 
+      // ---------------------
       // DRIVER VARIABLES
       /** maximum driver iterations */
       unsigned int  _maxIter;
       /** Determine which space to refine based on relative error estiamtes */
       bool          _adaptiveDriver;
+      // ---------------------
+      
+      // ---------------------
+      // ELEMENT VARIABLES
+      std::forward_list<AGNOS::Element<T_S,T_P> > _activeElems;
+      std::queue<AGNOS::Element<T_S,T_P> >        _elemsToUpdate;
+      // ---------------------
+      
 
+      // ---------------------
       // PARAMETERS VARIABLES
       unsigned int              _paramDim;
-      std::vector<std::shared_ptr<AGNOS::Parameter> >   _parameters;
+      /** number of times to initially h refine the parameter domain before
+       * doing any computation */
+      unsigned int              _nInitialHRefinements ;
+      // ---------------------
       
+      // ---------------------
       // SURROGATE VARIABLES
       std::map<std::string, unsigned int> _surrogateNames;
-      std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >  _surrogates;
-      bool _refineSurrogates;
+      bool _refineSurrogate;
+      // ---------------------
 
+      // ---------------------
       // PHYSICS VARIABLES
-      std::vector< std::shared_ptr<PhysicsModel<T_S,T_P> > >    _physics;
-      bool _refinePhysical;
+      bool _refinePhysics;
+      // ---------------------
 
+      // ---------------------
       // OUTPUT VARIABLES
+      // TODO control on per surrogate basis
       std::string               _outputFilename; 
       std::vector<std::string>  _solutionsToPrint ;
       bool                      _outputIterations  ;
@@ -77,6 +98,7 @@ namespace AGNOS
       bool                      _outputWeights       ;
       bool                      _outputPoints        ;
       bool                      _outputIndexSet      ;
+      // ---------------------
   };
 
 
@@ -105,10 +127,12 @@ namespace AGNOS
     
     // PARAMETER SETTINGS
     _paramDim = input("parameters/dimension", 1);
+    _nInitialHRefinements = input("parameters/nInitialHRefinements", 1);
 
-    _parameters.reserve(_paramDim);
+    std::vector< std::shared_ptr<AGNOS::Parameter> > parameters;
+    parameters.reserve(_paramDim);
     for (unsigned int i=0; i < _paramDim; i++)
-      _parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
+      parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
             new AGNOS::Parameter( 
               input("parameters/types",0,i),
               input("parameters/mins",-1.0,i), 
@@ -117,37 +141,31 @@ namespace AGNOS
           );
     
 
+    
     // PHYSICS SETTINGS
-    _initPhysics( input );
+    std::shared_ptr< PhysicsModel<T_S,T_P> > physics = _initPhysics( input );
 
 
     // SURROGATE MODEL(s) SETTINGS
     input.set_prefix("surrogateModels/") ;
-    _refineSurrogates = input("refine",false);
+    _refineSurrogate = input("refine",false);
 
-    /* _surrogateNames.resize( input.vector_variable_size("modelNames") ); */
-    for(unsigned int n=0; n < input.vector_variable_size("modelNames"); n++)
-    {
-      std::string modelName = input("modelNames","", n);
-      _surrogateNames.insert( std::pair<std::string,unsigned int>(
-            modelName, n )
-          );
+    /* initialize surrogate model container */
+    std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates =
+      _initSurrogate( input, parameters, physics ); 
 
-      // get section name and set prefix
-      std::string sectionName = "surrogateModels/";
-        sectionName += modelName;
-        sectionName += "/";
-      input.set_prefix(sectionName.data()) ;
 
-      // for each surrogate model initialize it
-      _initSurrogate( input );
+    // Construct a single initial element and add it to the update queue
+    AGNOS::Element<T_S,T_P> baseElement(
+          _comm,
+          parameters,
+          surrogates,
+          physics
+          ) ;
 
-      std::cout << "sectionName: " << sectionName << std::endl;
-      input.set_prefix("surrogateModels/") ;
-    }
 
-    input.set_prefix("");
-
+    //TODO perform initial h refinements
+    _elemsToUpdate.push( baseElement );
 
     
 
@@ -180,11 +198,13 @@ namespace AGNOS
  * Can be overidden to include new physicsModel classes.
  * 
  ***********************************************/
-  void Driver::_initPhysics( GetPot& input)
+  std::shared_ptr<PhysicsModel<T_S,T_P> > Driver::_initPhysics( GetPot& input)
   {
     //TODO  deal with parallel issue
+    //what?
+    std::shared_ptr< PhysicsModel<T_S,T_P> > physics ;
     std::string physicsName = input("physics/type","");
-    _refinePhysical = input("refine",false);
+    _refinePhysics = input("refine",false);
 
     if(AGNOS_DEBUG)
       std::cout << "_initPhysics() rank: " << _comm.rank() << std::endl;
@@ -192,33 +212,30 @@ namespace AGNOS
     if ( physicsName == "viscousBurgers" )
     {
       input.set_prefix("physics/viscousBurgers/");
-      _physics.push_back( 
+      physics =
           std::shared_ptr<AGNOS::PhysicsViscousBurgers<T_S,T_P> >(
             new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
               _physicsComm, input )
-            )
-          );
+            ) ;
       input.set_prefix("");
     }
     else if ( physicsName == "catenaryLibmesh" )
     {
       input.set_prefix("physics/catenaryLibmesh/");
-      _physics.push_back( 
+      physics =
           std::shared_ptr<AGNOS::PhysicsCatenaryLibmesh<T_S,T_P> >(
             new AGNOS::PhysicsCatenaryLibmesh<T_S,T_P>( _physicsComm, input )
-            )
-          );
+            ) ;
       input.set_prefix("");
     }
     else if ( physicsName == "catenary" )
     {
       input.set_prefix("physics/catenary/");
-      _physics.push_back(
+      physics =
           std::shared_ptr<AGNOS::PhysicsCatenary<T_S,T_P> >(
             new AGNOS::PhysicsCatenary<T_S,T_P>(
               _physicsComm, input )
-            )
-          );
+            ) ;
       input.set_prefix("");
     }
     else
@@ -231,7 +248,7 @@ namespace AGNOS
       exit(1);
     }
 
-    return ;
+    return physics;
   }
 
 /********************************************//**
@@ -241,119 +258,150 @@ namespace AGNOS
  * handles the initialziation of each surrogate model listed in input file
  * 
  ***********************************************/
-  void Driver::_initSurrogate( GetPot& input)
+  std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >
+    Driver::_initSurrogate( GetPot& input, 
+        std::vector< std::shared_ptr<AGNOS::Parameter> > parameters,
+        std::shared_ptr<PhysicsModel<T_S,T_P> > physics)
   {
-    /** Get type of surrogate model */
-    std::string surrType  = input("type","PseudoSpectralTensorProduct");
-    int surrogateType;
+    input.set_prefix("surrogateModels/");
+    unsigned int nSurrogates = input.vector_variable_size("modelNames");
+    std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates;
+    surrogates.reserve(nSurrogates);
 
-    if (surrType == "PseudoSpectralTensorProduct")
-      surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
-    else if (surrType == "PseudoSpectralSparseGrid")
-      surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
-    else if (surrType == "PseudoSpectralMonteCarlo")
-      surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
-    else if (surrType == "Collocation")
-      surrogateType =  COLLOCATION ;
-    else
+    /* _surrogateNames.resize( input.vector_variable_size("modelNames") ); */
+    for(unsigned int n=0; n < nSurrogates; n++)
     {
-      std::cerr << " ERROR: unrecognized SurrogateModelType " 
-        << surrType << std::endl;
-      exit(1);
-    }
+      std::string modelName = input("modelNames","", n);
+      _surrogateNames.insert( std::pair<std::string,unsigned int>(
+            modelName, n )
+          );
 
-    std::set<std::string> computeSolutions ;
-    for(unsigned int n=0; n < input.vector_variable_size("computeSolutions"); n++)
-      computeSolutions.insert( input("computeSolutions","", n) );
-
-    std::set<std::string> evaluateSolutions ;
-    for(unsigned int n=0; n < input.vector_variable_size("evaluateSolutions"); n++)
-      evaluateSolutions.insert( input("evaluateSolutions","", n) );
+      // get section name and set prefix
+      std::string sectionName = "surrogateModels/";
+        sectionName += modelName;
+        sectionName += "/";
+      input.set_prefix(sectionName.data()) ;
 
 
-    /** Determine which type of surrogate we have, primary or secondary */
-    std::string primarySurrogate = input("primarySurrogate","");
+      /** Get type of surrogate model */
+      std::string surrType  = input("type","PseudoSpectralTensorProduct");
+      int surrogateType;
 
-    /** Get length of input vectors */
-    int orderDim = input.vector_variable_size("order");
-    std::vector<unsigned int> order;
+      if (surrType == "PseudoSpectralTensorProduct")
+        surrogateType =  PSEUDO_SPECTRAL_TENSOR_PRODUCT ;
+      else if (surrType == "PseudoSpectralSparseGrid")
+        surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
+      else if (surrType == "PseudoSpectralMonteCarlo")
+        surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
+      else if (surrType == "Collocation")
+        surrogateType =  COLLOCATION ;
+      else
+      {
+        std::cerr << " ERROR: unrecognized SurrogateModelType " 
+          << surrType << std::endl;
+        exit(1);
+      }
 
-    if (orderDim == 1)
-      for (unsigned int i=0; i < _paramDim; i++)
-        order.push_back( input("order", 0) ) ;
-    else
-      for (unsigned int i=0; i < _paramDim; i++)
-        order.push_back( input("order", 0, i) ) ;
-    /** Get increaseOrder */
-    unsigned int increaseOrder = input("increaseOrder",0);
-    /** Get increaseOrder */
-    unsigned int multiplyOrder = input("multiplyOrder",1);
+      /** solutions we want the surrogate to approximate */
+      std::set<std::string> computeSolutions ;
+      for(unsigned int n=0; n < input.vector_variable_size("computeSolutions"); n++)
+        computeSolutions.insert( input("computeSolutions","", n) );
+
+      /** solutions we will evaluate from a primary surrogate */
+      std::set<std::string> evaluateSolutions ;
+      for(unsigned int n=0; n < input.vector_variable_size("evaluateSolutions"); n++)
+        evaluateSolutions.insert( input("evaluateSolutions","", n) );
+
+
+      /** Determine which type of surrogate we have, primary or secondary */
+      std::string primarySurrogate = input("primarySurrogate","");
+
+      /** Get length of input vectors */
+      int orderDim = input.vector_variable_size("order");
+      std::vector<unsigned int> order;
+
+      if (orderDim == 1)
+        for (unsigned int i=0; i < _paramDim; i++)
+          order.push_back( input("order", 0) ) ;
+      else
+        for (unsigned int i=0; i < _paramDim; i++)
+          order.push_back( input("order", 0, i) ) ;
+
+      /** Get increaseOrder */
+      unsigned int increaseOrder = input("increaseOrder",0);
+      /** Get increaseOrder */
+      unsigned int multiplyOrder = input("multiplyOrder",1);
 
 
 
-    // type specific setup
-    switch( surrogateType )
-    {
-      case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
-        {
-          /** primary surrogate  */
-          if ( primarySurrogate.empty() )
+      // type specific setup
+      switch( surrogateType )
+      {
+        case(PSEUDO_SPECTRAL_TENSOR_PRODUCT):
           {
-            _surrogates.push_back( 
-                std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
-                  new PseudoSpectralTensorProduct<T_S,T_P>( 
-                    _comm, 
-                    _physics[0].get(),
-                    _parameters, 
-                    order  )
-                  )
-                );
+            /** primary surrogate  */
+            if ( primarySurrogate.empty() )
+            {
+              surrogates.push_back(
+                  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                    new PseudoSpectralTensorProduct<T_S,T_P>( 
+                      _comm, 
+                      physics,
+                      parameters, 
+                      order  )
+                    ) 
+                  );
+            }
+            /** secondary surrogate  */
+            else 
+            {
+              surrogates.push_back(
+                  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                    new PseudoSpectralTensorProduct<T_S,T_P>( 
+                      surrogates[_surrogateNames[primarySurrogate]].get(),
+                      increaseOrder,
+                      multiplyOrder,
+                      evaluateSolutions,
+                      computeSolutions
+                      )
+                    ) 
+                  );
+            }
+
+
+            break;
           }
-          /** secondary surrogate  */
-          else 
+        case(PSEUDO_SPECTRAL_SPARSE_GRID):
           {
-            _surrogates.push_back( 
-                std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
-                  new PseudoSpectralTensorProduct<T_S,T_P>( 
-                    _surrogates[_surrogateNames[primarySurrogate]].get(),
-                    increaseOrder,
-                    multiplyOrder,
-                    evaluateSolutions,
-                    computeSolutions
-                    )
-                  )
-                );
+            std::cerr 
+              << " this SurrogateModelType is not yet implemented\n" ;
+            exit(1);
+            break;
           }
-
-
-          break;
-        }
-      case(PSEUDO_SPECTRAL_SPARSE_GRID):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(PSEUDO_SPECTRAL_MONTE_CARLO):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-      case(COLLOCATION):
-        {
-          std::cerr 
-            << " this SurrogateModelType is not yet implemented\n" ;
-          exit(1);
-          break;
-        }
-    }
+        case(PSEUDO_SPECTRAL_MONTE_CARLO):
+          {
+            std::cerr 
+              << " this SurrogateModelType is not yet implemented\n" ;
+            exit(1);
+            break;
+          }
+        case(COLLOCATION):
+          {
+            std::cerr 
+              << " this SurrogateModelType is not yet implemented\n" ;
+            exit(1);
+            break;
+          }
+      }
     
+      std::cout << "sectionName: " << sectionName << std::endl;
+      input.set_prefix("surrogateModels/") ;
+    }
+
+    input.set_prefix("");
 
 
-    return;
+    return surrogates;
   }
 
 
@@ -364,24 +412,29 @@ namespace AGNOS
   void Driver::run( )
   {
 
-    
-    // build initial approximation
-    for(unsigned int i=0;i<_surrogates.size(); i++)
+    while (!_elemsToUpdate.empty())
     {
-      std::cout << "pre surrogate build " << i << std::endl;
-      _surrogates[i]->build();
-      std::cout << "post surrogate build " << i << std::endl;
+      const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
+      // build initial approximation
+      for(unsigned int i=0;i<elem.surrogates().size(); i++)
+      {
+        std::cout << "pre surrogate build " << i << std::endl;
+        elem.surrogates()[i]->build();
+        std::cout << "post surrogate build " << i << std::endl;
+      }
+
+      // build error surrogate
+      /* _errorSurrogate->build(); */
+
+      std::map< std::string, LocalMatrix > myCoeff =
+        elem.surrogates()[0]->getCoefficients();
+
+      // print out settings
+      printSettings();
+      printSolution(1);
+      _elemsToUpdate.pop();
     }
-
-    // build error surrogate
-    /* _errorSurrogate->build(); */
-
-    std::map< std::string, LocalMatrix > myCoeff =
-      _surrogates[0]->getCoefficients();
-
-    // print out settings
-    printSettings();
-    printSolution(1);
+    
 
     
     /* // print out first iteration if requested */
@@ -429,9 +482,9 @@ namespace AGNOS
     /*   // if physical error dominates and we are allowed to refine physical */
     /*   // solution */
     /*   if ( */ 
-    /*       ( _refinePhysical && (l2normofphyerror(0) >= normDiff) ) */ 
+    /*       ( _refinePhysics && (l2normofphyerror(0) >= normDiff) ) */ 
     /*       || */
-    /*       ( _refinePhysical && !m_refineSurrogate ) */
+    /*       ( _refinePhysics && !m_refineSurrogate ) */
     /*       ) */
     /*   { */
     /*     if (_comm.rank() == 0) */ 
@@ -556,23 +609,29 @@ namespace AGNOS
  ***********************************************/
   void Driver::printParameterSettings( std::ostream& out ) 
   {
-    out << std::endl;
-    out << "#====================================================" <<
-      std::endl;
-    out << "# Parameter settings: " << std::endl;
-    out << "#     dimension = " << _paramDim << std::endl;
+    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      _activeElems.begin();
+    for (; elit!=_activeElems.end(); elit++)
+    {
+      out << std::endl;
+      out << "#====================================================" <<
+        std::endl;
+      out << "# Parameter settings: " << std::endl;
+      out << "#     dimension = " << _paramDim << std::endl;
 
-    out << "#     mins = " ;
-    for (unsigned int i=0; i < _paramDim; i++)
-      out << _parameters[i]->min() << " " ;
-    out << std::endl;
+      out << "#     mins = " ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        out << elit->parameters()[i]->min() << " " ;
+      out << std::endl;
 
-    out << "#     maxs = " ;
-    for (unsigned int i=0; i < _paramDim; i++)
-      out << _parameters[i]->max() << " " ;
-    out << std::endl;
+      out << "#     maxs = " ;
+      for (unsigned int i=0; i < _paramDim; i++)
+        out << elit->parameters()[i]->max() << " " ;
+      out << std::endl;
 
-    out << std::endl;
+      out << std::endl;
+    }
+
     return;
   }
 
@@ -581,6 +640,7 @@ namespace AGNOS
  ***********************************************/
   void Driver::printSurrogateSettings( std::ostream& out ) 
   {
+
     out << std::endl;
     out << "#====================================================" <<
       std::endl;
@@ -589,16 +649,21 @@ namespace AGNOS
     std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
     for(; sid !=_surrogateNames.end(); sid++)
     {
-      out << "#----------------------------------------------------" <<
-        std::endl;
-      out << "#     " << sid->first << ": " << std::endl;
-      out << "#     order = " ;
-      std::vector<unsigned int> order = _surrogates[sid->second]->getExpansionOrder();
-      for(unsigned int i=0; i < _paramDim; i++)
-        out << order[i] << " " ;
-      out << std::endl;
-      out << "#----------------------------------------------------" <<
-        std::endl;
+      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+        _activeElems.begin();
+      for (; elit!=_activeElems.end(); elit++)
+      {
+          out << "#----------------------------------------------------" <<
+          std::endl;
+        out << "#     " << sid->first << ": " << std::endl;
+        out << "#     order = " ;
+        std::vector<unsigned int> order = elit->surrogates()[sid->second]->getExpansionOrder();
+        for(unsigned int i=0; i < _paramDim; i++)
+          out << order[i] << " " ;
+        out << std::endl;
+        out << "#----------------------------------------------------" <<
+          std::endl;
+      }
     }
     out << std::endl;
     return;
@@ -629,14 +694,20 @@ namespace AGNOS
         out << "#     " << sid->first << ": " << std::endl;
       }
 
-      if (_outputCoefficients)
-        _surrogates[sid->second]->printCoefficients( _solutionsToPrint, out );
-      if (_outputWeights)
-        _surrogates[sid->second]->printIntegrationWeights( out );
-      if (_outputPoints)
-        _surrogates[sid->second]->printIntegrationPoints( out );
-      if (_outputIndexSet)
-        _surrogates[sid->second]->printIndexSet( out );
+      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+        _activeElems.begin();
+      for (; elit!=_activeElems.end(); elit++)
+      {
+        if (_outputCoefficients)
+          elit->surrogates()[sid->second]->printCoefficients( _solutionsToPrint, out );
+        if (_outputWeights)
+          elit->surrogates()[sid->second]->printIntegrationWeights( out );
+        if (_outputPoints)
+          elit->surrogates()[sid->second]->printIntegrationPoints( out );
+        if (_outputIndexSet)
+          elit->surrogates()[sid->second]->printIndexSet( out );
+      }
+
 
       if (this->_comm.rank() == 0)
       {
