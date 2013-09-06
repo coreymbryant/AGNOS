@@ -40,7 +40,7 @@ using namespace AGNOS;
     public:
       Communicator comm, physicsComm;
       GetPot inputfile;
-      PhysicsModel<T_S,T_P>* myPhysics ; 
+      std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics ; 
       unsigned int dimension ;
         
       std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters;
@@ -56,7 +56,9 @@ using namespace AGNOS;
         physicsComm = Communicator(subComm) ;
 
         dimension = 1;
-        myPhysics = new PhysicsCatenary<T_S,T_P>(physicsComm,inputfile );
+        myPhysics = std::shared_ptr<PhysicsModel<T_S,T_P> > (
+            new PhysicsCatenary<T_S,T_P>(physicsComm,inputfile ) 
+            );
         myParameters.reserve(1);
         myParameters.push_back( 
             std::shared_ptr<AGNOS::Parameter>(
@@ -67,7 +69,6 @@ using namespace AGNOS;
 
       void tearDown( )
       {
-        delete myPhysics;
       }
 
       
