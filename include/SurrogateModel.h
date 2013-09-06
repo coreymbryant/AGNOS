@@ -1,7 +1,4 @@
 
-// should be able to build up multi-element approaches based on basic surrogate
-// definition I think. Even if we use libmesh?
-
 #ifndef SURROGATE_MODEL_H 
 #define SURROGATE_MODEL_H 
 
@@ -35,7 +32,7 @@ namespace AGNOS
       /** Constructor */
       SurrogateModel(
           const Communicator&               comm,
-          PhysicsModel<T_S,T_P>*            physics,
+          std::shared_ptr<PhysicsModel<T_S,T_P> >            physics,
           const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
           const std::vector<unsigned int>&  order
           );
@@ -146,7 +143,7 @@ namespace AGNOS
       const Communicator& getComm( ) const 
       { return _comm; }
       /** reference to physics pointer */
-      PhysicsModel<T_S,T_P>* getPhysics( ) const
+      std::shared_ptr<PhysicsModel<T_S,T_P> > getPhysics( ) const
       { return _physics; }
 
       /** solution names this surrogateModel is built for */
@@ -161,7 +158,7 @@ namespace AGNOS
       /** reference to communicator */
       const Communicator& _comm;
       /** reference to underlying physics */
-      PhysicsModel<T_S,T_P>* _physics;
+      std::shared_ptr<PhysicsModel<T_S,T_P> > _physics;
       
       /** expansion order */
       std::vector<unsigned int>                           _order;  
@@ -204,7 +201,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
         const Communicator&               comm,
-        PhysicsModel<T_S,T_P>*            physics,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >           physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>&          order
         )
