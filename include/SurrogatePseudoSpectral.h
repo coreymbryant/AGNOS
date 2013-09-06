@@ -28,7 +28,7 @@ namespace AGNOS
       /** Constructor */
       SurrogatePseudoSpectral( 
           const Communicator&               comm,
-          PhysicsModel<T_S,T_P>*                physics,
+          std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
           const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
           const std::vector<unsigned int>&  order
           );
@@ -53,7 +53,7 @@ namespace AGNOS
 
       void build( ) ;
       std::map< std::string, T_P > computeContribution( 
-          PhysicsModel<T_S,T_P>*   physics,
+          std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
           unsigned int index
           );
 
@@ -111,7 +111,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
         const Communicator&               comm,
-        PhysicsModel<T_S,T_P>*                physics,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>& order
         )
@@ -507,7 +507,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     std::map< std::string, T_P >
     SurrogatePseudoSpectral<T_S,T_P>::computeContribution(
-        PhysicsModel<T_S,T_P>*  physics,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         unsigned int index
         )
     {

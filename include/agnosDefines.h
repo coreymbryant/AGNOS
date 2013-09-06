@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <cstring>
+#include <forward_list>
+#include <queue>
 
 // libmesh includes
 #include "libmesh/getpot.h"
