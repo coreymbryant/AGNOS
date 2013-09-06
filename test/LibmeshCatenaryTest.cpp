@@ -67,8 +67,9 @@ using namespace AGNOS;
             ); 
 
 
-        PhysicsCatenaryLibmesh<T_S,T_P>* myPhysics = new PhysicsCatenaryLibmesh<T_S,T_P>(
-            physicsComm, inputfile );
+        std::shared_ptr<PhysicsCatenaryLibmesh<T_S,T_P> > myPhysics( 
+            new PhysicsCatenaryLibmesh<T_S,T_P>( physicsComm, inputfile ) 
+            );
 
         std::vector<unsigned int> myOrder(dimension,4);
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = 
@@ -105,7 +106,6 @@ using namespace AGNOS;
             );
 
         delete mySurrogate;
-        delete myPhysics;
       }
 
   };

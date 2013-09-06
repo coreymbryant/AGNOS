@@ -77,8 +77,8 @@ using namespace AGNOS;
               )
             ); 
 
-        PhysicsModel<T_S,T_P>* myPhysics=
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile);
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile));
         myPhysics->attach_compute_function(&myFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -106,7 +106,6 @@ using namespace AGNOS;
         CPPUNIT_ASSERT( std::abs( 
               surrogateValue(0) - trueSolution["primal"](0) ) <= 1e-9 );
 
-      delete myPhysics;
       delete mySurrogate;
     }
 
