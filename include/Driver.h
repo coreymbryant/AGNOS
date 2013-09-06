@@ -157,7 +157,6 @@ namespace AGNOS
 
     // Construct a single initial element and add it to the update queue
     AGNOS::Element<T_S,T_P> baseElement(
-          _comm,
           parameters,
           surrogates,
           physics
