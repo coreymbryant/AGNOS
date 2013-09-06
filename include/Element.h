@@ -29,7 +29,6 @@ namespace AGNOS
     public:
       /** Default constructor */
       Element( 
-          const Communicator&                                     comm,
           std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
           std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
           std::shared_ptr< PhysicsModel<T_S,T_P> >&               physics
@@ -49,10 +48,6 @@ namespace AGNOS
 
       /** refine element's physics model */
       /* void refineSurrogate( ) ; */
-
-      /** return comm reference */
-      const Communicator& comm( ) const
-      { return _comm; }
 
       /** return parameters reference */
       std::vector<std::shared_ptr<AGNOS::Parameter> >   parameters( ) const
@@ -78,10 +73,7 @@ namespace AGNOS
       { _physics = newPhysics; }
 
 
-    private:
-      /** reference to communicator */
-      const Communicator& _comm;
-
+    protected:
       /** reference for parameters */
       std::vector< std::shared_ptr<AGNOS::Parameter> >  _parameters;
 
@@ -99,13 +91,11 @@ namespace AGNOS
    ***********************************************/
   template<class T_S, class T_P>
     Element<T_S,T_P>::Element(
-        const Communicator&                                     comm,
         std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
         std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
         std::shared_ptr< PhysicsModel<T_S,T_P> >&                 physics
         ) 
     :
-      _comm(comm),
       _parameters(parameters),
       _surrogates(surrogates),
       _physics(physics)
@@ -204,7 +194,6 @@ namespace AGNOS
       {
         newElements.push_back( 
             Element<T_S,T_P>(
-              _comm,
               allParams[c],
               _surrogates,
               _physics
