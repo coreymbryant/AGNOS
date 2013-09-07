@@ -249,15 +249,23 @@ typedef libMesh::DenseVector<double> T_S ;
         for (unsigned int iter=0; iter < maxIter-1; iter++)
         {
           mySurrogate->refine();
-          testValue = mySurrogate->evaluate( "primal", paramValue ) ;
+          testValue = mySurrogate->evaluate( "primal", paramValue, true ) ;
         }
 
         std::cout << "value: " << testValue(0) << std::endl;
 
+        // we save on all procs so we can test on all procs
+        CPPUNIT_ASSERT(  std::abs( testValue(0) - -10.0/(8.0 * paramValue(0) )) <=
+            1e-9 );
+
+        // evaluate and save on one proc
+        testValue = mySurrogate->evaluate( "primal", paramValue,
+            (comm.rank()==0) ) ;
         if (comm.rank() == 0)
           CPPUNIT_ASSERT(  std::abs( testValue(0) - -10.0/(8.0 * paramValue(0) )) <=
               1e-9 );
-
+        else
+          CPPUNIT_ASSERT( testValue.size() == 0 ) ;
 
         delete mySurrogate;
       }
