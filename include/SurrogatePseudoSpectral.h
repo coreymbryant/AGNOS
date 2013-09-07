@@ -294,7 +294,6 @@ namespace AGNOS
       
       // ------------------------------------
       // Get primalSurrogate evaluations if needed
-      // TODO only save my integration points not all
       this->_primaryEvaluations.clear();
       if ( ! this->_evalNames.empty() )
         for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
@@ -311,14 +310,12 @@ namespace AGNOS
               ) ;
           // if we don't save locally we will just be pushing an empty vector so
           // memory shouldn't be an issue
-          this->_primaryEvaluations.push_back( 
-            this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint, saveLocal  ) 
-              );
+          std::map<std::string,T_P> result = this->_evalSurrogate->evaluate(
+              this->_evalNames, integrationPoint, saveLocal  ) ;
+
+          if (saveLocal)
+            this->_primaryEvaluations.push_back( result);
         }
-      std::cout << "primaryEvaluations.size(): " <<
-        this->_primaryEvaluations.size() << std::endl;
-      std::cout << "_nIntegrationPoints: " <<
-        _nIntegrationPoints << std::endl;
       // ------------------------------------
 
 
@@ -361,6 +358,8 @@ namespace AGNOS
           std::cout << "DEBUG: end of pt" << std::endl;
       } // end for pt 
 
+      // clean up primary evals
+      this->_primaryEvaluations.clear();
 
       this->_comm.barrier();
 
@@ -532,7 +531,8 @@ namespace AGNOS
       // get data for this integration point
       std::map< std::string, T_P > contrib ;
       if ( ! this->_primaryEvaluations.empty() )
-        contrib = this->_primaryEvaluations[index];
+        contrib =
+          this->_primaryEvaluations[index-this->_integrationIndices.front()];
       T_S integrationPoint = _integrationPoints[index];
       double integrationWeight = _integrationWeights[index];
 
@@ -661,22 +661,24 @@ namespace AGNOS
             new DistMatrix(resultMat,this->_comm) ) ;
 
         // localize result on each processor
-        std::vector<double> localResult;
-        for (unsigned int i=coeffMatrix->row_start(); 
-            i<coeffMatrix->row_stop(); i++)
+        if (saveLocal)
         {
-          localResult.resize(solSize);
-          for (unsigned int j=0; j<solSize; j++)
-            localResult[j]=(*coeffMatrix)(i,j)  ;
+          std::vector<double> localResult;
+          for (unsigned int i=coeffMatrix->row_start(); 
+              i<coeffMatrix->row_stop(); i++)
+          {
+            localResult.resize(solSize);
+            for (unsigned int j=0; j<solSize; j++)
+              localResult[j]=(*coeffMatrix)(i,j)  ;
+          }
+          
+          // save result in return map
+          surrogateValue.insert(
+              std::pair< std::string, T_P >(*id, T_P(localResult) ) 
+              ) ;
+
         }
 
-        std::cout << "localResult.size: " << localResult.size() << std::endl;
-
-
-        // save result in return map
-        surrogateValue.insert(
-            std::pair< std::string, T_P >(*id, T_P(localResult) ) 
-            ) ;
 
       } // solNames
 
