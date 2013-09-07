@@ -60,7 +60,8 @@ namespace AGNOS
       using SurrogateModel<T_S,T_P>::evaluate; 
       std::map<std::string, T_P> evaluate( 
           std::set< std::string >  solutionNames,
-          T_S&                        parameterValues 
+          T_S&                        parameterValues,
+          bool saveLocal = true /**< save solution locally after evaluation*/
           ) const ;
 
       using SurrogateModel<T_S,T_P>::l2Norm;
@@ -293,7 +294,8 @@ namespace AGNOS
       
       // ------------------------------------
       // Get primalSurrogate evaluations if needed
-      this->_primalEvaluations.clear();
+      // TODO only save my integration points not all
+      this->_primaryEvaluations.clear();
       if ( ! this->_evalNames.empty() )
         for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
         {
@@ -302,10 +304,21 @@ namespace AGNOS
               << std::endl;
 
           T_S integrationPoint = _integrationPoints[pt];
-          this->_primalEvaluations.push_back( 
-              this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint  )
+          bool saveLocal = ( 
+              (pt >= this->_integrationIndices.front()) 
+              && 
+              (pt <= this->_integrationIndices.back()) 
+              ) ;
+          // if we don't save locally we will just be pushing an empty vector so
+          // memory shouldn't be an issue
+          this->_primaryEvaluations.push_back( 
+            this->_evalSurrogate->evaluate( this->_evalNames, integrationPoint, saveLocal  ) 
               );
         }
+      std::cout << "primaryEvaluations.size(): " <<
+        this->_primaryEvaluations.size() << std::endl;
+      std::cout << "_nIntegrationPoints: " <<
+        _nIntegrationPoints << std::endl;
       // ------------------------------------
 
 
@@ -518,8 +531,8 @@ namespace AGNOS
 
       // get data for this integration point
       std::map< std::string, T_P > contrib ;
-      if ( ! this->_primalEvaluations.empty() )
-        contrib = this->_primalEvaluations[index];
+      if ( ! this->_primaryEvaluations.empty() )
+        contrib = this->_primaryEvaluations[index];
       T_S integrationPoint = _integrationPoints[index];
       double integrationWeight = _integrationWeights[index];
 
@@ -564,7 +577,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
         std::set< std::string > solutionNames,
-        T_S& parameterValues /**< parameter values to evaluate*/
+        T_S& parameterValues, /**< parameter values to evaluate*/
+        bool saveLocal  /**< save solution locally after evaluation*/
         ) const
     {
       if(AGNOS_DEBUG)
@@ -580,25 +594,37 @@ namespace AGNOS
       //        local m = 1
       DistMatrix polyValues(this->_comm);
       polyValues.init( 
-          this->_comm.size(),         // global dim m
-          totalNCoeff,                // global dim n
-          1,                          // local dim m
-          this->_coeffIndices.size(), // local dim n
-          totalNCoeff,                // # non-zero/row on proc
-          totalNCoeff                 // # non-zero/row off proc
+          this->_comm.size(),           // global dim m
+          totalNCoeff,                  // global dim n
+          saveLocal,                    // local dim m
+          this->_coeffIndices.size(),   // local dim n
+          totalNCoeff,                  // # non-zero/row on proc
+          totalNCoeff                   // # non-zero/row off proc
           );
       polyValues.zero();
 
 
-      // evaluate all basis polys at given parameterValue
-      std::vector<double> myPolyVals = evaluateBasis( 
-          this->_indexSet,
-          parameterValues 
-          );
 
-      // copy poly vals into Petsc data structure
-      for(unsigned int i=0; i<myPolyVals.size(); i++)
-        polyValues.set( this->_comm.rank(), i , myPolyVals[i] ) ;
+      if (saveLocal)
+      {
+        // make sure we only have one local row
+        assert( (polyValues.row_stop() - polyValues.row_start()) == 1);
+        
+        // evaluate all basis polys at given parameterValue
+        std::vector<double> myPolyVals = evaluateBasis( 
+            this->_indexSet,
+            parameterValues 
+            );
+      
+        // copy poly vals into Petsc data structure
+        for(unsigned int i=0; i<myPolyVals.size(); i++)
+          polyValues.set( polyValues.row_start(), i , myPolyVals[i] ) ;
+      }
+      else
+      {
+        // make sure we have NO local rows
+        assert( (polyValues.row_stop() - polyValues.row_start()) == 0);
+      }
       polyValues.close();
 
 
@@ -635,13 +661,16 @@ namespace AGNOS
             new DistMatrix(resultMat,this->_comm) ) ;
 
         // localize result on each processor
-        std::vector<double> localResult(solSize,0.);
+        std::vector<double> localResult;
         for (unsigned int i=coeffMatrix->row_start(); 
             i<coeffMatrix->row_stop(); i++)
         {
+          localResult.resize(solSize);
           for (unsigned int j=0; j<solSize; j++)
             localResult[j]=(*coeffMatrix)(i,j)  ;
         }
+
+        std::cout << "localResult.size: " << localResult.size() << std::endl;
 
 
         // save result in return map

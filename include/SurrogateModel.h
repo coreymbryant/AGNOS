@@ -62,18 +62,21 @@ namespace AGNOS
        * solutionNames */
       virtual std::map<std::string, T_P> evaluate( 
           std::set<std::string> solutionNames,  ///< solution to return
-          T_S& parameterValues /**< parameter values to evaluate*/
+          T_S& parameterValues, /**< parameter values to evaluate*/
+          bool saveLocal = true /**< save solution locally after evaluation*/
           ) const = 0;
       /** evaluate surrogate model at give parameterValues and return
        * solutionName */
       T_P evaluate( 
           std::string solutionName,  ///< solution to return
-          T_S& parameterValues     ///< parameter values to evaluate*/
+          T_S& parameterValues,    ///< parameter values to evaluate*/
+          bool saveLocal = true /**< save solution locally after evaluation*/
           ) const ;
       /** evaluate surrogate model at give parameterValues and return
        * all solutions*/
       std::map<std::string, T_P> evaluate( 
-          T_S& parameterValues     ///< parameter values to evaluate*/
+          T_S& parameterValues,    ///< parameter values to evaluate*/
+          bool saveLocal = true /**< save solution locally after evaluation*/
           ) const ;
 
       /** Refine the surrogate model. Must be definied in derived classes. */
@@ -190,7 +193,7 @@ namespace AGNOS
 
       /** Data structure to hold evalSurrogate evaluations, to be used in
        * surrogate construction */
-      std::vector<std::map< std::string,T_P> > _primalEvaluations;
+      std::vector<std::map< std::string,T_P> > _primaryEvaluations;
       
 
   }; //SurrogateModel class
@@ -563,13 +566,14 @@ namespace AGNOS
   template<class T_S, class T_P> 
     T_P SurrogateModel<T_S,T_P>::evaluate( 
         std::string solutionName,  ///< solution to return
-        T_S& parameterValues     ///< parameter values to evaluate*/
+        T_S& parameterValues,    ///< parameter values to evaluate*/
+        bool saveLocal  /**< save solution locally after evaluation*/
         ) const
     {
       std::set< std::string > solutionsToGet;
       solutionsToGet.insert(solutionName);
       std::map< std::string, T_P > solutionVectors
-        = this->evaluate( solutionsToGet, parameterValues ) ;
+        = this->evaluate( solutionsToGet, parameterValues, saveLocal ) ;
 
       return solutionVectors[solutionName];
     }
@@ -580,12 +584,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     std::map<std::string, T_P> SurrogateModel<T_S,T_P>::evaluate( 
-        T_S& parameterValues     ///< parameter values to evaluate*/
+        T_S& parameterValues,     ///< parameter values to evaluate*/
+        bool saveLocal /**< save solution locally after evaluation*/
         ) const
     {
       std::set< std::string > solutionsToGet = _solutionNames;
       
-      return evaluate( solutionsToGet, parameterValues ) ;    
+      return evaluate( solutionsToGet, parameterValues, saveLocal ) ;    
     }
 
 /********************************************//**
