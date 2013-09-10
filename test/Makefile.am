@@ -6,7 +6,8 @@ check_PROGRAMS = polynomialTest \
 								 catenaryTest \
 								 evaluationTest \
 								 parallelCatenary \
-								 catenaryLibmeshTest
+								 catenaryLibmeshTest \
+								 viscousBurgersTest
 
 #--------------------------------------
 #Local Directories to include for build
@@ -37,6 +38,7 @@ catenaryTest_SOURCES 				= driver.C CatenaryTest.cpp
 evaluationTest_SOURCES 			= driver.C EvaluationTest.cpp
 parallelCatenary_SOURCES 		= driver.C ParallelCatenary.cpp
 catenaryLibmeshTest_SOURCES = driver.C LibmeshCatenaryTest.cpp
+viscousBurgersTest_SOURCES  = driver.C ViscousBurgersTest.cpp
 
 
 TESTS  = polynomialTest.sh
@@ -44,12 +46,14 @@ TESTS += catenaryTest.sh
 TESTS += evaluationTest.sh
 TESTS += parallelCatenary.sh
 TESTS += catenaryLibmeshTest.sh
+TESTS += viscousBurgersTest.sh
 
 shellfiles_src = polynomialTest.sh \
 								 catenaryTest.sh \
 								 evaluationTest.sh \
 								 parallelCatenary.sh \
-								 catenaryLibmeshTest.sh
+								 catenaryLibmeshTest.sh \
+								 viscousBurgersTest.sh
 
 # Want these put with the distro so we can run make check
 EXTRA_DIST = $(shellfiles_src) input_files test_data 

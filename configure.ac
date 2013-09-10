@@ -140,6 +140,7 @@ AC_CONFIG_FILES(test/evaluationTest.sh,       [chmod +x test/evaluationTest.sh])
 AC_CONFIG_FILES(test/catenaryTest.sh,	        [chmod +x test/catenaryTest.sh])
 AC_CONFIG_FILES(test/catenaryLibmeshTest.sh,	[chmod +x test/catenaryLibmeshTest.sh])
 AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh])
+AC_CONFIG_FILES(test/viscousBurgersTest.sh,	  [chmod +x test/viscousBurgersTest.sh])
 
 dnl-----------------------------------------------
 dnl Generate run scripts for examples
