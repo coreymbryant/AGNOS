@@ -193,7 +193,7 @@ namespace AGNOS
 
       /** Data structure to hold evalSurrogate evaluations, to be used in
        * surrogate construction */
-      std::vector<std::map< std::string,T_P> > _primaryEvaluations;
+      std::map< std::string,T_P> _primaryEvaluations;
       
 
   }; //SurrogateModel class
