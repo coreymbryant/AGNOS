@@ -253,7 +253,7 @@ namespace AGNOS
       unsigned int intPtsStart = this->_comm.rank()*(minPts) 
         + std::min( this->_comm.rank(), remPts ) ;
 
-      _integrationIndices.clear();
+      this->_integrationIndices.clear();
       for (unsigned int i=0; i < nPts; i++)
         _integrationIndices.push_back( intPtsStart + i );
 
@@ -290,35 +290,6 @@ namespace AGNOS
       }
       // ------------------------------------
       
-      
-      
-      // ------------------------------------
-      // Get primalSurrogate evaluations if needed
-      this->_primaryEvaluations.clear();
-      if ( ! this->_evalNames.empty() )
-        for(unsigned int pt=0; pt < _nIntegrationPoints; pt++)
-        {
-          if (AGNOS_DEBUG)
-            std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
-              << std::endl;
-
-          T_S integrationPoint = _integrationPoints[pt];
-          bool saveLocal = ( 
-              (pt >= this->_integrationIndices.front()) 
-              && 
-              (pt <= this->_integrationIndices.back()) 
-              ) ;
-          // if we don't save locally we will just be pushing an empty vector so
-          // memory shouldn't be an issue
-          std::map<std::string,T_P> result = this->_evalSurrogate->evaluate(
-              this->_evalNames, integrationPoint, saveLocal  ) ;
-
-          if (saveLocal)
-            this->_primaryEvaluations.push_back( result);
-        }
-      // ------------------------------------
-
-
       this->_comm.barrier();
 
 
@@ -328,92 +299,187 @@ namespace AGNOS
         std::cout << "     --> Solving at " << _nIntegrationPoints 
           << " integration points " << std::endl;
       
-      std::vector<std::map<std::string,T_P> > myContribs ;
-      std::vector<std::vector<double> > myPolyVals ;
 
-      // solve for my integration points;
-      for(unsigned int pt=0; pt < nPts; pt++)
+
+      // ------------------------------------
+      // loop through all integration points, even if not mine so that
+      // evaluations of primary surrogate operate collectively.
+      std::map<std::string, std::shared_ptr<DistMatrix> > solContrib;
+      std::map<std::string,T_P> myContribs ;
+      for(unsigned int pt=0; pt < this->_nIntegrationPoints; pt++)
       {
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: beginning of pt" << std::endl;
 
+        
+        // determine if its one of this processes points
+        bool localPoint = false;
+        if (nPts > 0)
+          localPoint = ( 
+            (pt >= this->_integrationIndices.front()) 
+            && 
+            (pt <= this->_integrationIndices.back()) 
+            ) ;
 
-        if (AGNOS_DEBUG)
-          std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
+      
+        // ------------------------------------
+        // Get primalSurrogate evaluations if needed
+        this->_primaryEvaluations.clear();
+        if ( ! this->_evalNames.empty() )
+        {
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
+              << std::endl;
 
-        // compute the contribution
-        myContribs.push_back(
-          computeContribution( this->_physics, _integrationIndices[pt]) 
-          );
+          this->_primaryEvaluations  = this->_evalSurrogate->evaluate(
+              this->_evalNames, _integrationPoints[pt], localPoint  ) ;
+        }
+        // ------------------------------------
 
-        if (AGNOS_DEBUG)
-          std::cout << "DEBUG: pt (post computeContribution)" << std::endl;
 
-        myPolyVals.push_back( 
+        // ------------------------------------
+        // compute the first coefficient and broadcast size to all processes
+        // (in case some don't have any work but will still be called in reduce
+        // operation)
+        //  - this is also when we will initialize the solContrib DistMatrix
+        if (pt == 0)
+        {
+          if (this->_comm.rank() == 0)
+            myContribs = computeContribution( this->_physics, 0) ;
+
+
+          // let proc 0 catch up
+          this->_comm.barrier();
+
+          // Matrix to save solutions 
+          unsigned int tempSize;
+          this->_solSize.clear();
+          for (id=this->_solutionNames.begin();
+              id!=this->_solutionNames.end(); id++)
+          {
+            if (this->_comm.rank() == 0)
+              tempSize = myContribs[*id].size();
+
+            if(AGNOS_DEBUG)
+              std::cout << "DEBUG: surrogate build -- solSize[" << *id << "]:" <<
+                tempSize << std::endl;
+
+            this->_comm.broadcast(tempSize);
+
+            if(AGNOS_DEBUG)
+              std::cout << "DEBUG: surrogate build --(post_broadcast) solSize["
+                << *id << "]:" << tempSize << std::endl;
+
+            this->_solSize.insert( std::pair<std::string,unsigned int>(
+                  *id,tempSize ) );
+
+            
+            // add a matrix for this solution and initalize to correct size
+            solContrib.insert( 
+                std::pair<std::string, std::shared_ptr<DistMatrix> >(
+                  *id, std::shared_ptr<DistMatrix>(new DistMatrix(this->_comm))  
+                  ) 
+                );
+
+            unsigned int solSize = this->_solSize[*id] ;
+
+            // get proper sizing to prevent PetscMatrix from being oversized after
+            // multiplication
+            // NOTE:  we will still fill all solComp for this procs integrationPts
+            unsigned int minComp = solSize / this->_comm.size() ;
+            unsigned int remComp = solSize % this->_comm.size() ;
+            unsigned int nComp  =  minComp + ( this->_comm.rank() < remComp ) ;
+
+            // Matrix to save solutions 
+            solContrib[*id]->init(
+                this->_nIntegrationPoints,  // global dim m
+                solSize,                    // global dim n
+                nPts,                       // local dim m
+                nComp,                      // local dim n
+                nComp,                      // # non-zero/row on proc
+                solSize-nComp               // # non-zero/row off proc
+                );
+            solContrib[*id]->zero();
+
+            // ensure that everthing is sized correctly
+            if ( nPts > 0)
+            {
+              assert( solContrib[*id]->row_start() == this->_integrationIndices.front() );
+              assert( solContrib[*id]->row_stop() == this->_integrationIndices.back()+1  );
+            }
+
+            // copy first coefficient into matrix
+            if (this->_comm.rank() == 0)
+            {
+              for (unsigned int j=0; j<solSize; j++)
+                solContrib[*id]->set(
+                    0, 
+                    j,
+                    myContribs[*id](j) );
+            }
+          } // end of solution names
+        
+        } // end of if pt==0
+
+        // otherwise solve if its one of my points
+        else if ( localPoint )
+        {
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
+
+          // compute the contribution
+          std::map<std::string,T_P> myContribs =
+            computeContribution( this->_physics, pt) ;
+
+          // and save into solution matrix
+          for (id=this->_solutionNames.begin();
+              id!=this->_solutionNames.end(); id++)
+          {
+            for (unsigned int j=0; j<this->_solSize[*id]; j++)
+              solContrib[*id]->set(
+                  pt, 
+                  j,
+                  myContribs[*id](j) );
+          }
+
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: pt (post computeContribution)" << std::endl;
+        } // end of if local point and not pt==0
+
+
+
+        // now compute poly values
+        if (localPoint)
+        {
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: begin copy poly evals" << std::endl;
+          std::vector<double> myPolyVals =  
             evaluateBasis( this->_indexSet,
-              _integrationPoints[_integrationIndices[pt]])
-            );
+                _integrationPoints[pt]) ;
+          for(unsigned int j=0; j<myPolyVals.size(); j++)
+            polyValues->set(
+                j, 
+                pt,
+                myPolyVals[j] ) ;
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: end copy poly evals" << std::endl;
+        }
+
+
+        this->_comm.barrier();
+
+        // clean up primary evals
+        this->_primaryEvaluations.clear();
+
 
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: end of pt" << std::endl;
-      } // end for pt 
+      }// end of pts
 
-      // clean up primary evals
-      this->_primaryEvaluations.clear();
+
 
       this->_comm.barrier();
-
-
-      // add my poly evaluations to global matrix
-      if (AGNOS_DEBUG)
-        std::cout << "DEBUG: begin copy poly evals" << std::endl;
-      for(unsigned int i=0; i<myPolyVals.size(); i++)
-        for(unsigned int j=0; j<myPolyVals[i].size(); j++)
-        {
-          polyValues->set(
-              j, 
-              _integrationIndices[i],
-              myPolyVals[i][j] ) ;
-        }
       polyValues->close();
-      if (AGNOS_DEBUG)
-        std::cout << "DEBUG: end copy poly evals" << std::endl;
-
-
-      
-      this->_comm.barrier();
-      
-
-      // need to know size of solution vector on all processes (in case some
-      // don't have any work but will still be called in reduce operation)
-      unsigned int tempSize;
-      this->_solSize.clear();
-      for (id=this->_solutionNames.begin();
-          id!=this->_solutionNames.end(); id++)
-      {
-        if (this->_comm.rank() == 0)
-          tempSize = myContribs[0][*id].size();
-
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: surrogate build -- solSize[" << *id << "]:" <<
-            tempSize << std::endl;
-
-        this->_comm.broadcast(tempSize);
-
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: surrogate build --(post_broadcast) solSize[" << *id << "]:" <<
-            tempSize << std::endl;
-
-        this->_solSize.insert( std::pair<std::string,unsigned int>(
-              *id,tempSize ) );
-
-      }
-
-
-
-      // WAIT FOR ALL PROCESSES TO CATCH UP
-      this->_comm.barrier();
-
 
 
       // --------------
@@ -434,50 +500,15 @@ namespace AGNOS
         if(AGNOS_DEBUG)
           std::cout << "DEBUG: surrogate build computing coeffs: " << *id << std::endl ;
 
-        unsigned int solSize = this->_solSize[*id] ;
-
-        // get proper sizing to prevent PetscMatrix from being oversized after
-        // multiplication
-        // NOTE:  we will still fill all solComp for this procs integrationPts
-        unsigned int minComp = solSize / this->_comm.size() ;
-        unsigned int remComp = solSize % this->_comm.size() ;
-        unsigned int nComp  =  minComp + ( this->_comm.rank() < remComp ) ;
-
-        // Matrix to save solutions 
-        std::shared_ptr<DistMatrix> solContrib( new DistMatrix(this->_comm) );
-        solContrib->init(
-            this->_nIntegrationPoints,  // global dim m
-            solSize,                    // global dim n
-            nPts,                       // local dim m
-            nComp,                      // local dim n
-            nComp,                      // # non-zero/row on proc
-            solSize-nComp               // # non-zero/row off proc
-            );
-        solContrib->zero();
-
-        // ensure that everthing is sized correctly
-        if ( nPts > 0)
-        {
-          assert( solContrib->row_start() == this->_integrationIndices.front() );
-          assert( solContrib->row_stop() == this->_integrationIndices.back()+1  );
-        }
-
-        // copy solution into solution matrix
-        for (unsigned int i=0; i<myContribs.size(); i++)
-          for (unsigned int j=0; j<solSize; j++)
-            solContrib->set(
-                _integrationIndices[i], 
-                j,
-                myContribs[i][*id](j) );
-        solContrib->close();
-
+        // close the matrix now, we are done adding to it
+        solContrib[*id]->close();
 
         // Matrix product with plynomial values to compute coefficients
         Mat resultMat ;
         PetscErrorCode ierr;
         ierr = MatMatMult( 
             polyValues->mat(),
-            solContrib->mat(),
+            solContrib[*id]->mat(),
             MAT_INITIAL_MATRIX,PETSC_DEFAULT,
             &resultMat
             );
@@ -531,8 +562,7 @@ namespace AGNOS
       // get data for this integration point
       std::map< std::string, T_P > contrib ;
       if ( ! this->_primaryEvaluations.empty() )
-        contrib =
-          this->_primaryEvaluations[index-this->_integrationIndices.front()];
+        contrib = this->_primaryEvaluations;
       T_S integrationPoint = _integrationPoints[index];
       double integrationWeight = _integrationWeights[index];
 

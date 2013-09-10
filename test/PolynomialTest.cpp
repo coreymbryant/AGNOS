@@ -72,10 +72,10 @@ using namespace AGNOS;
 
     CPPUNIT_TEST_SUITE( PolynomialTest );
     CPPUNIT_TEST( Linear_1D );
-    CPPUNIT_TEST( Linear_ND );
-    CPPUNIT_TEST( Quad_1D );
-    CPPUNIT_TEST( Quad_ND );
-    CPPUNIT_TEST( OrderN_1D );
+    /* CPPUNIT_TEST( Linear_ND ); */
+    /* CPPUNIT_TEST( Quad_1D ); */
+    /* CPPUNIT_TEST( Quad_ND ); */
+    /* CPPUNIT_TEST( OrderN_1D ); */
     CPPUNIT_TEST_SUITE_END();
 
     public:
@@ -129,9 +129,12 @@ using namespace AGNOS;
           = mySurrogate->getCoefficients( );
 
         if (comm.rank() == 0)
+        {
+          std::cout << "value: " << myCoeff["primal"](1,0) << std::endl;
           CPPUNIT_ASSERT( 
             std::abs( myCoeff["primal"](1,0) - std::sqrt(1.0/3.0) ) <= 1e-9 
           );
+        }
 
         delete mySurrogate;
 
