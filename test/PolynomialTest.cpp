@@ -72,10 +72,10 @@ using namespace AGNOS;
 
     CPPUNIT_TEST_SUITE( PolynomialTest );
     CPPUNIT_TEST( Linear_1D );
-    /* CPPUNIT_TEST( Linear_ND ); */
-    /* CPPUNIT_TEST( Quad_1D ); */
-    /* CPPUNIT_TEST( Quad_ND ); */
-    /* CPPUNIT_TEST( OrderN_1D ); */
+    CPPUNIT_TEST( Linear_ND );
+    CPPUNIT_TEST( Quad_1D );
+    CPPUNIT_TEST( Quad_ND );
+    CPPUNIT_TEST( OrderN_1D );
     CPPUNIT_TEST_SUITE_END();
 
     public:
