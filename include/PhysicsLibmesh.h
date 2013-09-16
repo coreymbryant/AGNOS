@@ -49,6 +49,13 @@ namespace AGNOS
       void refine (  ) ;
       void refine ( T_P& errorIndicators ) ;
 
+      /** Exact qoi */
+      virtual T_P exactQoi( ) 
+      {
+        T_P resultVector ;
+        return resultVector ;
+      }
+
       
       /** Return libMesh mesh object */
       const libMesh::Mesh getMesh( ) const { return *_mesh; }
@@ -212,7 +219,7 @@ namespace AGNOS
         mesh.print_info();
         es.print_info();
       }
-
+      
 
       // PRIMAL SOLUTION
       /** Primal solution must always be computed so no reason to check against
@@ -719,6 +726,18 @@ namespace AGNOS
               );
         if(AGNOS_DEBUG)
           std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
+      }
+
+      // EXACT Qoi
+      /** exact solution is optional, but it also depends on if it has been
+       * defined in the derived class
+       */
+      if( this->_solutionNames.count("exactQoi" ) )
+      {
+        // save solution in solutionVectors
+        solutionVectors.insert( 
+            std::pair<std::string,T_P>( "exactQoi", this->exactQoi() )
+              );
       }
 
       
