@@ -53,7 +53,7 @@ using namespace AGNOS;
         physicsComm = Communicator(subComm) ;
 
 
-        inputfile.set("solutions","qoi") ;
+        inputfile.set("solutions","qoi exactQoi") ;
         inputfile.set("nElem",1) ;
 
         myPhysics = std::shared_ptr<PhysicsLibmesh<T_S,T_P> > (
@@ -96,16 +96,16 @@ using namespace AGNOS;
         T_S paramValue(dimension);
         paramValue.zero();
 
-        T_P testValue; 
 
         mySurrogate->build( );
-        testValue = mySurrogate->evaluate( "qoi", paramValue );
+        T_P testValue = mySurrogate->evaluate( "qoi", paramValue );
+        T_P exactValue = mySurrogate->evaluate( "exactQoi", paramValue );
 
         std::cout << "testValue = " << testValue(0) << std::endl;
         std::cout << " n_elem = " << myPhysics->getMesh( ).n_active_elem() << std::endl;
 
         CPPUNIT_ASSERT( 
-            std::abs(testValue(0) - 10.0) <= 1e-9
+            std::abs(testValue(0) - exactValue(0)) <= 1e-9
             );
 
         delete mySurrogate;

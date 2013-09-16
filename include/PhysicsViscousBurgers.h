@@ -37,6 +37,13 @@ namespace AGNOS
       /** Destructor */
       /* virtual ~PhysicsViscousBurgers( ); */
 
+      /** Redefine exactQoi for this model */
+      T_P exactQoi( )
+      {
+        T_P resultVector(1);
+        resultVector(0) = 10.;
+        return resultVector;
+      }
 
     protected:
       /** Geometry and boundary data */

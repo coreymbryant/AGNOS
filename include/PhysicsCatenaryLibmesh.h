@@ -39,6 +39,15 @@ namespace AGNOS
       /** destructor */
       virtual ~PhysicsCatenaryLibmesh( );
 
+      /** Redefine exactQoi for this model */
+      T_P exactQoi( )
+      {
+        T_P resultVector(1);
+        resultVector(0) = _forcing / 
+          (8. * static_cast<CatenarySystem*>(this->_system)->_coeff)  ;
+        return resultVector;
+      }
+
     protected:
       /** Geometry and boundary data */
       double          _min;

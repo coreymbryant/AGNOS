@@ -89,7 +89,7 @@ public:
   void element_qoi (DiffContext &context, const QoISet & /* qois */);
 
 
-  Number exact_solution (const Point&);
+  Number exact_solution (const Point&, const Real);
 
 };
 
@@ -114,8 +114,8 @@ void BurgersSystem::init_data ()
 
   Point lp(-1.*_L);
   Point rp(1.*_L);
-  _uPlus  = this->exact_solution(rp);
-  _uMinus = this->exact_solution(lp);
+  _uPlus  = this->exact_solution(rp,0);
+  _uMinus = this->exact_solution(lp,0);
 
   std::cout << std::setprecision(17) << "uPlus = " << _uPlus << std::endl;
   std::cout << std::setprecision(17) << "uMinus = " << _uMinus << std::endl;
@@ -218,7 +218,7 @@ bool BurgersSystem::element_time_derivative (bool request_jacobian,
 
 
 // exact solution
-Number BurgersSystem::exact_solution(const Point& p)// xyz location
+Number BurgersSystem::exact_solution(const Point& p, const Real t)// xyz location
 {
   const Real x1 = p(0);
 
