@@ -14,6 +14,7 @@
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/nonlinear_implicit_system.h"
 #include "libmesh/petsc_nonlinear_solver.h"
+#include "libmesh/petsc_diff_solver.h"
 #include "libmesh/newton_solver.h"
 #include "libmesh/steady_solver.h"
 
@@ -128,15 +129,26 @@ namespace AGNOS
     this->_system->time_solver =
         AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
     {
-      NewtonSolver *solver = new NewtonSolver(*this->_system);
+      /* NewtonSolver *solver = new NewtonSolver(*this->_system); */
+      PetscDiffSolver *solver = new PetscDiffSolver(*this->_system);
       this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
       
       //TODO read in these setting?
       solver->quiet                       = true;
       solver->verbose                     = false;
-      solver->max_nonlinear_iterations    = 1;
+      solver->max_nonlinear_iterations    = 100;
+      solver->relative_step_tolerance     = 1.e-99;
+      solver->absolute_residual_tolerance = 1.e-16;
+      solver->relative_residual_tolerance = 1.e-99;
+
+      // continue if fail to converge 
       solver->continue_after_max_iterations = true;
       solver->continue_after_backtrack_failure = true;
+      
+      // And the linear solver options
+      solver->max_linear_iterations       = 10000;
+      solver->initial_linear_tolerance    = 1.e-16;
+      solver->minimum_linear_tolerance    = TOLERANCE*TOLERANCE;
       
     }
     if (AGNOS_DEBUG)

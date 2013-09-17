@@ -59,6 +59,7 @@ namespace AGNOS
       unsigned int  _maxIter;
       /** Determine which space to refine based on relative error estiamtes */
       bool          _adaptiveDriver;
+      double        _refinePercentage ;
       // ---------------------
       
       // ---------------------
@@ -120,7 +121,10 @@ namespace AGNOS
     
     // DRIVER SETTINGS
     _maxIter = input("driver/maxIter",1);
+    /** assumes one secondary surrogate used for total error estimation */
     _adaptiveDriver = input("driver/adaptive",false);
+    std::cout << "adapt? " << _adaptiveDriver << std::endl;
+    _refinePercentage = input("driver/refinePercentage",0.20);
     
     // ADAPTIVE SETTINGS
     
@@ -223,7 +227,7 @@ namespace AGNOS
     //what?
     std::shared_ptr< PhysicsModel<T_S,T_P> > physics ;
     std::string physicsName = input("physics/type","");
-    _refinePhysics = input("refine",false);
+    _refinePhysics = input("physics/refine",false);
 
     if(AGNOS_DEBUG)
       std::cout << "_initPhysics() rank: " << _comm.rank() << std::endl;
@@ -377,7 +381,7 @@ namespace AGNOS
               surrogates.push_back(
                   std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
                     new PseudoSpectralTensorProduct<T_S,T_P>( 
-                      surrogates[_surrogateNames[primarySurrogate]].get(),
+                      surrogates[_surrogateNames[primarySurrogate]],
                       increaseOrder,
                       multiplyOrder,
                       evaluateSolutions,
@@ -431,6 +435,9 @@ namespace AGNOS
   void Driver::run( )
   {
 
+    // First iteration
+    // TODO can we combine this into iter loop?
+
     while (!_elemsToUpdate.empty())
     {
       const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
@@ -449,21 +456,202 @@ namespace AGNOS
       _elemsToUpdate.pop();
     }
 
+    // initialize global errors
+    double globalPhysicsError = 0;
+    double globalSurrogateError = 0;
+    double globalTotalError = 0;
+    double maxElementError = 0;
+
     // loop through all active elements
     std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
     for (; elit!=_activeElems.end(); elit++)
     {
-      std::map< std::string, LocalMatrix > myCoeff =
-        elit->surrogates()[0]->getCoefficients();
+      // this was here as a test
+      /* std::map< std::string, LocalMatrix > myCoeff = */
+      /*   elit->surrogates()[0]->getCoefficients(); */
+
+      // use adaptive surrogate construction
+      if (_adaptiveDriver)
+      {
+        elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
+        globalPhysicsError += elit->_physicsError ;
+        std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
+          << std::endl;
+
+        // safe guard against there not being a secondary surrogate
+        if (elit->surrogates().size() < 2)
+        {
+          std::cout << std::endl;
+          std::cerr << 
+            " ERROR: secondary 'error' surrogate has not been constructed"
+            << std::endl;
+          std::cout << std::endl;
+          exit(1);
+        }
+        else
+        {
+          elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
+          elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
+                *(elit->surrogates()[1]), "errorEstimate");
+          globalTotalError += elit->_totalError;
+          globalSurrogateError += elit->_surrogateError ;
+
+          // keep track of max of error
+          if (elit->_totalError >= maxElementError)
+            maxElementError = elit->_totalError ;
+
+          std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
+            << std::endl;
+          std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
+            elit->_surrogateError << std::endl;
+        }
+
+      }
 
     }
+
+
+    // now perform the rest of the iterations
+    for (unsigned int iter=2; iter <= _maxIter; iter++)
+    {
+      
+      // need a way to keep track of whether physics has been refined or not
+      std::set< std::shared_ptr<PhysicsModel<T_S,T_P> > > markedPhysics;
+      
+      // loop through active elements , if error is above threshold mark
+      // unique physics objects
+      for (elit=_activeElems.begin(); elit!=_activeElems.end(); elit++)
+        if ( elit->_totalError >= _refinePercentage * maxElementError )
+        {
+          // Determine which space to refine
+          if ( _refinePhysics 
+              && 
+              (globalSurrogateError <= globalPhysicsError)  
+              //TODO add some more conditions here 
+             ) 
+          {
+          
+            // mark my physics to be refined if it hasn't been
+            if ( !markedPhysics.count( elit->physics() ) ) 
+            {
+              std::cout << "unique physics" << std::endl;
+              markedPhysics.insert( elit->physics() ) ;
+            }
+
+            // TODO this may not be enough, we may need to reistantiate the
+            // surrogate model, or at least set physics
+            
+            // add to update queue
+            _elemsToUpdate.push(*elit);
+
+          } // end of if refine physics
+
+          //otherwise refine surrogate
+          else if ( _refineSurrogate 
+              &&
+              ( globalSurrogateError >= globalPhysicsError )
+              // TODO more conditions
+              )
+          {
+            for(unsigned int i=0;i<elit->surrogates().size(); i++)
+              elit->surrogates()[i]->refine() ;
+            
+            // add to update queue
+            _elemsToUpdate.push(*elit);
+
+          } // end of if refine surrogate
+
+        } // end of active element and if above threshold loop
+
+
+      // refine all physics that were marked
+      std::set< std::shared_ptr<PhysicsModel<T_S,T_P> > >::iterator physIt =
+        markedPhysics.begin();
+      for(; physIt != markedPhysics.end(); physIt++)
+        (*physIt)->refine()  ;
+        // TODO if use indicators 
+
+
+      while (!_elemsToUpdate.empty())
+      {
+        const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
+
+        // rebuild surrogates for elements that need updated
+        for(unsigned int i=0;i<elem.surrogates().size(); i++)
+        {
+          std::cout << "pre surrogate build " << i << std::endl;
+          elem.surrogates()[i]->build();
+          std::cout << "post surrogate build " << i << std::endl;
+        }
+
+        // remove element from update list
+        _elemsToUpdate.pop();
+      }
+
+        
+      // reset global values to 0
+      globalPhysicsError = 0. ;
+      globalSurrogateError = 0.;
+      globalTotalError = 0.;
+
+      // loop through all active elements
+      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+        _activeElems.begin();
+      for (; elit!=_activeElems.end(); elit++)
+      {
+        /* std::map< std::string, LocalMatrix > myCoeff = */
+        /*   elit->surrogates()[0]->getCoefficients(); */
+
+        // use adaptive surrogate construction
+        if (_adaptiveDriver)
+        {
+          elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
+          globalPhysicsError += elit->_physicsError ;
+          std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
+            << std::endl;
+
+          // safe guard against there not being a secondary surrogate
+          if (elit->surrogates().size() < 2)
+          {
+            std::cout << std::endl;
+            std::cerr << 
+              " ERROR: secondary 'error' surrogate has not been constructed"
+              << std::endl;
+            std::cout << std::endl;
+            exit(1);
+          }
+          else
+          {
+            elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
+            elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
+                  *(elit->surrogates()[1]), "errorEstimate");
+            globalTotalError += elit->_totalError;
+            globalSurrogateError += elit->_surrogateError ;
+
+            // keep track of max of error
+            if (elit->_totalError >= maxElementError)
+              maxElementError = elit->_totalError ;
+
+            std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
+              << std::endl;
+            std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
+              elit->_surrogateError << std::endl;
+          }
+
+        }
+
+      }
+    }
+
+
+
+
+
     
     // print out settings
     printSettings();
     printSolution(1);
-    
-
     
     /* // print out first iteration if requested */
     /* if (this->_outputIterations && (_comm.rank() == 0) ) */
@@ -474,7 +662,7 @@ namespace AGNOS
     /*   std::cout << std::endl; */
     /*   printSolution(1); */
     /* } */
-    
+
     /*   // evaluate QoI */
     /*   T_S evalPoint(2); */
     /*   evalPoint(0) = 0.5; */
@@ -500,6 +688,7 @@ namespace AGNOS
     /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
     /* } */
 
+    
     /* // refine approximation */
     /* for (unsigned int iter=2; iter <= this->_maxIter; iter++) */
     /* { */
