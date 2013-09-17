@@ -72,6 +72,9 @@ namespace AGNOS
           std::shared_ptr< PhysicsModel<T_S,T_P> >& newPhysics )
       { _physics = newPhysics; }
 
+      double _physicsError ;
+      double _surrogateError ;
+      double _totalError ;
 
     protected:
       /** reference for parameters */

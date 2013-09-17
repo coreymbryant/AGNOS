@@ -36,7 +36,7 @@ namespace AGNOS
        * construct a new surrogate increasing the order and using
        * primarySurrogate to perform evaluations in the constructions */
       PseudoSpectralTensorProduct( 
-          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
           unsigned int increaseOrder = 0,
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::set<std::string>(),
@@ -48,9 +48,6 @@ namespace AGNOS
 
       /** Initialization routine */
       void initialize( ) ;
-
-      /** Refinement routine */
-      void refine( );
 
       /** return reference to quadrature rule */
       const QuadratureRule* getQuadRule( ) const ;
@@ -81,7 +78,6 @@ namespace AGNOS
       :
         SurrogatePseudoSpectral<T_S,T_P>( comm, physics, parameters, order)
     {
-      initialize();
     }
 
 /********************************************//**
@@ -89,7 +85,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        const SurrogateModel<T_S,T_P>* primarySurrogate, 
+        std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
         unsigned int increaseOrder ,
         unsigned int multiplyOrder ,
         std::set<std::string> evaluateSolutions,
@@ -98,7 +94,6 @@ namespace AGNOS
       : SurrogatePseudoSpectral<T_S,T_P>(primarySurrogate, increaseOrder,
           multiplyOrder, evaluateSolutions, computeSolutions)
     {
-      initialize();
     }
 
 
@@ -200,21 +195,6 @@ namespace AGNOS
   //TODO add refinement option to increase order a given amount instead of just
   //+1 in all directions
 
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    void PseudoSpectralTensorProduct<T_S,T_P>::refine( )
-    {
-      for(unsigned int i=0; i<this->_dimension; i++)
-      {
-        this->_order[i]++;
-      }
-      this->initialize();
-      this->build();
-    }
 
 /********************************************//**
  * \brief 

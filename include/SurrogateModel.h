@@ -45,7 +45,7 @@ namespace AGNOS
        * construct a new surrogate increasing the order and using
        * primarySurrogate to perform evaluations in the constructions */
       SurrogateModel( 
-          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
           unsigned int increaseOrder = 0,
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::vector<std::string>(),
@@ -54,6 +54,9 @@ namespace AGNOS
 
       /** default destructor */
       virtual ~SurrogateModel( ); 
+
+      /** Initialization routine */
+      virtual void initialize( ) = 0 ;
 
       /** build the surrogate model construction */
       virtual void build( ) = 0; 
@@ -80,7 +83,7 @@ namespace AGNOS
           ) const ;
 
       /** Refine the surrogate model. Must be definied in derived classes. */
-      virtual void refine( ) = 0;
+      virtual void refine( ) ;
 
       /** calculate mean */
       std::map< std::string, T_P > mean( ) ;
@@ -148,6 +151,9 @@ namespace AGNOS
       /** reference to physics pointer */
       std::shared_ptr<PhysicsModel<T_S,T_P> > getPhysics( ) const
       { return _physics; }
+      /** set reference to physics pointer */
+      void setPhysics( std::shared_ptr<PhysicsModel<T_S,T_P> > physics ) 
+      { _physics = physics; }
 
       /** solution names this surrogateModel is built for */
       std::set<std::string> getSolutionNames( ) const
@@ -165,6 +171,9 @@ namespace AGNOS
       
       /** expansion order */
       std::vector<unsigned int>                           _order;  
+      unsigned int _increaseOrder ;
+      unsigned int _multiplyOrder ;
+
       /** coefficients vectors */
       std::map< std::string, std::shared_ptr<DistMatrix> >                 _coefficients;
       /** total number of coefficients on all vectors */
@@ -189,7 +198,7 @@ namespace AGNOS
 
       /** Primary surrogate to use in evaluation for secondary surrogate
        * construciton */
-      const SurrogateModel<T_S,T_P>*                      _evalSurrogate ;
+      std::shared_ptr<SurrogateModel<T_S,T_P> >      _evalSurrogate ;
 
       /** Data structure to hold evalSurrogate evaluations, to be used in
        * surrogate construction */
@@ -237,7 +246,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
           unsigned int increaseOrder ,
           unsigned int multiplyOrder ,
           std::set<std::string> evaluateSolutions , 
@@ -252,10 +261,12 @@ namespace AGNOS
     {
       // augment order appropriately
       _order = primarySurrogate->getExpansionOrder() ;
+      _increaseOrder = increaseOrder ;
+      _multiplyOrder = multiplyOrder ;
       for (unsigned int i=0; i<_order.size();i++)
       {
-        _order[i] += increaseOrder ;
-        _order[i] *= multiplyOrder ;
+        _order[i] += _increaseOrder ;
+        _order[i] *= _multiplyOrder ;
       }
 
       // if no output solutions are provided assume we want all 
@@ -591,6 +602,36 @@ namespace AGNOS
       std::set< std::string > solutionsToGet = _solutionNames;
       
       return evaluate( solutionsToGet, parameterValues, saveLocal ) ;    
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::refine( )
+    {
+      // if this is a primary surrogate incease order
+      if ( _evalSurrogate == NULL )
+      {
+        for(unsigned int i=0; i<this->_dimension; i++)
+        {
+          this->_order[i]++;
+        }
+      }
+      // otherwise refine based on primary surrogate
+      else
+      {
+        _order = _evalSurrogate->getExpansionOrder();
+        for (unsigned int i=0; i<_order.size();i++)
+        {
+          _order[i] += _increaseOrder ;
+          _order[i] *= _multiplyOrder ;
+        }
+
+      }
+
+      /* this->initialize(); */
+      /* this->build(); */
     }
 
 /********************************************//**
