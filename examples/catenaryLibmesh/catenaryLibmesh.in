@@ -1,6 +1,6 @@
 [driver]
-maxIter = '1'
-adaptive = false
+maxIter = '4'
+adaptive = true
 []
 
 [parameters]

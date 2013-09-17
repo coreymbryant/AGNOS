@@ -1,6 +1,6 @@
 [driver]
-maxIter = '1'
-adaptive = false
+maxIter = '2'
+adaptive = true
 []
 
 [parameters]
@@ -17,7 +17,7 @@ type = 'viscousBurgers'
 refine = true
 
   [./viscousBurgers]
-  solutions='primal adjoint errorEstimate errorIndicators qoi'
+  solutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
   L = '10.0'
   nElem = '16'
 
@@ -36,19 +36,19 @@ refine = true
 
 [surrogateModels]
 modelNames = 'primarySurrogate errorSurrogate'
-refine = false
+refine = true
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
   order = '1'
-  computeSolutions='primal adjoint errorEstimate errorIndicators qoi'
+  computeSolutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
   [../]
 
   [./errorSurrogate]
   type = 'PseudoSpectralTensorProduct'
   primarySurrogate = 'primarySurrogate'
-  increaseOrder = '1'   
-  multiplyOrder = '1'  
+  increaseOrder = '0'   
+  multiplyOrder = '2'  
   evaluateSolutions = 'primal adjoint'
   computeSolutions='errorEstimate qoi'
   [../]

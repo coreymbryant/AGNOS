@@ -42,7 +42,7 @@ namespace AGNOS
        * construct a new surrogate increasing the order and using
        * primarySurrogate to perform evaluations in the constructions */
       SurrogatePseudoSpectral( 
-          const SurrogateModel<T_S,T_P>* primarySurrogate, 
+          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
           unsigned int increaseOrder = 0,
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::set<std::string>(),
@@ -126,7 +126,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
-        const SurrogateModel<T_S,T_P>* primarySurrogate, 
+        std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
         unsigned int increaseOrder ,
         unsigned int multiplyOrder ,
         std::set<std::string> evaluateSolutions,
@@ -221,6 +221,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     void SurrogatePseudoSpectral<T_S,T_P>::build( )
     {
+      // First call initialize to set up data structures
+      this->initialize();
       // This is separated from the routine that actually computes contribution
       // so that we can group surrogate models together later and wll that needs
       // to be defined is build routine based on computeContribution( )
@@ -667,9 +669,23 @@ namespace AGNOS
       std::set<std::string>::iterator id = solutionNames.begin();
       for (; id != solutionNames.end(); id++)
       {
+        // Make sure we have all the requested solution names
+        if
+          (!const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->getSolutionNames().count(*id))
+        {
+          std::cout << std::endl;
+          std::cerr << 
+            " ERROR: requested evaluation for solution that isn't present  "
+            << std::endl;
+          std::cout << std::endl;
+          exit(1);
+        }
+
         // reference for solution size
         unsigned int solSize 
           = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
+
+
 
         if(AGNOS_DEBUG)
           std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
