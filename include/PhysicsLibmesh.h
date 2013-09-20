@@ -14,12 +14,37 @@
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/error_vector.h"
+#include "libmesh/gnuplot_io.h"
 
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
 
 namespace AGNOS
 {
+
+  /********************************************//**
+   * \brief Save libmesh solution as gnuplot format
+   *
+   * 
+   ***********************************************/
+  void write_output(EquationSystems &es,
+        unsigned int index,       // The adaptive step count
+        std::string solution_type = "primal") // primal or adjoint solve
+  {
+    MeshBase &mesh = es.get_mesh();
+
+    std::ostringstream file_name_gp;
+    file_name_gp << solution_type
+                  << ".out.gp."
+                  << std::setw(2)
+                  << std::setfill('0')
+                  << std::right
+                  << index;
+
+    GnuPlotIO(mesh).write_equation_systems
+      (file_name_gp.str(), es);
+  }
+
 
   /********************************************//**
    * \brief Base libmesh physics model class. All libmesh physics, and maybe
@@ -240,6 +265,10 @@ namespace AGNOS
           std::cout << "DEBUG: primal solution\n:" ;
           system.solution->print_global();
         }
+
+        //TODO make this an option somehow
+        write_output(es,0);
+
       }
 
 
