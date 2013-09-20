@@ -26,24 +26,6 @@ using namespace libMesh;
 
 namespace AGNOS{
 
-void write_output(EquationSystems &es,
-		  unsigned int a_step,       // The adaptive step count
-		  std::string solution_type) // primal or adjoint solve
-{
-  MeshBase &mesh = es.get_mesh();
-
-  std::ostringstream file_name_gp;
-  file_name_gp << solution_type
-                << ".out.gp."
-                << std::setw(2)
-                << std::setfill('0')
-                << std::right
-                << a_step;
-
-  GnuPlotIO(mesh).write_equation_systems
-    (file_name_gp.str(), es);
-}
-
 
 
 // FEMSystem, TimeSolver and  NewtonSolver will handle most tasks,

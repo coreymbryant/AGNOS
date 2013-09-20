@@ -1,0 +1,43 @@
+[driver]
+maxIter = '1'
+adaptive = false
+[]
+
+[parameters]
+dimension = '1'
+nInitialHRefinements = '0'
+types ='UNIFORM'
+mins = '1.0'
+maxs = '3.0'
+[]
+
+[physics]
+type = 'higherOrderDiffusion'
+refine = true
+
+  [./higherOrderDiffusion]
+  forcing = '-10.0'
+
+  solutions='primal adjoint qoi'
+  [../]
+
+[]
+
+
+[surrogateModels]
+modelNames = 'primarySurrogate'
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '1'
+  [../]
+[]
+
+[output]
+filename = './testFile.dat'
+solutions = 'primal adjoint qoi'
+coefficients  = 1
+points        = 1
+weights       = 1
+index_set     = 1
+[]

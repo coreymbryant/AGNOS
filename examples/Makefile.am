@@ -28,6 +28,14 @@ catenary_DATA = $(top_srcdir)/examples/catenary/catenary.in
 EXTRA_DIST += $(catenary_DATA)
 
 #-------------------------------------
+# higher order Diffusion
+#-------------------------------------
+higherOrderDiffusiondir = $(prefix)/examples/higherOrderDiffusion
+higherOrderDiffusion_SCRIPTS = $(top_builddir)/examples/higherOrderDiffusion/run.sh
+higherOrderDiffusion_DATA = $(top_srcdir)/examples/higherOrderDiffusion/higherOrderDiffusion.in
+EXTRA_DIST += $(higherOrderDiffusion_DATA)
+
+#-------------------------------------
 # Catenary libmesh example
 #-------------------------------------
 catenarylibmeshdir = $(prefix)/examples/catenaryLibmesh
@@ -46,6 +54,7 @@ EXTRA_DIST += $(viscousburgers_DATA)
 
 MAINTAINERCLEANFILES = Makefile.in \
 											 catenary/testFile.dat \
+											 higherOrderDiffusion/testFile.dat \
 											 catenaryLibmesh/testFile.dat \
 											 viscousBurgers/testFile.dat 
 

@@ -9,6 +9,7 @@
 #include "PhysicsViscousBurgers.h"
 #include "PhysicsCatenary.h"
 #include "PhysicsCatenaryLibmesh.h"
+#include "PhysicsHigherOrderDiffusion.h"
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 #include "Element.h"
@@ -261,6 +262,16 @@ namespace AGNOS
             ) ;
       input.set_prefix("");
     }
+    else if ( physicsName == "higherOrderDiffusion" )
+    {
+      input.set_prefix("physics/higherOrderDiffusion/");
+      physics =
+          std::shared_ptr<AGNOS::PhysicsHigherOrderDiffusion<T_S,T_P> >(
+            new AGNOS::PhysicsHigherOrderDiffusion<T_S,T_P>(
+              _physicsComm, input )
+            ) ;
+      input.set_prefix("");
+    }
     else
     {
       std::cerr << " ERROR: unrecognized physics type: " << physicsName
@@ -435,6 +446,9 @@ namespace AGNOS
   void Driver::run( )
   {
 
+    std::ofstream errorOut;
+    errorOut.open("error.txt", std::ios::trunc);
+
     // First iteration
     // TODO can we combine this into iter loop?
 
@@ -476,6 +490,8 @@ namespace AGNOS
       {
         elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
         globalPhysicsError += elit->_physicsError ;
+        errorOut << elit->_physicsError << " " ;
+
         std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
           << std::endl;
 
@@ -500,6 +516,9 @@ namespace AGNOS
           // keep track of max of error
           if (elit->_totalError >= maxElementError)
             maxElementError = elit->_totalError ;
+
+          errorOut << elit->_totalError << " " ;
+          errorOut << elit->_surrogateError << std::endl;
 
           std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
             << std::endl;
@@ -608,6 +627,8 @@ namespace AGNOS
         {
           elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
           globalPhysicsError += elit->_physicsError ;
+          errorOut << elit->_physicsError << " " ;
+
           std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
             << std::endl;
 
@@ -633,6 +654,9 @@ namespace AGNOS
             if (elit->_totalError >= maxElementError)
               maxElementError = elit->_totalError ;
 
+            errorOut << elit->_totalError << " "  ;
+            errorOut << elit->_surrogateError << std::endl;
+
             std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
               << std::endl;
             std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
@@ -646,8 +670,8 @@ namespace AGNOS
 
 
 
-
-
+    // close error file
+    errorOut.close();
     
     // print out settings
     printSettings();
