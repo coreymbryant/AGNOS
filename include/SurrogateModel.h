@@ -83,7 +83,7 @@ namespace AGNOS
           ) const ;
 
       /** Refine the surrogate model. Must be definied in derived classes. */
-      virtual void refine( ) ;
+      virtual void refine( bool anisotropic = false ) ;
 
       /** calculate mean */
       std::map< std::string, T_P > mean( ) ;
@@ -608,14 +608,20 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    void SurrogateModel<T_S,T_P>::refine( )
+    void SurrogateModel<T_S,T_P>::refine( bool anisotropic )
     {
       // if this is a primary surrogate incease order
       if ( _evalSurrogate == NULL )
       {
-        for(unsigned int i=0; i<this->_dimension; i++)
+        if ( anisotropic )
         {
-          this->_order[i]++;
+        }
+        else
+        {
+          for(unsigned int i=0; i<this->_dimension; i++)
+          {
+            this->_order[i]++;
+          }
         }
       }
       // otherwise refine based on primary surrogate

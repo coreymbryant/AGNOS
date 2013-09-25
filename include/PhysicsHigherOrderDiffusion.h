@@ -5,7 +5,6 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "CatenarySystem.h"
 
 // libmesh includes
 #include "libmesh/mesh_generation.h"
@@ -13,6 +12,7 @@
 #include "libmesh/steady_solver.h"
 #include "libmesh/newton_solver.h"
         
+#define _USE_MATH_DEFINES
 
 
 
@@ -29,11 +29,10 @@ namespace AGNOS
     : FEMSystem(es, name_in, number_in)
       { 
         qoi.resize(1); 
-        _coeff=1.0;
       }
 
 
-    double _coeff;
+    std::vector<double> _ck,_lambdak,_xik;
     double exact_solution (const Point&);
 
     protected:
@@ -63,6 +62,46 @@ namespace AGNOS
     unsigned int u_var = this->add_variable ("u",FIRST) ;
     this->time_evolving(u_var);
 
+    // define coeffs for KLE
+    _ck.resize(10);
+    _ck[0] = 10.;
+    for(unsigned int i=1; i<_ck.size(); i++)
+      _ck[i] = _ck[i-1]/10.;
+
+    // define initial param values
+    _xik.resize(10);
+    for(unsigned int i=0; i<_xik.size(); i++)
+      _xik[i] = 1.;
+
+
+    // define periods for KLE
+    _lambdak.resize(10);
+    _lambdak[0] = 2.3926505e-01 ; 
+    _lambdak[1] = 3.1340351e-01 ;
+    _lambdak[2] = 4.0664199e-01;
+    _lambdak[3] = 6.4388576e-01;
+    _lambdak[4] = 7.4053791e-01;
+    _lambdak[5] = 2.0492245e+00;
+    _lambdak[6] = 3.1054506e+00;
+    _lambdak[7] = 3.3967834e+00;
+    _lambdak[8] = 8.7311801e+00;
+    _lambdak[9] = 9.9791010e+00;
+
+    /** set up boundary conditions */
+    std::set<boundary_id_type> allBoundaries;
+    allBoundaries.insert(0);
+    allBoundaries.insert(1);
+    allBoundaries.insert(2);
+    allBoundaries.insert(3);
+
+    std::vector<unsigned int> variables(1,u_var);
+    
+    ZeroFunction<double> zf;
+
+    this->get_dof_map().add_dirichlet_boundary(
+        DirichletBoundary(allBoundaries,variables,&zf) );
+    if (AGNOS_DEBUG)
+      std::cout << "post BC set up" << std::endl;
 
     // Do the parent's initialization after variables are defined
     FEMSystem::init_data();
@@ -102,6 +141,7 @@ namespace AGNOS
     // Element basis functions
     const std::vector<std::vector<RealGradient> > &dphi = elem_fe->get_dphi();
     const std::vector<std::vector<Real> > &phi = elem_fe->get_phi();
+    const std::vector<Point > &q_point = elem_fe->get_xyz();
 
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(0).size();
@@ -118,11 +158,22 @@ namespace AGNOS
     // weight functions.
     unsigned int n_qpoints = c.get_element_qrule().n_points();
 
+
+
     for (unsigned int qp=0; qp != n_qpoints; qp++)
       {
         // Compute the solution gradient at the Newton iterate
         Gradient grad_u = c.interior_gradient(0, qp);
         Number u = c.interior_value(0, qp);
+
+
+        // calculate coeff value
+        const Real x1 = q_point[qp](0);
+        const Real x2 = q_point[qp](1);
+        double logCoeff = 0;
+        for (unsigned int i=0; i<_ck.size();i++)
+          logCoeff += _ck[i] * _xik[i] * 
+            std::sin(_lambdak[i]*M_PI*x1) * std::cos(_lambdak[i]*M_PI*x2)  ;
 
         // The residual contribution from this element
         for (unsigned int i=0; i != n_u_dofs; i++)
@@ -130,7 +181,7 @@ namespace AGNOS
               // (f,v) or (-K gradu_true dot gradv) 
                10.0 * phi[i][qp]
               // - (u_x,v_x)
-              + _coeff * grad_u * dphi[i][qp] 
+              + std::exp(logCoeff) * grad_u * dphi[i][qp] 
               );
         if (request_jacobian)
           for (unsigned int i=0; i != n_u_dofs; i++)
@@ -138,7 +189,7 @@ namespace AGNOS
         // The analytic jacobian
               K(i,j) += JxW[qp]*(
                   // (du_x,v_x)
-                  1.0 * _coeff * (dphi[j][qp] * dphi[i][qp] )       
+                  1.0 * std::exp(logCoeff) * (dphi[j][qp] * dphi[i][qp] )       
                 );
       } // end of the quadrature point qp-loop
 
@@ -187,7 +238,7 @@ namespace AGNOS
       const Real y = q_point[qp](1);
       Number u = c.interior_value(0, qp);
 
-      Q[0] += JxW[qp] * u * 10./3.14159 * 
+      Q[0] += JxW[qp] * u * 10./M_PI * 
         std::exp( -10. * std::pow(x-0.5,2.) -10. * std::pow(y-0.5,2.) );
 
     } // end of the quadrature point qp-loop
@@ -228,7 +279,7 @@ namespace AGNOS
       const Real y = q_point[qp](1);
 
       for (unsigned int i=0; i != n_u_dofs; i++)
-        Q(i) += JxW[qp] * phi[i][qp] * 10./3.14159 * 
+        Q(i) += JxW[qp] * phi[i][qp] * 10./M_PI * 
           std::exp( -10. * std::pow(x-0.5,2.) -10. * std::pow(x-0.5,2.) );
 
     } // end of the quadrature point qp-loop
@@ -255,9 +306,6 @@ namespace AGNOS
       /** Geometry and boundary data */
       unsigned int    _nElem;
       
-      /** coefficients */
-      std::vector<double> _ck ;
-
       /** set parameter values */
       virtual void _setParameterValues( const T_S& parameterValues ) ;
 
@@ -284,16 +332,12 @@ namespace AGNOS
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
-    _nElem  = input("nElem",4);
+    _nElem  = input("nElem",100);
 
-    _ck.resize(10);
-    _ck[0] = 10.;
-    for(unsigned int i=1; i<_ck.size(); i++)
-      _ck[i] = _ck[i-1]/10.;
     
     //------------------------
     // initialize mesh object
-    this->_mesh = new libMesh::Mesh(this->_communicator);
+    this->_mesh = new libMesh::Mesh(this->_communicator,2);
 
 
     // build mesh refinement object 
@@ -305,9 +349,11 @@ namespace AGNOS
 
     // build mesh 
     // MeshTools::Generation::build_square (
+    // nElem per side
     libMesh::MeshTools::Generation::build_square(
         *this->_mesh,
-        this->_nElem,this->_nElem,
+        this->_nElem,
+        this->_nElem,
         0.,1.,
         0.,1.,
         QUAD9);
@@ -320,7 +366,7 @@ namespace AGNOS
       = new libMesh::EquationSystems(*this->_mesh);
     this->_system = &( 
         this->_equationSystems->template
-        add_system<CatenarySystem>("HigherOrderDiffusion")
+        add_system<DiffusionSystem>("HigherOrderDiffusion")
         ) ;
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: post add system" << std::endl;
@@ -385,7 +431,33 @@ namespace AGNOS
     void PhysicsHigherOrderDiffusion<T_S,T_P>::_setParameterValues( 
         const T_S& parameterValues ) 
     {
-      static_cast<CatenarySystem*>(this->_system)->_coeff = parameterValues(0) ;
+      std::cout << " parameter size = " << parameterValues.size() << std::endl;
+      std::cout << " model size = " <<
+        static_cast<DiffusionSystem*>(this->_system)->_xik.size()
+        << std::endl;
+
+      if ( parameterValues.size() 
+          == 
+          static_cast<DiffusionSystem*>(this->_system)->_xik.size() )
+      {
+        for (unsigned int i=0;
+            i< static_cast<DiffusionSystem*>(this->_system)->_xik.size(); 
+            i++)
+          static_cast<DiffusionSystem*>(this->_system)->_xik[i] 
+            = parameterValues(i) ;
+      }
+      else
+      {
+        std::cerr << " ERROR: incorrect dimension for parameter space " 
+          << "\n"
+          << " this model requires a parameter dimension of 10. " 
+          << " given size = " << parameterValues.size() 
+          << " model size = " <<
+            static_cast<DiffusionSystem*>(this->_system)->_xik.size()        
+          << std::endl;
+        exit(1);
+      }
+
     }
 
 
