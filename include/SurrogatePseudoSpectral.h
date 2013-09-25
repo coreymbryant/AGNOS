@@ -954,7 +954,7 @@ namespace AGNOS
       //get integration points for higher order quad rule
       std::vector<unsigned int> integrationOrder = this->_order;
       for(unsigned int i=0; i<integrationOrder.size();i++)
-        integrationOrder[i] += 2;
+        integrationOrder[i] += 1;
 
       QuadratureTensorProduct integrationQuadratureRule(
           this->_parameters, integrationOrder );
