@@ -83,7 +83,10 @@ namespace AGNOS
           ) const ;
 
       /** Refine the surrogate model. Must be definied in derived classes. */
-      virtual void refine( bool anisotropic = false ) ;
+      virtual void refine( 
+          const std::vector<unsigned int>& increase 
+            = std::vector<unsigned int>() 
+          ) ;
 
       /** calculate mean */
       std::map< std::string, T_P > mean( ) ;
@@ -140,6 +143,9 @@ namespace AGNOS
       virtual void prettyPrintIntegrationPoints( ) const = 0;
       /** print integration weights in table format*/
       virtual void prettyPrintIndexSet( ) const = 0;
+
+      /** Return index set for this surrogate */
+      virtual const std::vector< std::vector<unsigned int> > indexSet() const = 0 ;
 
       /** expansion order used to construct surrogateModel */
       const std::vector<unsigned int> getExpansionOrder( ) const
@@ -608,21 +614,19 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    void SurrogateModel<T_S,T_P>::refine( bool anisotropic )
+    void SurrogateModel<T_S,T_P>::refine( 
+        const std::vector<unsigned int>& increase 
+        )
     {
       // if this is a primary surrogate incease order
       if ( _evalSurrogate == NULL )
       {
-        if ( anisotropic )
-        {
-        }
-        else
-        {
+        if ( increase.empty() )
           for(unsigned int i=0; i<this->_dimension; i++)
-          {
             this->_order[i]++;
-          }
-        }
+        else
+          for(unsigned int i=0; i<this->_dimension; i++)
+            this->_order[i] += increase[i] ;
       }
       // otherwise refine based on primary surrogate
       else

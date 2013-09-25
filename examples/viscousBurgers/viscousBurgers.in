@@ -37,6 +37,7 @@ refine = true
 [surrogateModels]
 modelNames = 'primarySurrogate errorSurrogate'
 refine = true
+anisotropic = false
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
@@ -47,8 +48,8 @@ refine = true
   [./errorSurrogate]
   type = 'PseudoSpectralTensorProduct'
   primarySurrogate = 'primarySurrogate'
-  increaseOrder = '0'   
-  multiplyOrder = '2'  
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
   evaluateSolutions = 'primal adjoint'
   computeSolutions='errorEstimate qoi'
   [../]

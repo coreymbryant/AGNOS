@@ -76,8 +76,9 @@ namespace AGNOS
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
+      /** Return index set for this surrogate */
       const std::vector< std::vector< unsigned int> > 
-                                getIndexSet( ) const;
+                                indexSet( ) const;
       std::vector<double>       evaluateBasis( 
           const std::vector< std::vector<unsigned int> >& indexSet,
           T_S& parameterValues ) const;
@@ -88,7 +89,6 @@ namespace AGNOS
       void                      prettyPrintIntegrationWeights( ) const;
       void                      prettyPrintIntegrationPoints( ) const;
       void                      prettyPrintIndexSet( ) const;
-
 
 
     protected:
@@ -183,7 +183,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     const std::vector< std::vector< unsigned int> > 
-    SurrogatePseudoSpectral<T_S,T_P>::getIndexSet( ) const
+    SurrogatePseudoSpectral<T_S,T_P>::indexSet( ) const
     {
       return _indexSet;
     }
