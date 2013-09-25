@@ -20,6 +20,27 @@
 namespace AGNOS
 {
 
+  /** Comparison functor for index sets */
+  bool indexSetCompare( 
+      const std::vector<unsigned int>& a, 
+      const std::vector<unsigned int>& b 
+      )
+  {
+    assert( a.size() == b.size() ) ;
+    bool aLessThanb = false;
+
+    for(unsigned int i=0; i<a.size(); i++)
+      if ( a[i] < b[i] )
+      {
+        aLessThanb = true ;
+        break;
+      }
+      else if ( a[i] > b[i] )
+        break;
+
+    return aLessThanb;
+  }
+
   /********************************************//**
    * \brief Base class for driving the construction of SurrogateModel objects
    ***********************************************/
@@ -82,6 +103,7 @@ namespace AGNOS
       // SURROGATE VARIABLES
       std::map<std::string, unsigned int> _surrogateNames;
       bool _refineSurrogate;
+      bool _anisotropic;
       // ---------------------
 
       // ---------------------
@@ -154,6 +176,7 @@ namespace AGNOS
     // SURROGATE MODEL(s) SETTINGS
     input.set_prefix("surrogateModels/") ;
     _refineSurrogate = input("refine",false);
+    _anisotropic = input("anisotropic",false);
 
     /* initialize surrogate model container */
     std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates =
@@ -470,24 +493,23 @@ namespace AGNOS
       _elemsToUpdate.pop();
     }
 
+
+    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      _activeElems.begin();
+    
     // initialize global errors
     double globalPhysicsError = 0;
     double globalSurrogateError = 0;
     double globalTotalError = 0;
     double maxElementError = 0;
 
-    // loop through all active elements
-    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
-      _activeElems.begin();
-    for (; elit!=_activeElems.end(); elit++)
+    // if we are using adaptiveDriver then print out/save individual errors
+    if (_adaptiveDriver)
     {
-      // this was here as a test
-      /* std::map< std::string, LocalMatrix > myCoeff = */
-      /*   elit->surrogates()[0]->getCoefficients(); */
-
-      // use adaptive surrogate construction
-      if (_adaptiveDriver)
+      // loop through all active elements
+      for (; elit!=_activeElems.end(); elit++)
       {
+
         elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
         globalPhysicsError += elit->_physicsError ;
         errorOut << elit->_physicsError << " " ;
@@ -517,18 +539,20 @@ namespace AGNOS
           if (elit->_totalError >= maxElementError)
             maxElementError = elit->_totalError ;
 
-          errorOut << elit->_totalError << " " ;
+          errorOut << elit->_totalError << " "  ;
           errorOut << elit->_surrogateError << std::endl;
 
           std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
             << std::endl;
           std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
             elit->_surrogateError << std::endl;
-        }
+        } // end if errorSurrogate exists
 
-      }
+      } // end for active elements
 
-    }
+    } // end if adaptiveDriver
+
+
 
 
     // now perform the rest of the iterations
@@ -546,7 +570,10 @@ namespace AGNOS
           // Determine which space to refine
           if ( _refinePhysics 
               && 
-              (globalSurrogateError <= globalPhysicsError)  
+              ( (!_adaptiveDriver)
+                ||
+                (globalSurrogateError <= globalPhysicsError)  
+              )
               //TODO add some more conditions here 
              ) 
           {
@@ -569,12 +596,108 @@ namespace AGNOS
           //otherwise refine surrogate
           else if ( _refineSurrogate 
               &&
-              ( globalSurrogateError >= globalPhysicsError )
+              ( (!_adaptiveDriver)
+                ||
+                (globalSurrogateError >= globalPhysicsError)
+              )
               // TODO more conditions
               )
           {
+
+            std::vector<unsigned int> increase(_paramDim,0) ;
+            if (!_anisotropic)
+              for (unsigned int i=0; i< increase.size(); i++)
+                increase[i]++;
+            // if anisotropic refinement is being used we need to determine
+            // which direction to refine in
+            else
+            {
+              // TODO we could also give option for other types of anisotropic
+              // refinement
+              
+              // if adaptiveDriver, use error Surrogate
+              if (_adaptiveDriver)
+              {
+                // get error coefficients
+                std::map< std::string, LocalMatrix> errorCoeffs =
+                  elit->surrogates()[1]->getCoefficients() ;
+  
+
+                // copy index sets (these are already sorted by construction)
+                std::vector< std::vector<unsigned int> > sortedN 
+                  = elit->surrogates()[0]->indexSet() ;
+                std::vector< std::vector<unsigned int> > sortedM 
+                  = elit->surrogates()[1]->indexSet() ;
+
+                std::cout << " N: " << std::endl;
+                for (unsigned int i=0; i<sortedN.size(); i++)
+                {
+                  for (unsigned int j=0; j<sortedN[i].size(); j++)
+                    std::cout << sortedN[i][j] << " " ;
+                  std::cout << std::endl;
+                      
+                }
+                std::cout << " sorted M: " << std::endl;
+                for (unsigned int i=0; i<sortedM.size(); i++)
+                {
+                  for (unsigned int j=0; j<sortedM[i].size(); j++)
+                    std::cout << sortedM[i][j] << " " ;
+                  std::cout << std::endl;
+                      
+                }
+
+
+                unsigned int i, unique, maxIndex;
+                double maxCoefficient = 0; 
+                std::vector<std::vector<unsigned int> >::iterator sit = sortedM.begin(); 
+                for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
+                {
+                  if ( *sit != sortedN[i-unique] )
+                  {
+                    unique++;
+
+                    if ( std::abs(errorCoeffs["errorEstimate"](i,0)) >= maxCoefficient )
+                    {
+                      maxCoefficient = std::abs(errorCoeffs["errorEstimate"](i,0)) ;
+                      maxIndex = i;
+                    }
+
+                    std::cout << " found one: index:" << i << "    " ;
+                    for (unsigned int j=0; j<sit->size(); j++)
+                      std::cout << (*sit)[j] << " " ;
+                    std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
+                    std::cout << std::endl;
+                  }
+                }
+
+                std::cout << "   maxIndex = " << maxIndex << std::endl;
+                for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
+                  if ( sortedM[maxIndex][j] >
+                      elit->surrogates()[0]->getExpansionOrder()[j] )
+                    increase[j]++;
+
+                std::cout << "increase = " ;
+                for (unsigned int i=0; i<increase.size(); i++)
+                  std::cout << increase[i] << " " ;
+                std::cout << std::endl;
+
+                exit(1) ;
+
+                
+                // determine largest coeff of error surrogate
+                
+                // increase only that dir
+                
+              } // end if adaptiveDriver
+
+            } // end if anisotropic
+
+
+            // refine all surrogates. We don't need to worry about the
+            // anisotropic causing problems with secondary surrogates,
+            // refinement based on primary takes precedence. 
             for(unsigned int i=0;i<elit->surrogates().size(); i++)
-              elit->surrogates()[i]->refine() ;
+              elit->surrogates()[i]->refine( increase ) ;
             
             // add to update queue
             _elemsToUpdate.push(*elit);
@@ -582,6 +705,7 @@ namespace AGNOS
           } // end of if refine surrogate
 
         } // end of active element and if above threshold loop
+
 
 
       // refine all physics that were marked
@@ -609,22 +733,21 @@ namespace AGNOS
       }
 
         
-      // reset global values to 0
-      globalPhysicsError = 0. ;
-      globalSurrogateError = 0.;
-      globalTotalError = 0.;
 
-      // loop through all active elements
-      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
-        _activeElems.begin();
-      for (; elit!=_activeElems.end(); elit++)
+      // if we are using adaptiveDriver then print out/save individual errors
+      if (_adaptiveDriver)
       {
-        /* std::map< std::string, LocalMatrix > myCoeff = */
-        /*   elit->surrogates()[0]->getCoefficients(); */
+        // reset global values to 0
+        globalPhysicsError = 0. ;
+        globalSurrogateError = 0.;
+        globalTotalError = 0.;
 
-        // use adaptive surrogate construction
-        if (_adaptiveDriver)
+        // loop through all active elements
+        std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+          _activeElems.begin();
+        for (; elit!=_activeElems.end(); elit++)
         {
+
           elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
           globalPhysicsError += elit->_physicsError ;
           errorOut << elit->_physicsError << " " ;
@@ -661,12 +784,14 @@ namespace AGNOS
               << std::endl;
             std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
               elit->_surrogateError << std::endl;
-          }
+          } // end if errorSurrogate exists
 
-        }
+        } // end for active elements
 
-      }
-    }
+      } // end if adaptiveDriver
+
+    } // end for nIter
+
 
 
 
