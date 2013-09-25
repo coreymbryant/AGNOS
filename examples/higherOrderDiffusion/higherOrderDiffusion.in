@@ -17,15 +17,17 @@ refine = true
 
   [./higherOrderDiffusion]
   forcing = '-10.0'
-
   solutions='primal adjoint qoi errorEstimate'
+
+  numberHRefinements = '1'
+  numberPRefinements = '0'
   [../]
 
 []
 
 
 [surrogateModels]
-modelNames = 'primarySurrogate errorSurrogate'
+modelNames = 'primarySurrogate'
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
