@@ -27,7 +27,7 @@ namespace AGNOS
    *
    * 
    ***********************************************/
-  void write_output(EquationSystems &es,
+  void write_gnuplot(EquationSystems &es,
         unsigned int index,       // The adaptive step count
         std::string solution_type = "primal") // primal or adjoint solve
   {
@@ -43,6 +43,17 @@ namespace AGNOS
 
     GnuPlotIO(mesh).write_equation_systems
       (file_name_gp.str(), es);
+  }
+
+  /********************************************//**
+   * \brief Save libmesh solution as vtk format
+   *
+   * 
+   ***********************************************/
+  void write_vtk(EquationSystems &es,
+        unsigned int index,       // The adaptive step count
+        std::string solution_type = "primal") // primal or adjoint solve
+  {
   }
 
 
@@ -267,7 +278,10 @@ namespace AGNOS
         }
 
         //TODO make this an option somehow
-        write_output(es,0);
+        if ( this->_mesh->mesh_dimension() == 1)
+          write_gnuplot(es,0);
+        else
+          write_vtk(es,0);
 
       }
 
