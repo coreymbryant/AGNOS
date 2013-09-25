@@ -431,10 +431,6 @@ namespace AGNOS
     void PhysicsHigherOrderDiffusion<T_S,T_P>::_setParameterValues( 
         const T_S& parameterValues ) 
     {
-      std::cout << " parameter size = " << parameterValues.size() << std::endl;
-      std::cout << " model size = " <<
-        static_cast<DiffusionSystem*>(this->_system)->_xik.size()
-        << std::endl;
 
       if ( parameterValues.size() 
           == 
