@@ -310,6 +310,9 @@ namespace AGNOS
       std::map<std::string,T_P> myContribs ;
       for(unsigned int pt=0; pt < this->_nIntegrationPoints; pt++)
       {
+        if ( pt%10 == 0)
+          std::cout << "pt " << pt << std::endl;
+
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: beginning of pt" << std::endl;
 
