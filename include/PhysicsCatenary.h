@@ -23,34 +23,32 @@ namespace AGNOS
   {
 
   public:
+    /** Default constructor Default */
     PhysicsCatenary( 
-        double forcing //< Right-hand side (T in Catenary example) 
+        const Communicator& comm_in,
+        const GetPot& input
         );
+
+    /** Destructor */
     ~PhysicsCatenary( );
 
-    T_P solvePrimal( 
-        const T_S& parameterValue  
-        );
+    /** Function called by SurrogateModel to solve for requested solution
+     * vectors at each evaluation point in parameter space  */
+    virtual void compute( 
+        const T_S& paramVector, 
+        std::map<std::string, T_P >& solutionVectors 
+        ) ;
 
-    T_P solveAdjoint( 
-        const T_S& parameterValue,  
-        const T_P& primalSolution    
-        );
-
-    T_P evaluateQoi( 
-        const T_S& parameterValue,
-        const T_P& primalSolution    
-        );
-
-    T_P estimateError( 
-        const T_S& parameterValue,  
-        const T_P& primalSolution,   
-        const T_P& adjointSolution  
-        );
-
-    void refine( );
+    /** Refinement methods for the physics model */
+    virtual void refine( );
   
   protected:
+    /** communicator reference */
+    const Communicator &_communicator;
+    /** reference to input file just incase its needed after initialization */
+    const GetPot&         _input;
+
+    /** forcing magnitude */
     double m_forcing;
   };
 
@@ -62,9 +60,13 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   PhysicsCatenary<T_S,T_P>::PhysicsCatenary(
-      double forcing
-      ) :m_forcing( forcing )
+        const Communicator& comm_in,
+        const GetPot& input
+      ) :
+    PhysicsModel<T_S,T_P>(comm_in,input),
+    _communicator(comm_in),_input(input)
   {
+    m_forcing = input("forcing",-10.0) ;
   }
 
 /********************************************//**
@@ -79,69 +81,92 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    T_P PhysicsCatenary<T_S,T_P>::solvePrimal( 
-        const T_S& parameterValue  
-        )
+    void PhysicsCatenary<T_S,T_P>::compute(
+        const T_S& paramVector,
+        std::map<std::string, T_P >& solutionVectors 
+        ) 
     {
-      T_P imageValue(1);
+      if(AGNOS_DEBUG)
+        std::cout << "entering compute routine" << std::endl;
+      solutionVectors.clear();
+
+      if (!solutionVectors.count("primal"))
+      {
+        T_P primalSolution(1);
+        primalSolution(0) =  m_forcing / (8. *  paramVector(0) ) ;
+        solutionVectors.insert( 
+            std::pair<std::string,T_P>( "primal", primalSolution )
+              );
+        if(AGNOS_DEBUG)
+          std::cout << "compute -- primal solution size:" << primalSolution.size()
+            << std::endl;
+      }
+
+      if( this->_solutionNames.count("adjoint" ) 
+          || this->_solutionNames.count("errorEstimator") 
+          || this->_solutionNames.count("errorIndicators") 
+          )
+      {
+        if ( solutionVectors.count("adjoint")  )
+        {
+        }
+        else
+        {
+          T_P adjointSolution(1);
+          adjointSolution(0) =  1.0 / (4. * paramVector(0))  ;
+
+          if ( this->_solutionNames.count("adjoint") )
+          {
+            solutionVectors.insert( 
+                std::pair<std::string,T_P>( "adjoint", adjointSolution )
+                  );
+          }
+        }
+        
+        // ----------------------------------
+        // ERROR ESTIMATE AND ERROR INDICATORS
+        // Compute global error estimate if requested
+        if ( this->_solutionNames.count("errorEstimate") ) 
+        {
+          // in this case the FE solution interpolates at x=1/2 so the QoI is
+          // evaluated exactly
+          T_P error(1);
+          error.zero();
+          solutionVectors.insert( 
+                    std::pair<std::string,T_P>( "errorEstimate", error )
+                      );
+        }
+        
+        // compute indicators if they were requested
+        if (  this->_solutionNames.count("errorIndicators") )
+        {
+        }
+
+      } // end if adjoint|errorEstimate|errorIndicators
       
-      imageValue(0) =  m_forcing / (8. *  parameterValue(0) ) ;
-      return imageValue;
-    }
+      // QUANTITY OF INTEREST
+      if ( this->_solutionNames.count("qoi") )
+      {
+        T_P qoiValue(1);
+        qoiValue(0) = solutionVectors["primal"](0) ;
+        solutionVectors.insert( 
+                  std::pair<std::string,T_P>( "qoi", qoiValue )
+                    );
+      }
 
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-    T_P PhysicsCatenary<T_S,T_P>::solveAdjoint( 
-        const T_S& parameterValue,  
-        const T_P& primalSolution    
-        )
-    {
 
-      T_P imageValue(1);
+      if(AGNOS_DEBUG)
+      {
+        std::cout << "solutionVectors['primal'].size():" 
+          << solutionVectors["primal"].size() << std::endl;
 
-      imageValue(0) =  1.0 / (4. * parameterValue(0))  ;
-      return imageValue;
-    }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-    T_P PhysicsCatenary<T_S,T_P>::evaluateQoi( 
-        const T_S& parameterValue,
-        const T_P& primalSolution    
-        )
-    {
-      // QoI is just primal at x=1/2 so its just coefficient value
-      //return m_primalSolution ; 
-      return primalSolution;
-    }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-    T_P PhysicsCatenary<T_S,T_P>::estimateError( 
-        const T_S& parameterValue,  
-        const T_P& primalSolution,   
-        const T_P& adjointSolution  
-        )
-    {
-      // in this case the FE solution interpolates at x=1/2 so the QoI is
-      // evaluated exactly
-      T_P imageValue(1);
-      imageValue.zero();
-
-      return imageValue;
+        std::cout << "leaving compute routine" << std::endl;
+      }
     }
 
 
   /********************************************//**
    * \brief 
-   *
-   * 
    ***********************************************/
   template<class T_S,class T_P> 
     void PhysicsCatenary<T_S,T_P>::refine( ) 

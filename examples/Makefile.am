@@ -1,6 +1,4 @@
-SUBDIRS          = catenary \
-									 catenaryLibmesh \
-									 viscousBurgers
+EXTRA_DIST = 
 #--------------------------------------
 #Local Directories to include for build
 #--------------------------------------
@@ -21,17 +19,42 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-# #-------------------------------------
-# # Catenary example
-# #-------------------------------------
-# catenarydir = $(prefix)/examples/catenary
+#-------------------------------------
+# Catenary example
+#-------------------------------------
+catenarydir = $(prefix)/examples/catenary
+catenary_SCRIPTS = $(top_builddir)/examples/catenary/run.sh
+catenary_DATA = $(top_srcdir)/examples/catenary/catenary.in
+EXTRA_DIST += $(catenary_DATA)
 
-# catenary_DATA = $(top_srcdir)/examples/catenary/catenary.in
+#-------------------------------------
+# higher order Diffusion
+#-------------------------------------
+higherOrderDiffusiondir = $(prefix)/examples/higherOrderDiffusion
+higherOrderDiffusion_SCRIPTS = $(top_builddir)/examples/higherOrderDiffusion/run.sh
+higherOrderDiffusion_DATA = $(top_srcdir)/examples/higherOrderDiffusion/higherOrderDiffusion.in
+EXTRA_DIST += $(higherOrderDiffusion_DATA)
 
-# catenary_PROGRAMS = catenary
+#-------------------------------------
+# Catenary libmesh example
+#-------------------------------------
+catenarylibmeshdir = $(prefix)/examples/catenaryLibmesh
+catenarylibmesh_DATA = $(top_srcdir)/examples/catenaryLibmesh/catenaryLibmesh.in
+catenarylibmesh_SCRIPTS = $(top_builddir)/examples/catenaryLibmesh/run.sh
+EXTRA_DIST += $(catenarylibmesh_DATA)
 
-# catenary_SOURCES = $(top_srcdir)/examples/catenary/runCatenary.C \
-# 									 $(top_srcdir)/src/agnos.C
+#-------------------------------------
+# Viscous Burgers example
+#-------------------------------------
+viscousburgersdir = $(prefix)/examples/viscousBurgers
+viscousburgers_DATA = $(top_srcdir)/examples/viscousBurgers/viscousBurgers.in
+viscousburgers_SCRIPTS = $(top_builddir)/examples/viscousBurgers/run.sh
+EXTRA_DIST += $(viscousburgers_DATA)
 
-MAINTAINERCLEANFILES = Makefile.in
+
+MAINTAINERCLEANFILES = Makefile.in \
+											 catenary/testFile.dat \
+											 higherOrderDiffusion/testFile.dat \
+											 catenaryLibmesh/testFile.dat \
+											 viscousBurgers/testFile.dat 
 
