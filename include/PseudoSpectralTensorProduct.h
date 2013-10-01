@@ -14,37 +14,48 @@ namespace AGNOS
  * Pseudo-spectral method. Anisotropic polynomial order is supported
  * 
  ***********************************************/
-  template<class T_S>
-    class PseudoSpectralTensorProduct : public SurrogatePseudoSpectral<T_S>
+  template<class T_S, class T_P>
+    class PseudoSpectralTensorProduct : public SurrogatePseudoSpectral<T_S,T_P>
   {
 
     public:
 
+      /** Constructor:  */
       PseudoSpectralTensorProduct( 
-          const Communicator&               comm,
-          PhysicsModel<T_S>*                physics,
-          const std::vector<Parameter*>     parameters,
-          const unsigned int                order 
-          );
+        const Communicator&               comm,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
+        const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
+        const std::vector<unsigned int>&  order
+        );
+
+      /** Secondary Constructor. 
+       *  ***DO NOT MISTAKE FOR A COPY CONSTRUCTOR ***
+       *  Intended use is for constructing a secondary surrogate model using the
+       *  primary model as an evaluating object in the build routine. 
+       *  If additional inputs are defined it will
+       * construct a new surrogate increasing the order and using
+       * primarySurrogate to perform evaluations in the constructions */
       PseudoSpectralTensorProduct( 
-          const Communicator&               comm,
-          PhysicsModel<T_S>*                physics,
-          const std::vector<Parameter*>     parameters,
-          const std::vector<unsigned int>&  order
+          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+          unsigned int increaseOrder = 0,
+          unsigned int multiplyOrder = 1,
+          std::set<std::string> evaluateSolutions = std::set<std::string>(),
+          std::set<std::string> computeSolutions = std::set<std::string>()
           );
 
-      void initialize( ) ;
-
+      /** Default destructor */
       ~PseudoSpectralTensorProduct( );
 
-      void refine( );
+      /** Initialization routine */
+      void initialize( ) ;
 
-      // Manipulators
+      /** return reference to quadrature rule */
       const QuadratureRule* getQuadRule( ) const ;
 
 
     protected:
 
+      /** construct index set using recursion */
       void recurIndexSet(
           const unsigned int dim, 
           std::vector< std::vector<unsigned int> >& currentSet);
@@ -54,36 +65,38 @@ namespace AGNOS
 
   };
 
-
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S>
-    PseudoSpectralTensorProduct<T_S>::PseudoSpectralTensorProduct( 
+  template<class T_S, class T_P>
+    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
         const Communicator&               comm,
-        PhysicsModel<T_S>*                physics,
-        const std::vector<Parameter*> parameters,
-        const unsigned int order
-        )
-      : SurrogatePseudoSpectral<T_S>(comm,physics,parameters,order)
-    {
-      initialize();
-    }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S>
-    PseudoSpectralTensorProduct<T_S>::PseudoSpectralTensorProduct( 
-        const Communicator&               comm,
-        PhysicsModel<T_S>*                physics,
-        const std::vector<Parameter*> parameters,
+        std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
+        const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
         const std::vector<unsigned int>& order
         )
-      : SurrogatePseudoSpectral<T_S>(comm,physics,parameters,order)
+      :
+        SurrogatePseudoSpectral<T_S,T_P>( comm, physics, parameters, order)
     {
-      initialize();
     }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
+        std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+        unsigned int increaseOrder ,
+        unsigned int multiplyOrder ,
+        std::set<std::string> evaluateSolutions,
+        std::set<std::string> computeSolutions
+        )
+      : SurrogatePseudoSpectral<T_S,T_P>(primarySurrogate, increaseOrder,
+          multiplyOrder, evaluateSolutions, computeSolutions)
+    {
+    }
+
+
 
 
 /********************************************//**
@@ -91,8 +104,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S>
-    PseudoSpectralTensorProduct<T_S>::~PseudoSpectralTensorProduct()
+  template<class T_S, class T_P>
+    PseudoSpectralTensorProduct<T_S,T_P>::~PseudoSpectralTensorProduct()
     {
       delete _quadRule;
     }
@@ -102,8 +115,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S>
-    void PseudoSpectralTensorProduct<T_S>::initialize( )
+  template<class T_S, class T_P>
+    void PseudoSpectralTensorProduct<T_S,T_P>::initialize( )
     {
       _quadRule = 
         new QuadratureTensorProduct( this->_parameters, this->_order);
@@ -122,7 +135,7 @@ namespace AGNOS
       double** quadPoints = _quadRule->getQuadPoints() ;
       for (unsigned int point=0; point < this->_nIntegrationPoints; point++)
       {
-        this->_integrationPoints[point] = std::vector<Number>(this->_dimension);
+        this->_integrationPoints[point] = T_P(this->_dimension);
         for (unsigned int dir=0; dir < this->_dimension; dir++)
           this->_integrationPoints[point](dir) = quadPoints[point][dir] ;
       }
@@ -141,8 +154,8 @@ namespace AGNOS
  *
  * 
  ***********************************************/
-  template<class T_S> 
-    void PseudoSpectralTensorProduct<T_S>::recurIndexSet( 
+  template<class T_S, class T_P> 
+    void PseudoSpectralTensorProduct<T_S,T_P>::recurIndexSet( 
           const unsigned int dim, 
           std::vector< std::vector<unsigned int> >& currentSet  )
     {
@@ -182,30 +195,15 @@ namespace AGNOS
   //TODO add refinement option to increase order a given amount instead of just
   //+1 in all directions
 
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S>
-    void PseudoSpectralTensorProduct<T_S>::refine( )
-    {
-      for(unsigned int i=0; i<this->_dimension; i++)
-      {
-        this->_order[i]++;
-      }
-      this->initialize();
-      this->build();
-    }
 
 /********************************************//**
  * \brief 
  *
  * 
  ***********************************************/
-  template<class T_S> 
+  template<class T_S, class T_P> 
     const QuadratureRule*
-    PseudoSpectralTensorProduct<T_S>::getQuadRule( )
+    PseudoSpectralTensorProduct<T_S,T_P>::getQuadRule( )
     const 
     {
       return this->_quadRule ;

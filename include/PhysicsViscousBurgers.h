@@ -5,21 +5,21 @@
 
 #include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
-#include "ResidualViscousBurgers.h"
-#include "JacobianViscousBurgers.h"
-#include "QoiViscousBurgers.h"
-#include "QoiDerivativeViscousBurgers.h"
+#include "BurgersSystem.h"
 
 // libmesh includes
+#include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
-#include "libmesh/edge_edge2.h"
+#include "libmesh/edge_edge3.h"
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/nonlinear_implicit_system.h"
 #include "libmesh/petsc_nonlinear_solver.h"
+#include "libmesh/petsc_diff_solver.h"
+#include "libmesh/newton_solver.h"
+#include "libmesh/steady_solver.h"
 
 namespace AGNOS
 {
-
 
   /********************************************//**
    * \brief Basic 1D Burger's PhysicsModel class
@@ -27,37 +27,41 @@ namespace AGNOS
    * This example is given in the book
    * "Spectral Methods for Uncertainty Quantification" by Le Maitre and Knio
    ***********************************************/
-  template<class T_S>
-  class PhysicsViscousBurgers : public PhysicsLibmesh<T_S>
+  template<class T_S, class T_P>
+  class PhysicsViscousBurgers : public PhysicsLibmesh<T_S,T_P>
   {
 
     public:
-      PhysicsViscousBurgers( 
-        Parallel::Communicator& comm_in, 
-        const GetPot& input );
+      /** Constructor. Pass input file to provide setting to physics class */
+      PhysicsViscousBurgers( const Communicator& comm_in, const GetPot& input );
 
-      ~PhysicsViscousBurgers( );
+      /** Destructor */
+      /* virtual ~PhysicsViscousBurgers( ); */
 
+      /** Redefine exactQoi for this model */
+      T_P exactQoi( )
+      {
+        T_P resultVector(1);
+        resultVector(0) = 10.;
+        return resultVector;
+      }
 
     protected:
+      /** Geometry and boundary data */
       double          _L;
-      double          _uMinus;
-      double          _uPlus;
-      int _n;
+      int             _nElem;
 
+      Number          _mu;
 
-      PhysicsJacobian<T_S>*           _physicsJacobian;
-      PhysicsResidual<T_S>*           _physicsResidual;
-
-      // Initialization
-      void _init( );
-      void _setParameterValues( const T_S& parameterValues ) ;
-
-      // solver settings
+      /** solver settings */ 
       unsigned int    _nonlinearTolerance;
       unsigned int    _nonlinearSteps;
 
 
+      /** set parameter values */
+      virtual void _setParameterValues( const T_S& parameterValues ) ;
+
+      
 
   };
 
@@ -67,131 +71,142 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  template<class T_S>
-  PhysicsViscousBurgers<T_S>::PhysicsViscousBurgers(
-        Parallel::Communicator& comm_in, 
+  template<class T_S, class T_P>
+  PhysicsViscousBurgers<T_S,T_P>::PhysicsViscousBurgers(
+        const Communicator& comm_in, 
         const GetPot& input 
-        ) :
-    PhysicsLibmesh<T_S>(comm_in,input)
+        ) 
+  :
+    PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
-    _L      = input("physics/L",10.);
-    _uMinus = input("physics/uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) ));
-    _uPlus  = input("physics/uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) );
 
-    _nonlinearSteps      = input("physics/nNonlinearSteps",15);
-    _nonlinearTolerance  = input("physics/nonlinearTolerance",1.e-9);
+    // read in parameters unique to this model
+    _L      = input("L",10.);
+    _nElem  = input("nElem",4);
+    /* _uMinus = input("uMinus",(0.5 * ( 1 + std::tanh( -1.*_L / 4. / 1.0) ) )); */
+    /* _uPlus  = input("uPlus",(0.5 * ( 1 + std::tanh( _L / 4. / 1.0) ) ) ); */
 
-    _init( );
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S>
-  PhysicsViscousBurgers<T_S>::~PhysicsViscousBurgers( )
-  {
-    delete _physicsResidual;
-    delete _physicsJacobian;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S>
-  void PhysicsViscousBurgers<T_S>::_init( )
-  {
+    // and some nonlinear solver parameters
+    _nonlinearSteps      = input("nNonlinearSteps",15);
+    _nonlinearTolerance  = input("nonlinearTolerance",1.e-9);
     //----------------------------------------------
-    this->_mesh = new Mesh( this->_communicator );
+    
 
+
+    // initialize mesh object
+    this->_mesh = new libMesh::Mesh(this->_communicator);
+    //----------------------------------------------
+    
+
+
+    // build mesh refinement object 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: pre mesh_refinement " << std::endl;
+    this->_buildMeshRefinement();
+    //----------------------------------------------
+    
+
+    // build mesh 
     libMesh::MeshTools::Generation::build_line(
-        *this->_mesh, _n, -1.*_L, _L, EDGE3);
+        *this->_mesh,this->_nElem,-1.*_L,_L,EDGE2);
+    this->_mesh->print_info();
+
+    //----------------------------------------------
+
 
     // define equation system
     this->_equationSystems 
       = new libMesh::EquationSystems(*this->_mesh);
-
-    // add system and set parent pointer 
     this->_system = 
-      &( this->_equationSystems->add_system(
-            "NonlinearImplicit","Burgers") );
-
-    // add variable (first order)
-    this->_system->add_variable("u",FIRST);
-    //----------------------------------------------
-
-    //----------------------------------------------
-    //---- set up nonlinear solver
-    // TODO do we need this?
-    // initalize the nonlinear solver
-    /* this->_equationSystems->template */
-    /*   get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->init(); */
-
-    //----------------------------------------------
-    // TODO set from input file ?
-    // set solver settings
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver relative residual tolerance") = _nonlinearTolerance;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver absolute residual tolerance") = 1.e-35;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver absolute step tolerance") = 1.e-12;
-    this->_equationSystems->parameters.template set<Real>
-      ("nonlinear solver relative step tolerance") = 1.e-12;
-    this->_equationSystems->parameters.template set<unsigned int>
-      ("nonlinear solver maximum iterations") = 50;
+      &( this->_equationSystems->template add_system<BurgersSystem>("Burgers") );
+    static_cast<BurgersSystem*>(this->_system)->_L = _L ; 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: post add system" << std::endl;
     //----------------------------------------------
     
 
-    //----------------------------------------------
-    // provide pointer to residual object
-    _physicsResidual = new ResidualViscousBurgers<T_S>( );
-    _physicsResidual->setSystemData( this->_input );
-    this->_equationSystems->template
-      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->residual_object 
-      = _physicsResidual;
+    // No transient time solver
+    this->_system->time_solver =
+        AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
+    {
+      /* NewtonSolver *solver = new NewtonSolver(*this->_system); */
+      PetscDiffSolver *solver = new PetscDiffSolver(*this->_system);
+      this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      
+      //TODO read in these setting?
+      solver->quiet                       = true;
+      solver->verbose                     = false;
+      solver->max_nonlinear_iterations    = 100;
+      solver->relative_step_tolerance     = 1.e-99;
+      solver->absolute_residual_tolerance = 1.e-16;
+      solver->relative_residual_tolerance = 1.e-99;
 
-    // provide pointer to jacobian object
-    _physicsJacobian = new JacobianViscousBurgers<T_S>( );
-    _physicsJacobian->setSystemData( this->_input );
-    this->_equationSystems->template
-      get_system<NonlinearImplicitSystem>("Burgers").nonlinear_solver->jacobian_object
-      = _physicsJacobian ;
-    //----------------------------------------------
+      // continue if fail to converge 
+      solver->continue_after_max_iterations = true;
+      solver->continue_after_backtrack_failure = true;
+      
+      // And the linear solver options
+      solver->max_linear_iterations       = 10000;
+      solver->initial_linear_tolerance    = 1.e-16;
+      solver->minimum_linear_tolerance    = TOLERANCE*TOLERANCE;
+      
+    }
+    if (AGNOS_DEBUG)
+      std::cout << "post solver set up" << std::endl;
+
+    //---------------------------------------------
+    /** initialize equation system */
+    this->_equationSystems->init ();
+    if (AGNOS_DEBUG)
+      std::cout << "post init system" << std::endl;
+    
 
 
     //----------------------------------------------
-    // QoISet
+    // set up QoISet object 
     this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
     qoi_indices.push_back(0);
     this->_qois->add_indices(qoi_indices);
-    this->_qois->set_weight(0, 1.0);
-                            
-    //pointer to qoi
-    this->_qoi = new QoiViscousBurgers<T_S>(
-        *this->_equationSystems, "Burgers");
 
-    // pointer to qoi derivative assembly
-    this->_system->qoi.resize(1);
-    this->_qoiDerivative = new QoiDerivativeViscousBurgers<T_S>(
-        *this->_equationSystems, "Burgers");
+    // weight the qois (in case we have more than 1)
+    this->_qois->set_weight(0, 1.0);
     //----------------------------------------------
 
-    /* std::cout << "test: system initialized" << std::endl; */
+    
+    // build error estimator object
+    this->_buildErrorEstimator();
+    if (AGNOS_DEBUG)
+      std::cout << "debug: post error estimator " << std::endl;
+    //----------------------------------------------
+    
+    // build mesh refinement object 
+    this->_buildMeshRefinement();
+    if (AGNOS_DEBUG)
+      std::cout << "test: pre mesh_refinement " << std::endl;
+    //----------------------------------------------
+
+
+
+    // Print information about the mesh and system to the screen.
+    this->_equationSystems->print_info();
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: leaving model specific setup" << std::endl;
+    //----------------------------------------------
   }
 
 
   /********************************************//**
    * \brief 
    ***********************************************/
-  template<class T_S>
-    void PhysicsViscousBurgers<T_S>::_setParameterValues( 
-        const T_S& parameterValues ) 
-    {
-      _physicsResidual->setParameterValues( parameterValues );
-      _physicsJacobian->setParameterValues( parameterValues );
-      return;
-    }
+  template<class T_S,class T_P>
+  void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues(
+    const T_S& parameterValues )
+  {
+    static_cast<BurgersSystem*>(this->_system)->_mu 
+      = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ;
+  }
+
 
 }
 

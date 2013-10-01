@@ -1,9 +1,6 @@
 
-
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE Evaluation
-#include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <cppunit/extensions/HelperMacros.h>
+#include <cppunit/TestCase.h>
 
 // local includes
 #include <iostream>
@@ -20,66 +17,101 @@ using namespace AGNOS;
 
 //________________________________________________________________//
 
-  // linear test function
-
   // mixed-order 5 dimensional exammple
-  T_P myFunction (const T_S& paramVec)
+  void myFunction (
+      const T_S& paramVec,
+      std::map<std::string, T_P>& solutionVectors
+      )
   {
     T_P returnVec(1);
     returnVec(0) = paramVec(0) * paramVec(4) + 
       paramVec(3)*paramVec(2)*paramVec(1) + std::pow(paramVec(2),2.0);
-    return returnVec ;
+
+    solutionVectors.clear();
+    solutionVectors.insert(std::pair<std::string,T_P>("primal",returnVec) );
   }
 
-BOOST_AUTO_TEST_SUITE(Evaluation_tensorProduct)
+  class EvaluationTest : public CppUnit::TestFixture
+  {
 
-  const Communicator comm( MPI_COMM_NULL );
+    CPPUNIT_TEST_SUITE( EvaluationTest );
+    CPPUNIT_TEST( mixedPoly );
+    CPPUNIT_TEST_SUITE_END();
 
-BOOST_AUTO_TEST_CASE(mixedPoly)
-{
-  BOOST_TEST_MESSAGE(" Testing evaluation of mixed order function");
+    public:
+      Communicator comm, physicsComm;
+      GetPot inputfile;
 
-  unsigned int dimension = 5;
-  std::vector<unsigned int> myOrder(dimension,0);
-  myOrder[0] = 1;
-  myOrder[1] = 1;
-  myOrder[2] = 2;
-  myOrder[3] = 1;
-  myOrder[4] = 1;
+      void setUp( )
+      {
+        comm = Communicator(MPI_COMM_WORLD);
+        inputfile = GetPot() ;
 
-  std::vector<Parameter*> myParameters(
-      dimension, 
-      new Parameter(UNIFORM, 0.0,1.0)
-      ); 
+        MPI_Comm subComm;
+        int mpiSplit =  
+          MPI_Comm_split( MPI_COMM_WORLD, comm.rank(), 0, &subComm);
+        physicsComm = Communicator(subComm) ;
+      }
 
-  PhysicsFunction<T_S,T_P>* myPhysicsFunction =
-    new PhysicsFunctionSimple<T_S,T_P>( "myFunction", &myFunction ) ;
+      void tearDown( )
+      {
+      }
 
-  PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
-    PseudoSpectralTensorProduct<T_S,T_P>(
-        &comm,
-        myPhysicsFunction, 
-        myParameters, 
-        myOrder  
-        );
 
-  mySurrogate->build( );
+      void mixedPoly()
+      {
+        std::cout << " Testing evaluation of mixed order function"<< std::endl;
 
-  T_S testValue(dimension);
-  testValue(0) = 0.15;
-  testValue(1) = 0.25;
-  testValue(2) = 0.35;
-  testValue(3) = 0.45;
-  testValue(4) = 0.55;
+        unsigned int dimension = 5;
+        std::vector<unsigned int> myOrder(dimension,0);
+        myOrder[0] = 1;
+        myOrder[1] = 1;
+        myOrder[2] = 2;
+        myOrder[3] = 1;
+        myOrder[4] = 1;
 
-  T_P surrogateValue = mySurrogate->evaluate( "myFunction", testValue);
+        std::vector<std::shared_ptr<AGNOS::Parameter> > myParameters(
+            dimension, 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(UNIFORM, 0.0,1.0)
+              )
+            ); 
 
-  T_P trueValue = myFunction(testValue);
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
+          new PhysicsModel<T_S,T_P>(physicsComm,inputfile));
+        myPhysics->attach_compute_function(&myFunction);
 
-  BOOST_CHECK_CLOSE( surrogateValue(0), trueValue(0) , 1e-9 );
-}
+        PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
+          PseudoSpectralTensorProduct<T_S,T_P>(
+              comm,
+              myPhysics, 
+              myParameters, 
+              myOrder  
+              );
 
-BOOST_AUTO_TEST_SUITE_END()
+        mySurrogate->build( );
+
+        std::map<std::string,T_P> trueSolution;
+        T_S testValue(dimension);
+        testValue(0) = 0.15;
+        testValue(1) = 0.25;
+        testValue(2) = 0.35;
+        testValue(3) = 0.45;
+        testValue(4) = 0.55;
+
+        T_P surrogateValue = mySurrogate->evaluate( "primal", testValue);
+
+        myFunction(testValue,trueSolution);
+
+        CPPUNIT_ASSERT( std::abs( 
+              surrogateValue(0) - trueSolution["primal"](0) ) <= 1e-9 );
+
+      delete mySurrogate;
+    }
+
+  };
+
+  CPPUNIT_TEST_SUITE_REGISTRATION( EvaluationTest );
 
 //________________________________________________________________//
 

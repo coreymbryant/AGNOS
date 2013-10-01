@@ -1,0 +1,8 @@
+#!/bin/bash
+PROG="@top_builddir@/test/catenaryLibmeshTest"
+
+INPUT=""
+
+CPP_UNIT_OPTIONS=""
+
+$PROG $INPUT $CPP_UNIT_OPTIONS 
