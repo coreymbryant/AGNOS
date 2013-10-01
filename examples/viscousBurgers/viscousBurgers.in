@@ -1,0 +1,67 @@
+[driver]
+maxIter = '2'
+adaptive = true
+[]
+
+[parameters]
+dimension = '2'
+nInitialHRefinements = '0'
+types ='UNIFORM UNIFORM'
+mins = '-1.0 -1.0'
+maxs = '1.0 1.0'
+[]
+
+
+[physics]
+type = 'viscousBurgers'
+refine = true
+
+  [./viscousBurgers]
+  solutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
+  L = '10.0'
+  nElem = '16'
+
+  nNonlinearSteps='15'
+  nonlinearTolerance='1.e-9'
+
+  useUniformRefinement = true
+  numberHRefinements = '1'
+  numberPRefinements = '0'
+  maxRefineSteps ='15'
+
+  resolveAdjoint = false
+  [../]
+[]
+
+
+[surrogateModels]
+modelNames = 'primarySurrogate errorSurrogate'
+refine = true
+anisotropic = false
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '1'
+  computeSolutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
+  [../]
+
+  [./errorSurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  primarySurrogate = 'primarySurrogate'
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
+  evaluateSolutions = 'primal adjoint'
+  computeSolutions='errorEstimate qoi'
+  [../]
+
+[]
+
+
+[output]
+filename = './testFile.dat'
+solutions = 'errorEstimate qoi'
+coefficients        = 1
+points              = 1
+weights             = 1
+index_set           = 1
+[]

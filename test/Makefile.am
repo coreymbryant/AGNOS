@@ -6,7 +6,9 @@ check_PROGRAMS = polynomialTest \
 								 catenaryTest \
 								 evaluationTest \
 								 parallelCatenary \
-								 catenaryLibmeshTest
+								 catenaryLibmeshTest \
+								 viscousBurgersTest \
+								 elementTest
 
 #--------------------------------------
 #Local Directories to include for build
@@ -32,16 +34,32 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
-polynomialTest_SOURCES 	=$(top_srcdir)/test/PolynomialTest.cpp
-catenaryTest_SOURCES 		=$(top_srcdir)/test/CatenaryTest.cpp
-evaluationTest_SOURCES 	=$(top_srcdir)/test/EvaluationTest.cpp
-parallelCatenary_SOURCES 		=$(top_srcdir)/test/ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES 		= $(top_srcdir)/test/libmeshTests.C \
-																	$(top_srcdir)/test/LibmeshCatenaryTest.cpp
+polynomialTest_SOURCES 			= driver.C PolynomialTest.cpp
+catenaryTest_SOURCES 				= driver.C CatenaryTest.cpp
+evaluationTest_SOURCES 			= driver.C EvaluationTest.cpp
+parallelCatenary_SOURCES 		= driver.C ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES = driver.C LibmeshCatenaryTest.cpp
+viscousBurgersTest_SOURCES  = driver.C ViscousBurgersTest.cpp
+elementTest_SOURCES  				= driver.C ElementTest.cpp
 
 
-TESTS  = $(top_builddir)/test/polynomialTest.sh
-TESTS += $(top_builddir)/test/catenaryTest.sh
-TESTS += $(top_builddir)/test/evaluationTest.sh
-TESTS += $(top_builddir)/test/parallelCatenary.sh
-TESTS += $(top_builddir)/test/catenaryLibmeshTest
+TESTS  = polynomialTest.sh
+TESTS += catenaryTest.sh
+TESTS += evaluationTest.sh
+TESTS += parallelCatenary.sh
+TESTS += catenaryLibmeshTest.sh
+TESTS += viscousBurgersTest.sh
+TESTS += elementTest.sh
+
+shellfiles_src = polynomialTest.sh \
+								 catenaryTest.sh \
+								 evaluationTest.sh \
+								 parallelCatenary.sh \
+								 catenaryLibmeshTest.sh \
+								 viscousBurgersTest.sh \
+								 elementTest.sh 
+
+# Want these put with the distro so we can run make check
+EXTRA_DIST = $(shellfiles_src) input_files test_data 
+
+
