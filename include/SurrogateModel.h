@@ -325,125 +325,131 @@ namespace AGNOS
         std::cout << "DEBUG: entering getCoefficients routine" << std::endl;
      
       std::map< std::string, LocalMatrix > allCoefficients;
-
       unsigned int myRank = this->_comm.rank();
 
-      // loop over all solution names
-      std::set<std::string>::iterator id = _solutionNames.begin();
-      for (; id!=_solutionNames.end(); ++id)
+      int globalRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      if (globalRank==0)
       {
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: getCoefficients routine: id: " << *id << std::endl;
 
-        unsigned int solSize = _solSize[*id];
-        LocalMatrix solCoefficients(this->_totalNCoeff,solSize);
 
-        if (myRank == 0)
+        // loop over all solution names
+        std::set<std::string>::iterator id = _solutionNames.begin();
+        for (; id!=_solutionNames.end(); ++id)
         {
-          /* std::cout << "rank 0" << std::endl; */
-          /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
-          /*   this->_coeffIndices.front() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
-          /*   this->_coeffIndices.back() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
-          /*   this->_coefficients[*id]->row_start() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
-          /*   this->_coefficients[*id]->row_stop() << std::endl; */
+          if(AGNOS_DEBUG)
+            std::cout << "DEBUG: getCoefficients routine: id: " << *id << std::endl;
 
-          // get my coeffs
-          for (unsigned int i=this->_coeffIndices.front(); 
-                i<this->_coeffIndices.back()+1; i++)
-            for (unsigned int j=0; j<solSize; j++)
-            {
-              /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
-              /*   << (*this->_coefficients[*id])(i,j) << std::endl; */
-              solCoefficients(i,j) = (*this->_coefficients[*id])(i,j)  ;
-            }
+          unsigned int solSize = _solSize[*id];
+          LocalMatrix solCoefficients(this->_totalNCoeff,solSize);
 
-
-          //receive other coeffs
-          for (unsigned int p=1; p<this->_comm.size(); p++)
+          if (myRank == 0)
           {
-            /* std::cout << "rank 0: recv from rank: " << p << std::endl; */
+            /* std::cout << "rank 0" << std::endl; */
+            /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
+            /*   this->_coeffIndices.front() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
+            /*   this->_coeffIndices.back() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
+            /*   this->_coefficients[*id]->row_start() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
+            /*   this->_coefficients[*id]->row_stop() << std::endl; */
+
+            // get my coeffs
+            for (unsigned int i=this->_coeffIndices.front(); 
+                  i<this->_coeffIndices.back()+1; i++)
+              for (unsigned int j=0; j<solSize; j++)
+              {
+                /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
+                /*   << (*this->_coefficients[*id])(i,j) << std::endl; */
+                solCoefficients(i,j) = (*this->_coefficients[*id])(i,j)  ;
+              }
+
+
+            //receive other coeffs
+            for (unsigned int p=1; p<this->_comm.size(); p++)
+            {
+              /* std::cout << "rank 0: recv from rank: " << p << std::endl; */
+              std::vector<unsigned int> jbuf;
+              std::vector<double> cbuf;
+
+              this->_comm.receive(p, jbuf);
+              this->_comm.receive(p, cbuf);
+
+              /* std::cout << "rank 0: recv from rank: " << p << " jbuf.size: " << */
+              /*   jbuf.size()<< std::endl; */
+              /* std::cout << "rank 0: recv from rank: " << p << " cbuf.size: " << */
+              /*   cbuf.size()<< std::endl; */
+
+              if (!jbuf.empty())
+              {
+                for (unsigned int i=jbuf.front(); i<jbuf.back()+1; i++)
+                  for (unsigned int j=0; j<solSize; j++)
+                  {
+                    unsigned int index = 
+                      (i-jbuf.front()) * solSize  // due to j index
+                      + j ;
+                    /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
+                    /*   << cbuf[index] << std::endl; */
+                    solCoefficients(i,j) = cbuf[index]  ;
+                  } // loop over sol index
+              } // if jbuf not empty
+            } // for each proc
+          } // if rank 0
+          else // send my coeffs to proc 0
+          {
+            /* std::cout << "rank " << myRank << std::endl; */
             std::vector<unsigned int> jbuf;
             std::vector<double> cbuf;
 
-            this->_comm.receive(p, jbuf);
-            this->_comm.receive(p, cbuf);
+            /* std::cout << "rank " << myRank << " _coeffIndices.size: " << */
+            /*   this->_coeffIndices.size() << std::endl; */
 
-            /* std::cout << "rank 0: recv from rank: " << p << " jbuf.size: " << */
-            /*   jbuf.size()<< std::endl; */
-            /* std::cout << "rank 0: recv from rank: " << p << " cbuf.size: " << */
-            /*   cbuf.size()<< std::endl; */
-
-            if (!jbuf.empty())
+            if ( !this->_coeffIndices.empty() )
             {
-              for (unsigned int i=jbuf.front(); i<jbuf.back()+1; i++)
+            /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
+            /*   this->_coeffIndices.front() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
+            /*   this->_coeffIndices.back() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.m(): " << */
+            /*   this->_coefficients[*id]->m() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.n(): " << */
+            /*   this->_coefficients[*id]->n() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
+            /*   this->_coefficients[*id]->row_start() << std::endl; */
+            /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
+            /*   this->_coefficients[*id]->row_stop() << std::endl; */
+              for (unsigned int i=this->_coeffIndices.front(); 
+                    i<this->_coeffIndices.back()+1; i++)
+              {
+                jbuf.push_back(i) ;
+
                 for (unsigned int j=0; j<solSize; j++)
                 {
-                  unsigned int index = 
-                    (i-jbuf.front()) * solSize  // due to j index
-                    + j ;
-                  /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
-                  /*   << cbuf[index] << std::endl; */
-                  solCoefficients(i,j) = cbuf[index]  ;
-                } // loop over sol index
-            } // if jbuf not empty
-          } // for each proc
-        } // if rank 0
-        else // send my coeffs to proc 0
-        {
-          /* std::cout << "rank " << myRank << std::endl; */
-          std::vector<unsigned int> jbuf;
-          std::vector<double> cbuf;
+                  /* std::cout << "rank " << myRank << " _coefficients(i,j): " << */
+                  /*   (*this->_coefficients[*id])(i,j) << std::endl; */
+                  cbuf.push_back( (*this->_coefficients[*id])(i,j) )  ;
+                }
 
-          /* std::cout << "rank " << myRank << " _coeffIndices.size: " << */
-          /*   this->_coeffIndices.size() << std::endl; */
+              } // for j in index set
+            }
 
-          if ( !this->_coeffIndices.empty() )
-          {
-          /* std::cout << "rank " << myRank << " _coeffIndices.front(): " << */
-          /*   this->_coeffIndices.front() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coeffIndices.back(): " << */
-          /*   this->_coeffIndices.back() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.m(): " << */
-          /*   this->_coefficients[*id]->m() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.n(): " << */
-          /*   this->_coefficients[*id]->n() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.row_start(): " << */
-          /*   this->_coefficients[*id]->row_start() << std::endl; */
-          /* std::cout << "rank " << myRank << " _coefficients.row_stop(): " << */
-          /*   this->_coefficients[*id]->row_stop() << std::endl; */
-            for (unsigned int i=this->_coeffIndices.front(); 
-                  i<this->_coeffIndices.back()+1; i++)
-            {
-              jbuf.push_back(i) ;
+            /* std::cout << "rank " << myRank << " jbuf.size: " << jbuf.size() << std::endl; */
+            /* std::cout << "rank " << myRank << " cbuf.size: " << cbuf.size() << std::endl; */
 
-              for (unsigned int j=0; j<solSize; j++)
-              {
-                /* std::cout << "rank " << myRank << " _coefficients(i,j): " << */
-                /*   (*this->_coefficients[*id])(i,j) << std::endl; */
-                cbuf.push_back( (*this->_coefficients[*id])(i,j) )  ;
-              }
-
-            } // for j in index set
-          }
-
-          /* std::cout << "rank " << myRank << " jbuf.size: " << jbuf.size() << std::endl; */
-          /* std::cout << "rank " << myRank << " cbuf.size: " << cbuf.size() << std::endl; */
-
-          this->_comm.send(0,jbuf);
-          this->_comm.send(0,cbuf);
+            this->_comm.send(0,jbuf);
+            this->_comm.send(0,cbuf);
 
 
-        } // if not proc 0
+          } // if not proc 0
 
 
-        allCoefficients.insert(
-            std::pair<std::string,LocalMatrix>(*id,solCoefficients) 
-            ) ;
+          allCoefficients.insert(
+              std::pair<std::string,LocalMatrix>(*id,solCoefficients) 
+              ) ;
 
-        } // end id
+          } // end id
+      }
 
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: leaving getCoefficients routine" << std::endl;
@@ -656,8 +662,8 @@ namespace AGNOS
       std::set< std::string > solutionsToGet;
       solutionsToGet.insert(solutionName);
 
-      std::map< std::string, T_P > solutionVectors
-        = this->l2Norm( solutionsToGet ) ;
+        std::map< std::string, T_P > solutionVectors
+          = this->l2Norm( solutionsToGet ) ;
 
       return solutionVectors[solutionName];
     }
