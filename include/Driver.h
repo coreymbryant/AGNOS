@@ -62,7 +62,7 @@ namespace AGNOS
       void printParameterSettings( std::ostream& out ) ;
       void printDriverSettings( std::ostream& out  ) ;
       void printSettings( ) ;
-      /* void printSolution( unsigned int iteration=1 ) ; */
+      void printSolution( unsigned int iteration=1 ) ;
 
 
     protected:
@@ -74,9 +74,6 @@ namespace AGNOS
 
       const Communicator& _comm;
       const Communicator& _physicsComm;
-
-      Communicator& _comm;
-      Communicator& _physicsComm;
 
       // ---------------------
       // DRIVER VARIABLES
@@ -234,14 +231,13 @@ namespace AGNOS
     _outputPoints        = input("points",true);
     _outputIndexSet      = input("index_set",true);
 
-    return;
   }
 
 /********************************************//**
  * \brief an initial driver run routine for testing
  * 
  ***********************************************/
-  void Driver::run( )
+  Driver::~Driver( )
   {
   }
 
@@ -259,7 +255,7 @@ namespace AGNOS
     _refinePhysics = input("physics/refine",false);
 
     if(AGNOS_DEBUG)
-      std::cout << "_initPhysics() rank: " << _comm.rank() << std::endl;
+      std::cout << "_initPhysics() rank: " << _physicsComm.rank() << std::endl;
 
     if ( physicsName == "viscousBurgers" )
     {
@@ -753,44 +749,49 @@ namespace AGNOS
         for (; elit!=_activeElems.end(); elit++)
         {
 
-          elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
-          globalPhysicsError += elit->_physicsError ;
-          errorOut << elit->_physicsError << " " ;
-
-          std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
-            << std::endl;
-
-          // safe guard against there not being a secondary surrogate
-          if (elit->surrogates().size() < 2)
+          int globalRank;
+          MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+          if(globalRank==0)
           {
-            std::cout << std::endl;
-            std::cerr << 
-              " ERROR: secondary 'error' surrogate has not been constructed"
+            elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
+            globalPhysicsError += elit->_physicsError ;
+            errorOut << elit->_physicsError << " " ;
+
+            std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
               << std::endl;
-            std::cout << std::endl;
-            exit(1);
+
+            // safe guard against there not being a secondary surrogate
+            if (elit->surrogates().size() < 2)
+            {
+              std::cout << std::endl;
+              std::cerr << 
+                " ERROR: secondary 'error' surrogate has not been constructed"
+                << std::endl;
+              std::cout << std::endl;
+              exit(1);
+            }
+            else
+            {
+              elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
+              elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
+                    *(elit->surrogates()[1]), "errorEstimate");
+              globalTotalError += elit->_totalError;
+              globalSurrogateError += elit->_surrogateError ;
+
+              // keep track of max of error
+              if (elit->_totalError >= maxElementError)
+                maxElementError = elit->_totalError ;
+
+              errorOut << elit->_totalError << " "  ;
+              errorOut << elit->_surrogateError << std::endl;
+
+              std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
+                << std::endl;
+              std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
+                elit->_surrogateError << std::endl;
+            } // end if errorSurrogate exists
+
           }
-          else
-          {
-            elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
-            elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
-                  *(elit->surrogates()[1]), "errorEstimate");
-            globalTotalError += elit->_totalError;
-            globalSurrogateError += elit->_surrogateError ;
-
-            // keep track of max of error
-            if (elit->_totalError >= maxElementError)
-              maxElementError = elit->_totalError ;
-
-            errorOut << elit->_totalError << " "  ;
-            errorOut << elit->_surrogateError << std::endl;
-
-            std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
-              << std::endl;
-            std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
-              elit->_surrogateError << std::endl;
-          } // end if errorSurrogate exists
-
         } // end for active elements
 
       } // end if adaptiveDriver
@@ -805,7 +806,7 @@ namespace AGNOS
     
     // print out settings
     printSettings();
-    printSolution(1);
+    /* printSolution(1); */
     
     /* // print out first iteration if requested */
     /* if (this->_outputIterations && (_comm.rank() == 0) ) */
