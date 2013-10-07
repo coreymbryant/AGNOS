@@ -3,6 +3,10 @@ maxIter = '4'
 adaptive = true
 []
 
+[parallel]
+physicsNodeSize = 2
+[]
+
 [parameters]
 dimension = '1'
 nInitialHRefinements = '0'
