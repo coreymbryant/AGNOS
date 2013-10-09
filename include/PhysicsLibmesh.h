@@ -258,10 +258,10 @@ namespace AGNOS
       }
       
       // broadcast contrib to all physics procs
-      int globalRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      int groupRank;
+      MPI_Comm_rank(this->_communicator.get(),&groupRank);
       typename std::map<std::string,T_P>::iterator cid ;
-      if(globalRank==0)
+      if(groupRank==0)
       {
         int nVectors = solutionVectors.size();
         this->_communicator.broadcast( nVectors );
@@ -272,11 +272,12 @@ namespace AGNOS
           this->_communicator.broadcast(solName);
           int solSize = cid->second.size();
           this->_communicator.broadcast(solSize);
-          std::vector<double> dbuf;
-          dbuf.resize(solutionVectors.size());
+          std::vector<double> dbuf(solSize,0.);
+          std::cout << "solSize: " << solSize << std::endl;
           for(unsigned int i=0; i<cid->second.size();i++)
           {
             dbuf[i]=cid->second(i) ;
+            std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl;
           }
           this->_communicator.broadcast(dbuf);
         }
@@ -295,6 +296,12 @@ namespace AGNOS
           this->_communicator.broadcast(solSize);
           std::vector<double> dbuf(solSize,0.);
           this->_communicator.broadcast(dbuf);
+
+          std::cout << "solSize: " << solSize << std::endl;
+          for(unsigned int i=0; i<dbuf.size();i++)
+          {
+            std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl;
+          }
 
           solutionVectors.insert( std::pair<std::string,T_P>(
                 sbuf, T_P(dbuf) ) ) ;
@@ -318,7 +325,11 @@ namespace AGNOS
               );
         if (AGNOS_DEBUG)
         {
-          std::cout << "DEBUG: primal solution\n:" ;
+          int globalRank;
+          MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+          std::cout << "DEBUG: primal solution:\n " ;
+          std::cout << "DEBUG: rank " << globalRank << std::endl;
+          std::cout << "DEBUG: point " << paramVector(0) << std::endl;
           system.solution->print_global();
         }
 

@@ -230,8 +230,15 @@ namespace AGNOS
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::set< std::string >::iterator id;
       
+      // ------------------------------------
+      // Determine processes position in the MPI groups
+      int globalRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      // ------------------------------------
+      
+
       // output progress
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
       {
         std::cout << std::endl;
         std::cout << " Starting build of surrogate model for: { " ;
@@ -245,26 +252,31 @@ namespace AGNOS
         std::cout << " }" << std::endl;
       }
 
+
+
+
       // ------------------------------------
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
-      unsigned int minPts = _nIntegrationPoints / this->_comm.size() ;
-      unsigned int remPts = _nIntegrationPoints % this->_comm.size() ;
-      unsigned int nPts  =  minPts + ( this->_comm.rank() < remPts ) ;
-      unsigned int intPtsStart = this->_comm.rank()*(minPts) 
-        + std::min( this->_comm.rank(), remPts ) ;
+      unsigned int minPts = _nIntegrationPoints / this->_nPhysicsGroups ;
+      unsigned int remPts = _nIntegrationPoints % this->_nPhysicsGroups ;
+      unsigned int nPts  =  minPts + ( this->_physicsGroup < remPts ) ;
+      unsigned int intPtsStart = this->_physicsGroup*(minPts) 
+        + std::min( (unsigned int)this->_physicsGroup, remPts ) ;
 
       this->_integrationIndices.clear();
       for (unsigned int i=0; i < nPts; i++)
         _integrationIndices.push_back( intPtsStart + i );
 
+      assert( nPts == _integrationIndices.size() );
+
       // assign the appropriate coeff to each processor
-      unsigned int minCoeff = totalNCoeff / this->_comm.size() ;
-      unsigned int remCoeff = totalNCoeff % this->_comm.size() ;
-      unsigned int nCoeffs  =  minCoeff + ( this->_comm.rank() < remCoeff ) ;
-      unsigned int coeffStart = this->_comm.rank()*(minCoeff) 
-        + std::min( this->_comm.rank(), remCoeff ) ;
+      unsigned int minCoeff = totalNCoeff / this->_nPhysicsGroups ;
+      unsigned int remCoeff = totalNCoeff % this->_nPhysicsGroups ;
+      unsigned int nCoeffs  =  minCoeff + ( this->_physicsGroup < remCoeff ) ;
+      unsigned int coeffStart = this->_physicsGroup*(minCoeff) 
+        + std::min( (unsigned int)this->_physicsGroup, remCoeff ) ;
 
       this->_coeffIndices.clear();
       for (unsigned int i=0; i < nCoeffs; i++)
@@ -272,15 +284,18 @@ namespace AGNOS
       // ------------------------------------
 
 
-      int globalRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
-      std::cout << "comm rank " << this->_comm.rank() << " -> global rank: " 
-        << globalRank << std::endl;
+      std::cout << "physicsGroup: " << this->_physicsGroup
+        << " groupRank: " << this->_groupRank 
+        << " global rank: " << globalRank 
+        << " nPts: " << this->_integrationIndices.size()
+        << " comm.size: " << this->_nPhysicsGroups 
+        << std::endl;
+
 
       // ------------------------------------
       // Initialize data structures
       std::shared_ptr<DistMatrix> polyValues;
-      if (globalRank ==0)
+      if (this->_groupRank ==0)
       {
         polyValues.reset(new DistMatrix(this->_comm));
         polyValues->init( 
@@ -299,9 +314,6 @@ namespace AGNOS
         }
       }
 
-      std::cout << "comm rank " << this->_comm.rank() << " -> global rank: " 
-        << globalRank << std::endl;
-
       // ------------------------------------
 
       
@@ -310,7 +322,7 @@ namespace AGNOS
 
       // ------------------------------------
       // Solve for solution at integration points
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
         std::cout << "     --> Solving at " << _nIntegrationPoints 
           << " integration points " << std::endl;
       
@@ -348,7 +360,7 @@ namespace AGNOS
             std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
               << std::endl;
 
-          if (globalRank==0)
+          if (this->_groupRank==0)
             this->_primaryEvaluations  = this->_evalSurrogate->evaluate(
                 this->_evalNames, _integrationPoints[pt], localPoint  ) ;
         }
@@ -365,7 +377,7 @@ namespace AGNOS
         //  - this is also when we will initialize the solContrib DistMatrix
         if (pt == 0)
         {
-          if (this->_comm.rank() == 0)
+          if (this->_physicsGroup == 0)
           {
             myContribs = computeContribution( this->_physics, 0) ;
           }
@@ -380,7 +392,7 @@ namespace AGNOS
           for (id=this->_solutionNames.begin();
               id!=this->_solutionNames.end(); id++)
           {
-            if (this->_comm.rank() == 0)
+            if (this->_physicsGroup == 0)
               tempSize = myContribs[*id].size();
 
             if(AGNOS_DEBUG)
@@ -398,7 +410,7 @@ namespace AGNOS
 
             
             // add a matrix for this solution and initalize to correct size
-            if (globalRank == 0)
+            if (this->_groupRank == 0)
             {
               solContrib.insert( 
                   std::pair<std::string, std::shared_ptr<DistMatrix> >(
@@ -412,11 +424,11 @@ namespace AGNOS
             // get proper sizing to prevent PetscMatrix from being oversized after
             // multiplication
             // NOTE:  we will still fill all solComp for this procs integrationPts
-            unsigned int minComp = solSize / this->_comm.size() ;
-            unsigned int remComp = solSize % this->_comm.size() ;
-            unsigned int nComp  =  minComp + ( this->_comm.rank() < remComp ) ;
+            unsigned int minComp = solSize / this->_nPhysicsGroups ;
+            unsigned int remComp = solSize % this->_nPhysicsGroups ;
+            unsigned int nComp  =  minComp + ( this->_physicsGroup < remComp ) ;
 
-            if (globalRank == 0)
+            if (this->_groupRank == 0)
             {
               // Matrix to save solutions 
               solContrib[*id]->init(
@@ -437,7 +449,7 @@ namespace AGNOS
               }
 
               // copy first coefficient into matrix
-              if (this->_comm.rank() == 0)
+              if (this->_physicsGroup == 0)
               {
                 for (unsigned int j=0; j<solSize; j++)
                   solContrib[*id]->set(
@@ -456,11 +468,14 @@ namespace AGNOS
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
 
+          std::cout << "DEBUG: rank: " << globalRank << " pt: " << pt <<
+            std::endl;
+
           // compute the contribution
           std::map<std::string,T_P> myContribs =
             computeContribution( this->_physics, pt) ;
 
-          if (globalRank==0)
+          if (this->_groupRank==0)
           {
             // and save into solution matrix
             for (id=this->_solutionNames.begin();
@@ -485,7 +500,7 @@ namespace AGNOS
         {
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: begin copy poly evals" << std::endl;
-          if(globalRank==0)
+          if(this->_groupRank==0)
           {
             std::vector<double> myPolyVals =  
               evaluateBasis( this->_indexSet,
@@ -514,7 +529,7 @@ namespace AGNOS
 
 
       this->_comm.barrier();
-      if (globalRank==0)
+      if (this->_groupRank==0)
         polyValues->close();
 
 
@@ -524,12 +539,12 @@ namespace AGNOS
       // save if its one of my coefficients
       // --------------
       
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
         std::cout << "     --> Computing " << totalNCoeff << " coefficients" <<
           std::endl;
 
 
-      if (globalRank==0)
+      if (this->_groupRank==0)
       {
         //-- loop through sols
         for (id=this->_solutionNames.begin();
@@ -658,9 +673,7 @@ namespace AGNOS
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::map< std::string, T_P> surrogateValue;
 
-      int globalRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
-      if(globalRank==0)
+      if(this->_groupRank==0)
       {
 
         // initalize polyValues data structure
@@ -669,7 +682,7 @@ namespace AGNOS
         //        local m = 1
         DistMatrix polyValues(this->_comm);
         polyValues.init( 
-            this->_comm.size(),           // global dim m
+            this->_nPhysicsGroups,           // global dim m
             totalNCoeff,                  // global dim n
             saveLocal,                    // local dim m
             this->_coeffIndices.size(),   // local dim n
@@ -784,7 +797,7 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
       std::ostream& out ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       out << std::endl;
       out << "#====================================================" <<
@@ -814,7 +827,7 @@ namespace AGNOS
   template<class T_S,class T_P>
   void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationPoints( ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       std::cout << std::endl;
       std::cout << "====================================================" <<
@@ -854,7 +867,7 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationWeights( 
       std::ostream& out ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       double sum = 0.0;
       out << std::endl;
@@ -885,7 +898,7 @@ namespace AGNOS
     template<class T_S,class T_P>
     void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationWeights( ) const
     {
-      if (this->_comm.rank() == 0)
+      if (this->_groupRank == 0)
       {
         double sum = 0.0;
         std::cout << std::endl;
@@ -915,7 +928,7 @@ namespace AGNOS
     template<class T_S, class T_P> 
       void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
       {
-        if (this->_comm.rank() == 0)
+        if (this->_groupRank == 0)
         {
           out << std::endl;
           out << "#====================================================" <<
@@ -945,7 +958,7 @@ namespace AGNOS
   template<class T_S, class T_P> 
     void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIndexSet( ) const
     {
-      if (this->_comm.rank() == 0)
+      if (this->_groupRank == 0)
       {
         std::cout << std::endl;
         std::cout << "====================================================" <<
@@ -984,8 +997,6 @@ namespace AGNOS
         )
     {
 
-      int globalRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
 
       // initialize to zero
       std::map< std::string, T_P> l2norm;
@@ -997,7 +1008,7 @@ namespace AGNOS
             );
       }
 
-      if(globalRank==0)
+      if(this->_groupRank==0)
       {
         //---------
         //get integration points for higher order quad rule
