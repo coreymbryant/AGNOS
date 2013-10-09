@@ -180,6 +180,17 @@ int main(int argc, char* argv[])
         Communicator(physicsComm), 
         inputfile );
 
+    MPI_Group physicsGroup;;
+    MPI_Comm_group(physicsComm,&physicsGroup);
+    int groupRank;
+    MPI_Group_rank(physicsGroup, &groupRank);
+    std::cout << "physicsGroupRank:" << groupRank << std::endl;
+    if (groupRank==0)
+    {
+      MPI_Comm_rank(driverComm,&groupRank);
+      std::cout << "driverGroupRank:" << groupRank << std::endl;
+    }
+
 
     std::cout << "rank:" << rank << std::endl;
     std::cout << "size:" << size  << std::endl;
