@@ -160,6 +160,15 @@ namespace AGNOS
       /** set reference to physics pointer */
       void setPhysics( std::shared_ptr<PhysicsModel<T_S,T_P> > physics ) 
       { _physics = physics; }
+      /** reference to physicsGroup*/
+      const int physicsGroup() const
+      { return _physicsGroup; }
+      /** reference to number of physics groups*/
+      const int nPhysicsGroups() const
+      { return _nPhysicsGroups; }
+      /** reference to groupRank */
+      const int groupRank() const
+      { return _groupRank; }
 
       /** solution names this surrogateModel is built for */
       std::set<std::string> getSolutionNames( ) const
@@ -174,6 +183,13 @@ namespace AGNOS
       const Communicator& _comm;
       /** reference to underlying physics */
       std::shared_ptr<PhysicsModel<T_S,T_P> > _physics;
+      /** reference to physics group number */
+      int _physicsGroup;
+      /** reference to number of physics groups */
+      int _nPhysicsGroups;
+      /** reference to groupRank (needed to deterimine if this is a master or
+       * slave node) */
+      int _groupRank;
       
       /** expansion order */
       std::vector<unsigned int>                           _order;  
@@ -230,6 +246,16 @@ namespace AGNOS
         _dimension( parameters.size() ), 
         _order(order)
     {
+      int globalRank,globalSize;
+      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      MPI_Comm_size(MPI_COMM_WORLD,&globalSize);
+      _physicsGroup = globalRank / ( _physics->comm().size() ) ;
+      _nPhysicsGroups = globalSize / ( _physics->comm().size() ) ;
+      MPI_Comm_rank(_physics->comm().get(),&_groupRank);
+
+      assert( _groupRank == (globalRank % _physics->comm().size() ) );
+
+
       _solutionNames.clear();
       _solutionNames = physics->getSolutionNames();
 
@@ -265,6 +291,16 @@ namespace AGNOS
         _dimension( _parameters.size() ),
         _evalSurrogate( primarySurrogate )
     {
+      int globalRank,globalSize;
+      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      MPI_Comm_size(MPI_COMM_WORLD,&globalSize);
+      _physicsGroup = globalRank / ( _physics->comm().size() ) ;
+      _nPhysicsGroups = globalSize / ( _physics->comm().size() ) ;
+      MPI_Comm_rank(_physics->comm().get(),&_groupRank);
+
+      assert( _groupRank == (globalRank % _physics->comm().size() ) );
+
+
       // augment order appropriately
       _order = primarySurrogate->getExpansionOrder() ;
       _increaseOrder = increaseOrder ;
@@ -325,11 +361,9 @@ namespace AGNOS
         std::cout << "DEBUG: entering getCoefficients routine" << std::endl;
      
       std::map< std::string, LocalMatrix > allCoefficients;
-      unsigned int myRank = this->_comm.rank();
+      unsigned int myRank = this->_physicsGroup;
 
-      int globalRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
-      if (globalRank==0)
+      if (this->_groupRank==0)
       {
 
 
@@ -465,32 +499,35 @@ namespace AGNOS
         std::ostream& out ) 
     {
 
-      std::map<std::string,LocalMatrix > coefficients =
-        this->getCoefficients();
-
-      if ( this->_comm.rank() == 0)
+      if ( this->_groupRank == 0)
       {
-        out << "#" << std::string(75,'=') << std::endl;
+        std::map<std::string,LocalMatrix > coefficients =
+          this->getCoefficients();
 
-        for (unsigned int i=0; i < solutionNames.size(); i++)
+        if ( this->_physicsGroup == 0)
         {
-          std::string id = solutionNames[i];
-          out << "#" << std::string(75,'-') << std::endl;
-          out << "#" << "\t Solution: " << id << std::endl;
-          out << "#" << std::string(75,'-') << std::endl;
+          out << "#" << std::string(75,'=') << std::endl;
 
-          for(unsigned int i=0; i<coefficients[id].m(); i++)
+          for (unsigned int i=0; i < solutionNames.size(); i++)
           {
-            for(unsigned int j=0; j<coefficients[id].n(); j++)
-            {
-              out << std::setprecision(5) << std::scientific 
-                << coefficients[id](i,j) << " " ;
-            } // j
-            out << std::endl;
-          } // i
-        } // id
-      } // if rank==0
+            std::string id = solutionNames[i];
+            out << "#" << std::string(75,'-') << std::endl;
+            out << "#" << "\t Solution: " << id << std::endl;
+            out << "#" << std::string(75,'-') << std::endl;
 
+            for(unsigned int i=0; i<coefficients[id].m(); i++)
+            {
+              for(unsigned int j=0; j<coefficients[id].n(); j++)
+              {
+                out << std::setprecision(5) << std::scientific 
+                  << coefficients[id](i,j) << " " ;
+              } // j
+              out << std::endl;
+            } // i
+          } // id
+        } // if rank==0
+
+      }
 
 
       /* unsigned int myRank = _comm.rank(); */

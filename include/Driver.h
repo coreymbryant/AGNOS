@@ -749,9 +749,7 @@ namespace AGNOS
         for (; elit!=_activeElems.end(); elit++)
         {
 
-          int globalRank;
-          MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
-          if(globalRank==0)
+          if(elit->surrogates()[0]->groupRank()==0)
           {
             elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
             globalPhysicsError += elit->_physicsError ;

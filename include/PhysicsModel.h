@@ -110,6 +110,9 @@ namespace AGNOS
         libmesh_assert(fptr);
         _compute_function = fptr;
       }
+
+      /** return reference to communicator */
+      const Communicator& comm() const { return _communicator; }
       
     protected:
       /** communicator reference */
