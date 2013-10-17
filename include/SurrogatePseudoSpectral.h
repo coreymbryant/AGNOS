@@ -468,9 +468,6 @@ namespace AGNOS
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: pt (pre computeContribution)" << std::endl;
 
-          std::cout << "DEBUG: rank: " << globalRank << " pt: " << pt <<
-            std::endl;
-
           // compute the contribution
           std::map<std::string,T_P> myContribs =
             computeContribution( this->_physics, pt) ;
@@ -1044,7 +1041,8 @@ namespace AGNOS
           }
 
         } // end loop over quad points
-      }
+
+      } // end groupRank == 0
 
       
       // take square root
