@@ -232,9 +232,12 @@ namespace AGNOS
         ) 
     {
       if (AGNOS_DEBUG)
+      {
         std::cout << "DEBUG:  begin: PhysicsModel::compute(...)" << std::endl;
+        std::cout << "DEBUG:         rank: " << this->_communicator.rank() 
+          << std::endl;
+      }
       
-      std::cout << "DEBUG:  rank: " << this->_communicator.rank() << std::endl;
 
 
       // An EquationSystems reference will be convenient.
@@ -265,7 +268,7 @@ namespace AGNOS
       {
         int nVectors = solutionVectors.size();
         this->_communicator.broadcast( nVectors );
-        std::cout << "send nVectors: " << nVectors << std::endl;
+        /* std::cout << "send nVectors: " << nVectors << std::endl; */
         for(cid=solutionVectors.begin();cid!=solutionVectors.end();cid++)
         {
           std::string solName = cid->first;
@@ -273,11 +276,11 @@ namespace AGNOS
           int solSize = cid->second.size();
           this->_communicator.broadcast(solSize);
           std::vector<double> dbuf(solSize,0.);
-          std::cout << "solSize: " << solSize << std::endl;
+          /* std::cout << "solSize: " << solSize << std::endl; */
           for(unsigned int i=0; i<cid->second.size();i++)
           {
             dbuf[i]=cid->second(i) ;
-            std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl;
+            /* std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl; */
           }
           this->_communicator.broadcast(dbuf);
         }
@@ -287,7 +290,7 @@ namespace AGNOS
         solutionVectors.clear();
         int nVectors;
         this->_communicator.broadcast( nVectors );
-        std::cout << "recv nVectors: " << nVectors << std::endl;
+        /* std::cout << "recv nVectors: " << nVectors << std::endl; */
         for(unsigned int i=0; i<nVectors; i++)
         {
           std::string sbuf;
@@ -297,10 +300,10 @@ namespace AGNOS
           std::vector<double> dbuf(solSize,0.);
           this->_communicator.broadcast(dbuf);
 
-          std::cout << "solSize: " << solSize << std::endl;
+          /* std::cout << "solSize: " << solSize << std::endl; */
           for(unsigned int i=0; i<dbuf.size();i++)
           {
-            std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl;
+            /* std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl; */
           }
 
           solutionVectors.insert( std::pair<std::string,T_P>(
