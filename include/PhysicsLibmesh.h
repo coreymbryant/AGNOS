@@ -15,6 +15,7 @@
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/error_vector.h"
 #include "libmesh/gnuplot_io.h"
+#include "libmesh/vtk_io.h"
 
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
@@ -54,6 +55,18 @@ namespace AGNOS
         unsigned int index,       // The adaptive step count
         std::string solution_type = "primal") // primal or adjoint solve
   {
+    MeshBase &mesh = es.get_mesh();
+
+    std::ostringstream file_name;
+    file_name << solution_type
+                  << ".out.pvtu."
+                  << std::setw(2)
+                  << std::setfill('0')
+                  << std::right
+                  << index;
+
+    VTKIO(mesh).write_equation_systems
+      (file_name.str(), es);
   }
 
 
@@ -265,6 +278,12 @@ namespace AGNOS
         // solve system
         system.solve();
         
+        //TODO make this an option somehow
+        if ( this->_mesh->mesh_dimension() == 1)
+          write_gnuplot(es,0,"primal");
+        else
+            write_vtk(es,0,"primal");
+        
         // save solution in solutionVectors
         std::vector<Number> primalSolution;
         system.solution->localize(primalSolution);
@@ -276,12 +295,6 @@ namespace AGNOS
           std::cout << "DEBUG: primal solution\n:" ;
           system.solution->print_global();
         }
-
-        //TODO make this an option somehow
-        if ( this->_mesh->mesh_dimension() == 1)
-          write_gnuplot(es,0);
-        else
-          write_vtk(es,0);
 
       }
 
@@ -415,6 +428,17 @@ namespace AGNOS
                   );
           }
         }
+        
+        NumericVector<Number> &primal_solution = *system.solution;
+        NumericVector<Number> &dual_solution = system.get_adjoint_solution(0);
+        primal_solution.swap(dual_solution);
+        
+        //TODO make this an option somehow
+        if ( this->_mesh->mesh_dimension() == 1)
+          write_gnuplot(es,0,"adjoint");
+        else
+            write_vtk(es,0,"adjoint");
+        primal_solution.swap(dual_solution);
 
         if(AGNOS_DEBUG)
         {
@@ -782,6 +806,8 @@ namespace AGNOS
             std::pair<std::string,T_P>( "exactQoi", this->exactQoi() )
               );
       }
+
+      
 
       
 

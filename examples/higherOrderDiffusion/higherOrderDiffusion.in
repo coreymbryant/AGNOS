@@ -16,7 +16,7 @@ type = 'higherOrderDiffusion'
 refine = true
 
   [./higherOrderDiffusion]
-  forcing = '-10.0'
+  nElem = '100'
   solutions='primal adjoint qoi errorEstimate'
 
   numberHRefinements = '1'
@@ -28,6 +28,8 @@ refine = true
 
 [surrogateModels]
 modelNames = 'primarySurrogate'
+refine = true
+anisotropic = true
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'

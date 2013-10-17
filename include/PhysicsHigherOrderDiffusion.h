@@ -59,7 +59,7 @@ namespace AGNOS
 
   void DiffusionSystem::init_data ()
   {
-    unsigned int u_var = this->add_variable ("u",FIRST) ;
+    unsigned int u_var = this->add_variable ("u",FIRST,HIERARCHIC) ;
     this->time_evolving(u_var);
 
     // define coeffs for KLE
@@ -179,7 +179,7 @@ namespace AGNOS
         for (unsigned int i=0; i != n_u_dofs; i++)
           F(i) += JxW[qp] * ( 
               // (f,v) or (-K gradu_true dot gradv) 
-               10.0 * phi[i][qp]
+               -10.0 * phi[i][qp]
               // - (u_x,v_x)
               + std::exp(logCoeff) * grad_u * dphi[i][qp] 
               );
@@ -280,7 +280,7 @@ namespace AGNOS
 
       for (unsigned int i=0; i != n_u_dofs; i++)
         Q(i) += JxW[qp] * phi[i][qp] * 10./M_PI * 
-          std::exp( -10. * std::pow(x-0.5,2.) -10. * std::pow(x-0.5,2.) );
+          std::exp( -10. * std::pow(x-0.5,2.) -10. * std::pow(y-0.5,2.) );
 
     } // end of the quadrature point qp-loop
   }
@@ -356,8 +356,9 @@ namespace AGNOS
         this->_nElem,
         0.,1.,
         0.,1.,
-        QUAD9);
+        TRI6);
     this->_mesh->print_info();
+
     //----------------------------------------------
 
 
