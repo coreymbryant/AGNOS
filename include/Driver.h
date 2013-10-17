@@ -513,10 +513,7 @@ namespace AGNOS
 
         elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
         globalPhysicsError += elit->_physicsError ;
-        errorOut << elit->_physicsError << " " ;
-
-        std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
-          << std::endl;
+        _physicsComm.broadcast(elit->_physicsError);
 
         // safe guard against there not being a secondary surrogate
         if (elit->surrogates().size() < 2)
@@ -536,29 +533,45 @@ namespace AGNOS
           globalTotalError += elit->_totalError;
           globalSurrogateError += elit->_surrogateError ;
 
+          _physicsComm.broadcast(elit->_totalError);
+          _physicsComm.broadcast(elit->_surrogateError);
+
           // keep track of max of error
           if (elit->_totalError >= maxElementError)
             maxElementError = elit->_totalError ;
 
-          errorOut << elit->_totalError << " "  ;
-          errorOut << elit->_surrogateError << std::endl;
-
-          std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
-            << std::endl;
-          std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
-            elit->_surrogateError << std::endl;
         } // end if errorSurrogate exists
 
       } // end for active elements
 
     } // end if adaptiveDriver
 
+    // broadcast errors to all procs
+    _physicsComm.broadcast(globalTotalError);
+    _physicsComm.broadcast(globalSurrogateError);
+    _physicsComm.broadcast(globalPhysicsError);
+    
+    std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
+    /* errorOut << globalPhysicsError << " " ; */
+
+    std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
+    std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+    /* errorOut << globalTotalError << " "  ; */
+    /* errorOut << globalSurrogateError << std::endl; */
 
 
 
     // now perform the rest of the iterations
     for (unsigned int iter=2; iter <= _maxIter; iter++)
     {
+
+    maxElementError = 0;
+
+    int globalRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+    if(AGNOS_DEBUG)
+      std::cout << "DEBUG: iter-" << iter << " rank-" << globalRank << std::endl;
+
       
       // need a way to keep track of whether physics has been refined or not
       std::set< std::shared_ptr<PhysicsModel<T_S,T_P> > > markedPhysics;
@@ -566,6 +579,7 @@ namespace AGNOS
       // loop through active elements , if error is above threshold mark
       // unique physics objects
       for (elit=_activeElems.begin(); elit!=_activeElems.end(); elit++)
+      {
         if ( elit->_totalError >= _refinePercentage * maxElementError )
         {
           // Determine which space to refine
@@ -578,11 +592,14 @@ namespace AGNOS
               //TODO add some more conditions here 
              ) 
           {
+            if(AGNOS_DEBUG)
+              std::cout << "DEBUG: refine physics rank-" << globalRank << std::endl;
           
             // mark my physics to be refined if it hasn't been
             if ( !markedPhysics.count( elit->physics() ) ) 
             {
-              std::cout << "unique physics" << std::endl;
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: unique physics" << std::endl;
               markedPhysics.insert( elit->physics() ) ;
             }
 
@@ -605,6 +622,8 @@ namespace AGNOS
               )
           {
 
+            if(AGNOS_DEBUG)
+              std::cout << "DEBUG: refine surrogate rank-" << globalRank << std::endl;
             std::vector<unsigned int> increase(_paramDim,0) ;
             if (!_anisotropic)
               for (unsigned int i=0; i< increase.size(); i++)
@@ -630,21 +649,24 @@ namespace AGNOS
                 std::vector< std::vector<unsigned int> > sortedM 
                   = elit->surrogates()[1]->indexSet() ;
 
-                std::cout << " N: " << std::endl;
-                for (unsigned int i=0; i<sortedN.size(); i++)
+                if(AGNOS_DEBUG)
                 {
-                  for (unsigned int j=0; j<sortedN[i].size(); j++)
-                    std::cout << sortedN[i][j] << " " ;
-                  std::cout << std::endl;
-                      
-                }
-                std::cout << " sorted M: " << std::endl;
-                for (unsigned int i=0; i<sortedM.size(); i++)
-                {
-                  for (unsigned int j=0; j<sortedM[i].size(); j++)
-                    std::cout << sortedM[i][j] << " " ;
-                  std::cout << std::endl;
-                      
+                  std::cout << " N: " << std::endl;
+                  for (unsigned int i=0; i<sortedN.size(); i++)
+                  {
+                    for (unsigned int j=0; j<sortedN[i].size(); j++)
+                      std::cout << sortedN[i][j] << " " ;
+                    std::cout << std::endl;
+                        
+                  }
+                  std::cout << " sorted M: " << std::endl;
+                  for (unsigned int i=0; i<sortedM.size(); i++)
+                  {
+                    for (unsigned int j=0; j<sortedM[i].size(); j++)
+                      std::cout << sortedM[i][j] << " " ;
+                    std::cout << std::endl;
+                        
+                  }
                 }
 
 
@@ -663,24 +685,31 @@ namespace AGNOS
                       maxIndex = i;
                     }
 
-                    std::cout << " found one: index:" << i << "    " ;
-                    for (unsigned int j=0; j<sit->size(); j++)
-                      std::cout << (*sit)[j] << " " ;
-                    std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
-                    std::cout << std::endl;
+                    if(AGNOS_DEBUG)
+                    {
+                      std::cout << " found one: index:" << i << "    " ;
+                      for (unsigned int j=0; j<sit->size(); j++)
+                        std::cout << (*sit)[j] << " " ;
+                      std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
+                      std::cout << std::endl;
+                    }
                   }
                 }
 
-                std::cout << "   maxIndex = " << maxIndex << std::endl;
+                if(AGNOS_DEBUG)
+                  std::cout << "   maxIndex = " << maxIndex << std::endl;
                 for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
                   if ( sortedM[maxIndex][j] >
                       elit->surrogates()[0]->getExpansionOrder()[j] )
                     increase[j]++;
 
-                std::cout << "increase = " ;
-                for (unsigned int i=0; i<increase.size(); i++)
-                  std::cout << increase[i] << " " ;
-                std::cout << std::endl;
+                if(AGNOS_DEBUG)
+                {
+                  std::cout << "increase = " ;
+                  for (unsigned int i=0; i<increase.size(); i++)
+                    std::cout << increase[i] << " " ;
+                  std::cout << std::endl;
+                }
 
                 exit(1) ;
 
@@ -706,8 +735,21 @@ namespace AGNOS
           } // end of if refine surrogate
 
         } // end of active element and if above threshold loop
+        else
+        {
+          if(AGNOS_DEBUG)
+          {
+            std::cout << "DEBUG: no refine rank-" << globalRank << std::endl;
+            std::cout << "      totalError=" << elit->_totalError ;
+            std::cout << "      maxElementError=" << maxElementError;
+            std::cout << std::endl;
+          }
+        }
 
+      } // loop over active elements
 
+      if(AGNOS_DEBUG)
+        std::cout << "DEBUG: pre update elements rank-" << globalRank << std::endl;
 
       // refine all physics that were marked
       std::set< std::shared_ptr<PhysicsModel<T_S,T_P> > >::iterator physIt =
@@ -717,6 +759,7 @@ namespace AGNOS
         // TODO if use indicators 
 
 
+
       while (!_elemsToUpdate.empty())
       {
         const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
@@ -724,17 +767,20 @@ namespace AGNOS
         // rebuild surrogates for elements that need updated
         for(unsigned int i=0;i<elem.surrogates().size(); i++)
         {
-          std::cout << "pre surrogate build " << i << std::endl;
+          if(AGNOS_DEBUG)
+            std::cout << "DEBUG: pre surrogate build " << i << " rank-" << globalRank << std::endl;
           elem.surrogates()[i]->build();
-          std::cout << "post surrogate build " << i << std::endl;
+          if(AGNOS_DEBUG)
+            std::cout << "DEBUG: post surrogate build " << i << " rank-" << globalRank << std::endl;
         }
 
         // remove element from update list
         _elemsToUpdate.pop();
       }
 
+      if(AGNOS_DEBUG)
+        std::cout << "DEBUG: post update elements rank-" << globalRank << std::endl;
         
-
       // if we are using adaptiveDriver then print out/save individual errors
       if (_adaptiveDriver)
       {
@@ -749,14 +795,11 @@ namespace AGNOS
         for (; elit!=_activeElems.end(); elit++)
         {
 
-          if(elit->surrogates()[0]->groupRank()==0)
-          {
+          /* if(elit->surrogates()[0]->groupRank()==0) */
+          /* { */
             elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
             globalPhysicsError += elit->_physicsError ;
-            errorOut << elit->_physicsError << " " ;
-
-            std::cout << "ACTIVE ELEMENTS:  physicsError    = "  << elit->_physicsError 
-              << std::endl;
+            _physicsComm.broadcast(elit->_physicsError);
 
             // safe guard against there not being a secondary surrogate
             if (elit->surrogates().size() < 2)
@@ -776,23 +819,36 @@ namespace AGNOS
               globalTotalError += elit->_totalError;
               globalSurrogateError += elit->_surrogateError ;
 
+              _physicsComm.broadcast(elit->_totalError);
+              _physicsComm.broadcast(elit->_surrogateError);
+
               // keep track of max of error
               if (elit->_totalError >= maxElementError)
                 maxElementError = elit->_totalError ;
 
-              errorOut << elit->_totalError << " "  ;
-              errorOut << elit->_surrogateError << std::endl;
-
-              std::cout << "ACTIVE ELEMENTS:  totalError      = "  << elit->_totalError 
-                << std::endl;
-              std::cout << "ACTIVE ELEMENTS:  surrogateError  = "  <<
-                elit->_surrogateError << std::endl;
             } // end if errorSurrogate exists
 
-          }
+          /* } // end if groupRank==0 */
+
+          
+
         } // end for active elements
 
       } // end if adaptiveDriver
+      
+
+      // broadcast errors to all procs
+      _physicsComm.broadcast(globalTotalError);
+      _physicsComm.broadcast(globalSurrogateError);
+      _physicsComm.broadcast(globalPhysicsError);
+      
+      std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
+      /* errorOut << globalPhysicsError << " " ; */
+
+      std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
+      std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+      /* errorOut << globalTotalError << " "  ; */
+      /* errorOut << globalSurrogateError << std::endl; */
 
     } // end for nIter
 
