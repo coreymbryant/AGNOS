@@ -111,9 +111,9 @@ namespace AGNOS
 
     protected:
       /** communicator reference */
-      const Communicator&   _communicator;
+      /* const Communicator&   _communicator; */
       /** reference to input file just incase its needed after initialization */
-      const GetPot&         _input;
+      /* const GetPot&         _input; */
 
       /** mesh and equation pointers */
       libMesh::FEMSystem*                      _system;
@@ -155,8 +155,7 @@ namespace AGNOS
       const Communicator& comm_in,
       const GetPot&           input
       ) : 
-    PhysicsModel<T_S,T_P>(comm_in,input),
-    _communicator(comm_in),_input(input)
+    PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
 
@@ -171,7 +170,7 @@ namespace AGNOS
     if(AGNOS_DEBUG)
     {
       int worldRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      MPI_Comm_rank(this->_communicator.get(),&worldRank);
       std::cout << "DEBUG: worldRank:" << worldRank << std::endl;
     }
 
@@ -246,8 +245,13 @@ namespace AGNOS
         ) 
     {
       if (AGNOS_DEBUG)
+      {
         std::cout << "DEBUG:  begin: PhysicsModel::compute(...)" << std::endl;
+        std::cout << "DEBUG:         rank: " << this->_communicator.rank() 
+          << std::endl;
+      }
       
+
 
       // An EquationSystems reference will be convenient.
       FEMSystem& system = *_system;
@@ -267,6 +271,57 @@ namespace AGNOS
         std::cout << "DEBUG: in compute routine:" << std::endl;
         mesh.print_info();
         es.print_info();
+      }
+      
+      // broadcast contrib to all physics procs
+      int groupRank;
+      MPI_Comm_rank(this->_communicator.get(),&groupRank);
+      typename std::map<std::string,T_P>::iterator cid ;
+      if(groupRank==0)
+      {
+        int nVectors = solutionVectors.size();
+        this->_communicator.broadcast( nVectors );
+        /* std::cout << "send nVectors: " << nVectors << std::endl; */
+        for(cid=solutionVectors.begin();cid!=solutionVectors.end();cid++)
+        {
+          std::string solName = cid->first;
+          this->_communicator.broadcast(solName);
+          int solSize = cid->second.size();
+          this->_communicator.broadcast(solSize);
+          std::vector<double> dbuf(solSize,0.);
+          /* std::cout << "solSize: " << solSize << std::endl; */
+          for(unsigned int i=0; i<cid->second.size();i++)
+          {
+            dbuf[i]=cid->second(i) ;
+            /* std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl; */
+          }
+          this->_communicator.broadcast(dbuf);
+        }
+      }
+      else
+      {
+        solutionVectors.clear();
+        int nVectors;
+        this->_communicator.broadcast( nVectors );
+        /* std::cout << "recv nVectors: " << nVectors << std::endl; */
+        for(unsigned int i=0; i<nVectors; i++)
+        {
+          std::string sbuf;
+          this->_communicator.broadcast(sbuf);
+          int solSize;
+          this->_communicator.broadcast(solSize);
+          std::vector<double> dbuf(solSize,0.);
+          this->_communicator.broadcast(dbuf);
+
+          /* std::cout << "solSize: " << solSize << std::endl; */
+          for(unsigned int i=0; i<dbuf.size();i++)
+          {
+            /* std::cout << "dbuf[" << i << "] = " << dbuf[i] << std::endl; */
+          }
+
+          solutionVectors.insert( std::pair<std::string,T_P>(
+                sbuf, T_P(dbuf) ) ) ;
+        }
       }
       
 
@@ -292,7 +347,11 @@ namespace AGNOS
               );
         if (AGNOS_DEBUG)
         {
-          std::cout << "DEBUG: primal solution\n:" ;
+          int globalRank;
+          MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+          std::cout << "DEBUG: primal solution:\n " ;
+          std::cout << "DEBUG: rank " << globalRank << std::endl;
+          std::cout << "DEBUG: point " << paramVector(0) << std::endl;
           system.solution->print_global();
         }
 
@@ -685,7 +744,7 @@ namespace AGNOS
           
           // Fiinally sum the vector of estimated error values.
           /* this->reduce_error(error_per_cell, system.comm()); */
-          _communicator.sum( error_per_cell );
+          this->_communicator.sum( error_per_cell );
 
           
           // save errorIndicators in solutionVectors
