@@ -230,8 +230,15 @@ namespace AGNOS
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::set< std::string >::iterator id;
       
+      // ------------------------------------
+      // Determine processes position in the MPI groups
+      int globalRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
+      // ------------------------------------
+      
+
       // output progress
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
       {
         std::cout << std::endl;
         std::cout << " Starting build of surrogate model for: { " ;
@@ -245,26 +252,31 @@ namespace AGNOS
         std::cout << " }" << std::endl;
       }
 
+
+
+
       // ------------------------------------
       // Int points and coeff are currently separated in case we want to
       // implememnt higher order integration rule in the future
       // assign the appropriate int points to each processor
-      unsigned int minPts = _nIntegrationPoints / this->_comm.size() ;
-      unsigned int remPts = _nIntegrationPoints % this->_comm.size() ;
-      unsigned int nPts  =  minPts + ( this->_comm.rank() < remPts ) ;
-      unsigned int intPtsStart = this->_comm.rank()*(minPts) 
-        + std::min( this->_comm.rank(), remPts ) ;
+      unsigned int minPts = _nIntegrationPoints / this->_nPhysicsGroups ;
+      unsigned int remPts = _nIntegrationPoints % this->_nPhysicsGroups ;
+      unsigned int nPts  =  minPts + ( this->_physicsGroup < remPts ) ;
+      unsigned int intPtsStart = this->_physicsGroup*(minPts) 
+        + std::min( (unsigned int)this->_physicsGroup, remPts ) ;
 
       this->_integrationIndices.clear();
       for (unsigned int i=0; i < nPts; i++)
         _integrationIndices.push_back( intPtsStart + i );
 
+      assert( nPts == _integrationIndices.size() );
+
       // assign the appropriate coeff to each processor
-      unsigned int minCoeff = totalNCoeff / this->_comm.size() ;
-      unsigned int remCoeff = totalNCoeff % this->_comm.size() ;
-      unsigned int nCoeffs  =  minCoeff + ( this->_comm.rank() < remCoeff ) ;
-      unsigned int coeffStart = this->_comm.rank()*(minCoeff) 
-        + std::min( this->_comm.rank(), remCoeff ) ;
+      unsigned int minCoeff = totalNCoeff / this->_nPhysicsGroups ;
+      unsigned int remCoeff = totalNCoeff % this->_nPhysicsGroups ;
+      unsigned int nCoeffs  =  minCoeff + ( this->_physicsGroup < remCoeff ) ;
+      unsigned int coeffStart = this->_physicsGroup*(minCoeff) 
+        + std::min( (unsigned int)this->_physicsGroup, remCoeff ) ;
 
       this->_coeffIndices.clear();
       for (unsigned int i=0; i < nCoeffs; i++)
@@ -272,36 +284,48 @@ namespace AGNOS
       // ------------------------------------
 
 
+      std::cout << "physicsGroup: " << this->_physicsGroup
+        << " groupRank: " << this->_groupRank 
+        << " global rank: " << globalRank 
+        << " nPts: " << this->_integrationIndices.size()
+        << " comm.size: " << this->_nPhysicsGroups 
+        << std::endl;
+
+
       // ------------------------------------
       // Initialize data structures
-      std::shared_ptr<DistMatrix> polyValues(new DistMatrix(this->_comm));
-      polyValues->init( 
-          this->_totalNCoeff,           // global dim m
-          this->_nIntegrationPoints,    // global dim n
-          nCoeffs,                      // local dim m
-          nPts,                         // local dim n
-          nPts,                         // # non-zero/row on proc
-          this->_nIntegrationPoints-nPts// # non-zero/row off proc
-          );
-      polyValues->zero();
-
-      if ( nCoeffs > 0)
+      std::shared_ptr<DistMatrix> polyValues;
+      if (this->_groupRank ==0)
       {
-        assert( polyValues->row_start() == this->_coeffIndices.front() );
-        assert( polyValues->row_stop() == this->_coeffIndices.back()+1  );
+        polyValues.reset(new DistMatrix(this->_comm));
+        polyValues->init( 
+            this->_totalNCoeff,           // global dim m
+            this->_nIntegrationPoints,    // global dim n
+            nCoeffs,                      // local dim m
+            nPts,                         // local dim n
+            nPts,                         // # non-zero/row on proc
+            this->_nIntegrationPoints-nPts// # non-zero/row off proc
+            );
+        polyValues->zero();
+        if ( nCoeffs > 0)
+        {
+          assert( polyValues->row_start() == this->_coeffIndices.front() );
+          assert( polyValues->row_stop() == this->_coeffIndices.back()+1  );
+        }
       }
+
       // ------------------------------------
+
       
       this->_comm.barrier();
 
 
       // ------------------------------------
       // Solve for solution at integration points
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
         std::cout << "     --> Solving at " << _nIntegrationPoints 
           << " integration points " << std::endl;
       
-
 
       // ------------------------------------
       // loop through all integration points, even if not mine so that
@@ -336,10 +360,14 @@ namespace AGNOS
             std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
               << std::endl;
 
-          this->_primaryEvaluations  = this->_evalSurrogate->evaluate(
-              this->_evalNames, _integrationPoints[pt], localPoint  ) ;
+          if (this->_groupRank==0)
+            this->_primaryEvaluations  = this->_evalSurrogate->evaluate(
+                this->_evalNames, _integrationPoints[pt], localPoint  ) ;
         }
         // ------------------------------------
+       
+        
+        this->_comm.barrier();
 
 
         // ------------------------------------
@@ -349,8 +377,10 @@ namespace AGNOS
         //  - this is also when we will initialize the solContrib DistMatrix
         if (pt == 0)
         {
-          if (this->_comm.rank() == 0)
+          if (this->_physicsGroup == 0)
+          {
             myContribs = computeContribution( this->_physics, 0) ;
+          }
 
 
           // let proc 0 catch up
@@ -362,7 +392,7 @@ namespace AGNOS
           for (id=this->_solutionNames.begin();
               id!=this->_solutionNames.end(); id++)
           {
-            if (this->_comm.rank() == 0)
+            if (this->_physicsGroup == 0)
               tempSize = myContribs[*id].size();
 
             if(AGNOS_DEBUG)
@@ -380,47 +410,53 @@ namespace AGNOS
 
             
             // add a matrix for this solution and initalize to correct size
-            solContrib.insert( 
-                std::pair<std::string, std::shared_ptr<DistMatrix> >(
-                  *id, std::shared_ptr<DistMatrix>(new DistMatrix(this->_comm))  
-                  ) 
-                );
+            if (this->_groupRank == 0)
+            {
+              solContrib.insert( 
+                  std::pair<std::string, std::shared_ptr<DistMatrix> >(
+                    *id, std::shared_ptr<DistMatrix>(new DistMatrix(this->_comm))  
+                    ) 
+                  );
+            }
 
             unsigned int solSize = this->_solSize[*id] ;
 
             // get proper sizing to prevent PetscMatrix from being oversized after
             // multiplication
             // NOTE:  we will still fill all solComp for this procs integrationPts
-            unsigned int minComp = solSize / this->_comm.size() ;
-            unsigned int remComp = solSize % this->_comm.size() ;
-            unsigned int nComp  =  minComp + ( this->_comm.rank() < remComp ) ;
+            unsigned int minComp = solSize / this->_nPhysicsGroups ;
+            unsigned int remComp = solSize % this->_nPhysicsGroups ;
+            unsigned int nComp  =  minComp + ( this->_physicsGroup < remComp ) ;
 
-            // Matrix to save solutions 
-            solContrib[*id]->init(
-                this->_nIntegrationPoints,  // global dim m
-                solSize,                    // global dim n
-                nPts,                       // local dim m
-                nComp,                      // local dim n
-                nComp,                      // # non-zero/row on proc
-                solSize-nComp               // # non-zero/row off proc
-                );
-            solContrib[*id]->zero();
-
-            // ensure that everthing is sized correctly
-            if ( nPts > 0)
+            if (this->_groupRank == 0)
             {
-              assert( solContrib[*id]->row_start() == this->_integrationIndices.front() );
-              assert( solContrib[*id]->row_stop() == this->_integrationIndices.back()+1  );
-            }
+              // Matrix to save solutions 
+              solContrib[*id]->init(
+                  this->_nIntegrationPoints,  // global dim m
+                  solSize,                    // global dim n
+                  nPts,                       // local dim m
+                  nComp,                      // local dim n
+                  nComp,                      // # non-zero/row on proc
+                  solSize-nComp               // # non-zero/row off proc
+                  );
+              solContrib[*id]->zero();
 
-            // copy first coefficient into matrix
-            if (this->_comm.rank() == 0)
-            {
-              for (unsigned int j=0; j<solSize; j++)
-                solContrib[*id]->set(
-                    0, 
-                    j,
-                    myContribs[*id](j) );
+              // ensure that everthing is sized correctly
+              if ( nPts > 0)
+              {
+                assert( solContrib[*id]->row_start() == this->_integrationIndices.front() );
+                assert( solContrib[*id]->row_stop() == this->_integrationIndices.back()+1  );
+              }
+
+              // copy first coefficient into matrix
+              if (this->_physicsGroup == 0)
+              {
+                for (unsigned int j=0; j<solSize; j++)
+                  solContrib[*id]->set(
+                      0, 
+                      j,
+                      myContribs[*id](j) );
+              }
             }
           } // end of solution names
         
@@ -436,15 +472,18 @@ namespace AGNOS
           std::map<std::string,T_P> myContribs =
             computeContribution( this->_physics, pt) ;
 
-          // and save into solution matrix
-          for (id=this->_solutionNames.begin();
-              id!=this->_solutionNames.end(); id++)
+          if (this->_groupRank==0)
           {
-            for (unsigned int j=0; j<this->_solSize[*id]; j++)
-              solContrib[*id]->set(
-                  pt, 
-                  j,
-                  myContribs[*id](j) );
+            // and save into solution matrix
+            for (id=this->_solutionNames.begin();
+                id!=this->_solutionNames.end(); id++)
+            {
+              for (unsigned int j=0; j<this->_solSize[*id]; j++)
+                solContrib[*id]->set(
+                    pt, 
+                    j,
+                    myContribs[*id](j) );
+            }
           }
 
           if (AGNOS_DEBUG)
@@ -458,14 +497,17 @@ namespace AGNOS
         {
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: begin copy poly evals" << std::endl;
-          std::vector<double> myPolyVals =  
-            evaluateBasis( this->_indexSet,
-                _integrationPoints[pt]) ;
-          for(unsigned int j=0; j<myPolyVals.size(); j++)
-            polyValues->set(
-                j, 
-                pt,
-                myPolyVals[j] ) ;
+          if(this->_groupRank==0)
+          {
+            std::vector<double> myPolyVals =  
+              evaluateBasis( this->_indexSet,
+                  _integrationPoints[pt]) ;
+            for(unsigned int j=0; j<myPolyVals.size(); j++)
+              polyValues->set(
+                  j, 
+                  pt,
+                  myPolyVals[j] ) ;
+          }
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: end copy poly evals" << std::endl;
         }
@@ -484,7 +526,8 @@ namespace AGNOS
 
 
       this->_comm.barrier();
-      polyValues->close();
+      if (this->_groupRank==0)
+        polyValues->close();
 
 
       // --------------
@@ -493,53 +536,56 @@ namespace AGNOS
       // save if its one of my coefficients
       // --------------
       
-      if( this->_comm.rank() == 0)
+      if( this->_groupRank == 0)
         std::cout << "     --> Computing " << totalNCoeff << " coefficients" <<
           std::endl;
 
 
-      //-- loop through sols
-      for (id=this->_solutionNames.begin();
-          id!=this->_solutionNames.end(); id++)
+      if (this->_groupRank==0)
       {
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: surrogate build computing coeffs: " << *id << std::endl ;
+        //-- loop through sols
+        for (id=this->_solutionNames.begin();
+            id!=this->_solutionNames.end(); id++)
+        {
+          if(AGNOS_DEBUG)
+            std::cout << "DEBUG: surrogate build computing coeffs: " << *id << std::endl ;
 
-        // close the matrix now, we are done adding to it
-        solContrib[*id]->close();
+          // close the matrix now, we are done adding to it
+          solContrib[*id]->close();
 
-        // Matrix product with plynomial values to compute coefficients
-        Mat resultMat ;
-        PetscErrorCode ierr;
-        ierr = MatMatMult( 
-            polyValues->mat(),
-            solContrib[*id]->mat(),
-            MAT_INITIAL_MATRIX,PETSC_DEFAULT,
-            &resultMat
-            );
-
-
-        // Create libmesh DistMatrix from Petsc Mat 
-        std::shared_ptr<DistMatrix> coeffMatrix(new
-            DistMatrix(resultMat,this->_comm) ) ;
-
-        /* std::cout << "coeffMatrx.m: " << coeffMatrix->m() << std::endl; */
-        /* std::cout << "coeffMatrx.n: " << coeffMatrix->n() << std::endl; */
-        /* for (unsigned int i=coeffMatrix->row_start(); i<coeffMatrix->row_stop(); */
-        /*     i++) */
-        /*   for (unsigned int j=0; j<coeffMatrix->n(); j++) */
-        /*     std::cout << "coeff("<<i<<","<<j<<"): " << (*coeffMatrix)(i,j) */ 
-        /*          << "rank: " << this->_comm.rank() << std::endl; */
+          // Matrix product with plynomial values to compute coefficients
+          Mat resultMat ;
+          PetscErrorCode ierr;
+          ierr = MatMatMult( 
+              polyValues->mat(),
+              solContrib[*id]->mat(),
+              MAT_INITIAL_MATRIX,PETSC_DEFAULT,
+              &resultMat
+              );
 
 
-        // Save solution coefficients in coefficient container
-        this->_coefficients.insert( std::pair<std::string,std::shared_ptr<DistMatrix> >(
-              *id, 
-              coeffMatrix
-              )
-            );
+          // Create libmesh DistMatrix from Petsc Mat 
+          std::shared_ptr<DistMatrix> coeffMatrix(new
+              DistMatrix(resultMat,this->_comm) ) ;
 
-      } // id
+          /* std::cout << "coeffMatrx.m: " << coeffMatrix->m() << std::endl; */
+          /* std::cout << "coeffMatrx.n: " << coeffMatrix->n() << std::endl; */
+          /* for (unsigned int i=coeffMatrix->row_start(); i<coeffMatrix->row_stop(); */
+          /*     i++) */
+          /*   for (unsigned int j=0; j<coeffMatrix->n(); j++) */
+          /*     std::cout << "coeff("<<i<<","<<j<<"): " << (*coeffMatrix)(i,j) */ 
+          /*          << "rank: " << this->_comm.rank() << std::endl; */
+
+
+          // Save solution coefficients in coefficient container
+          this->_coefficients.insert( std::pair<std::string,std::shared_ptr<DistMatrix> >(
+                *id, 
+                coeffMatrix
+                )
+              );
+
+        } // id
+      }
 
 
 
@@ -571,6 +617,7 @@ namespace AGNOS
       T_S integrationPoint = _integrationPoints[index];
       double integrationWeight = _integrationWeights[index];
 
+      
       
       if (AGNOS_DEBUG)
         std::cout << "DEBUG: computeContribution( ) pre compute()" << std::endl;
@@ -623,113 +670,117 @@ namespace AGNOS
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::map< std::string, T_P> surrogateValue;
 
-      // initalize polyValues data structure
-      // NOTE: we will fill all polys on each proc, 
-      //        i.e. global m = comm.size
-      //        local m = 1
-      DistMatrix polyValues(this->_comm);
-      polyValues.init( 
-          this->_comm.size(),           // global dim m
-          totalNCoeff,                  // global dim n
-          saveLocal,                    // local dim m
-          this->_coeffIndices.size(),   // local dim n
-          totalNCoeff,                  // # non-zero/row on proc
-          totalNCoeff                   // # non-zero/row off proc
-          );
-      polyValues.zero();
-
-
-
-      if (saveLocal)
+      if(this->_groupRank==0)
       {
-        // make sure we only have one local row
-        assert( (polyValues.row_stop() - polyValues.row_start()) == 1);
-        
-        // evaluate all basis polys at given parameterValue
-        std::vector<double> myPolyVals = evaluateBasis( 
-            this->_indexSet,
-            parameterValues 
+
+        // initalize polyValues data structure
+        // NOTE: we will fill all polys on each proc, 
+        //        i.e. global m = comm.size
+        //        local m = 1
+        DistMatrix polyValues(this->_comm);
+        polyValues.init( 
+            this->_nPhysicsGroups,           // global dim m
+            totalNCoeff,                  // global dim n
+            saveLocal,                    // local dim m
+            this->_coeffIndices.size(),   // local dim n
+            totalNCoeff,                  // # non-zero/row on proc
+            totalNCoeff                   // # non-zero/row off proc
             );
-      
-        // copy poly vals into Petsc data structure
-        for(unsigned int i=0; i<myPolyVals.size(); i++)
-          polyValues.set( polyValues.row_start(), i , myPolyVals[i] ) ;
-      }
-      else
-      {
-        // make sure we have NO local rows
-        assert( (polyValues.row_stop() - polyValues.row_start()) == 0);
-      }
-      polyValues.close();
+        polyValues.zero();
 
 
 
-      this->_comm.barrier();
-
-
-
-      // loop over all solutions requested
-      std::set<std::string>::iterator id = solutionNames.begin();
-      for (; id != solutionNames.end(); id++)
-      {
-        // Make sure we have all the requested solution names
-        if
-          (!const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->getSolutionNames().count(*id))
-        {
-          std::cout << std::endl;
-          std::cerr << 
-            " ERROR: requested evaluation for solution that isn't present  "
-            << std::endl;
-          std::cout << std::endl;
-          exit(1);
-        }
-
-        // reference for solution size
-        unsigned int solSize 
-          = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
-
-
-
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
-            "with size:" <<  solSize << std::endl;
-
-
-        // compute matrix matrix product b/w polyValues and coefficient matrix
-        Mat resultMat ;
-        PetscErrorCode ierr;
-        ierr = MatMatMult( 
-            polyValues.mat(),
-            (const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])->mat(),
-            MAT_INITIAL_MATRIX,PETSC_DEFAULT,
-            &resultMat
-            );
-
-        // initiate matrix from MM product result
-        std::shared_ptr<DistMatrix> coeffMatrix(
-            new DistMatrix(resultMat,this->_comm) ) ;
-
-        // localize result on each processor
         if (saveLocal)
         {
-          std::vector<double> localResult;
-          for (unsigned int i=coeffMatrix->row_start(); 
-              i<coeffMatrix->row_stop(); i++)
-          {
-            localResult.resize(solSize);
-            for (unsigned int j=0; j<solSize; j++)
-              localResult[j]=(*coeffMatrix)(i,j)  ;
-          }
+          // make sure we only have one local row
+          assert( (polyValues.row_stop() - polyValues.row_start()) == 1);
           
-          // save result in return map
-          surrogateValue.insert(
-              std::pair< std::string, T_P >(*id, T_P(localResult) ) 
-              ) ;
-
+          // evaluate all basis polys at given parameterValue
+          std::vector<double> myPolyVals = evaluateBasis( 
+              this->_indexSet,
+              parameterValues 
+              );
+        
+          // copy poly vals into Petsc data structure
+          for(unsigned int i=0; i<myPolyVals.size(); i++)
+            polyValues.set( polyValues.row_start(), i , myPolyVals[i] ) ;
         }
+        else
+        {
+          // make sure we have NO local rows
+          assert( (polyValues.row_stop() - polyValues.row_start()) == 0);
+        }
+        polyValues.close();
 
 
-      } // solNames
+
+        this->_comm.barrier();
+
+
+
+        // loop over all solutions requested
+        std::set<std::string>::iterator id = solutionNames.begin();
+        for (; id != solutionNames.end(); id++)
+        {
+          // Make sure we have all the requested solution names
+          if
+            (!const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->getSolutionNames().count(*id))
+          {
+            std::cout << std::endl;
+            std::cerr << 
+              " ERROR: requested evaluation for solution that isn't present  "
+              << std::endl;
+            std::cout << std::endl;
+            exit(1);
+          }
+
+          // reference for solution size
+          unsigned int solSize 
+            = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
+
+
+
+          if(AGNOS_DEBUG)
+            std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
+              "with size:" <<  solSize << std::endl;
+
+
+          // compute matrix matrix product b/w polyValues and coefficient matrix
+          Mat resultMat ;
+          PetscErrorCode ierr;
+          ierr = MatMatMult( 
+              polyValues.mat(),
+              (const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])->mat(),
+              MAT_INITIAL_MATRIX,PETSC_DEFAULT,
+              &resultMat
+              );
+
+          // initiate matrix from MM product result
+          std::shared_ptr<DistMatrix> coeffMatrix(
+              new DistMatrix(resultMat,this->_comm) ) ;
+
+          // localize result on each processor
+          if (saveLocal)
+          {
+            std::vector<double> localResult;
+            for (unsigned int i=coeffMatrix->row_start(); 
+                i<coeffMatrix->row_stop(); i++)
+            {
+              localResult.resize(solSize);
+              for (unsigned int j=0; j<solSize; j++)
+                localResult[j]=(*coeffMatrix)(i,j)  ;
+            }
+            
+            // save result in return map
+            surrogateValue.insert(
+                std::pair< std::string, T_P >(*id, T_P(localResult) ) 
+                ) ;
+
+          }
+
+
+        } // solNames
+      }
 
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: leaving surrogate evaluate" << std::endl;
@@ -743,7 +794,7 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
       std::ostream& out ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       out << std::endl;
       out << "#====================================================" <<
@@ -773,7 +824,7 @@ namespace AGNOS
   template<class T_S,class T_P>
   void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationPoints( ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       std::cout << std::endl;
       std::cout << "====================================================" <<
@@ -813,7 +864,7 @@ namespace AGNOS
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationWeights( 
       std::ostream& out ) const
   {
-    if (this->_comm.rank() == 0)
+    if (this->_groupRank == 0)
     {
       double sum = 0.0;
       out << std::endl;
@@ -844,7 +895,7 @@ namespace AGNOS
     template<class T_S,class T_P>
     void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIntegrationWeights( ) const
     {
-      if (this->_comm.rank() == 0)
+      if (this->_groupRank == 0)
       {
         double sum = 0.0;
         std::cout << std::endl;
@@ -874,7 +925,7 @@ namespace AGNOS
     template<class T_S, class T_P> 
       void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
       {
-        if (this->_comm.rank() == 0)
+        if (this->_groupRank == 0)
         {
           out << std::endl;
           out << "#====================================================" <<
@@ -904,7 +955,7 @@ namespace AGNOS
   template<class T_S, class T_P> 
     void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIndexSet( ) const
     {
-      if (this->_comm.rank() == 0)
+      if (this->_groupRank == 0)
       {
         std::cout << std::endl;
         std::cout << "====================================================" <<
@@ -943,6 +994,7 @@ namespace AGNOS
         )
     {
 
+
       // initialize to zero
       std::map< std::string, T_P> l2norm;
       std::set<std::string>::iterator id = solutionNames.begin();
@@ -953,40 +1005,44 @@ namespace AGNOS
             );
       }
 
-      //---------
-      //get integration points for higher order quad rule
-      std::vector<unsigned int> integrationOrder = this->_order;
-      for(unsigned int i=0; i<integrationOrder.size();i++)
-        integrationOrder[i] += 1;
-
-      QuadratureTensorProduct integrationQuadratureRule(
-          this->_parameters, integrationOrder );
-
-      unsigned int dimension = this->_dimension;
-      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-      double** quadPoints = integrationQuadratureRule.getQuadPoints();
-      double* quadWeights = integrationQuadratureRule.getQuadWeights();
-
-
-
-      //----------
-      // loop over quad points
-      for(unsigned int i=0; i<nQuadPoints; i++)
+      if(this->_groupRank==0)
       {
-        T_S paramValues(dimension);
-        for(unsigned int j=0; j<paramValues.size(); j++)
-          paramValues(j) = quadPoints[i][j];
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+        for(unsigned int i=0; i<integrationOrder.size();i++)
+          integrationOrder[i] += 1;
 
-        std::map<std::string,T_P> pointValue 
-          = this->evaluate(solutionNames,paramValues);
-        for (id=solutionNames.begin(); id != solutionNames.end(); id++)
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
         {
-          for(unsigned int j=0; j<l2norm[*id].size();j++)
-            l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
-              * quadWeights[i] ; 
-        }
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
 
-      } // end loop over quad points
+          std::map<std::string,T_P> pointValue 
+            = this->evaluate(solutionNames,paramValues);
+          for (id=solutionNames.begin(); id != solutionNames.end(); id++)
+          {
+            for(unsigned int j=0; j<l2norm[*id].size();j++)
+              l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
+                * quadWeights[i] ; 
+          }
+
+        } // end loop over quad points
+
+      } // end groupRank == 0
 
       
       // take square root
