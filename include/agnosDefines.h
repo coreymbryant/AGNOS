@@ -1,4 +1,5 @@
 
+
 #ifndef AGNOS_DEFINES_H
 #define AGNOS_DEFINES_H
 
@@ -45,6 +46,13 @@ typedef libMesh::DenseMatrix<double> LocalMatrix;
 
 /* #include "Parameter.h" */
 
+/* #include "PhysicsModel.h" */
+/* #include "PseudoSpectralTensorProduct.h" */
+/* #include "PhysicsFunction.h" */
+/* #include "PhysicsFunctionTotalError.h" */
+/* #include "PhysicsViscousBurgers.h" */
+/* #include "PhysicsCatenary.h" */
+/* #include "PhysicsCatenaryLibmesh.h" */
 
 
 namespace AGNOS{
