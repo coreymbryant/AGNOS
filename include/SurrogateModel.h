@@ -46,7 +46,7 @@ namespace AGNOS
        * primarySurrogate to perform evaluations in the constructions */
       SurrogateModel( 
           std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
-          unsigned int increaseOrder = 0,
+          std::vector<unsigned int> increaseOrder = std::vector<std::string>(),
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::vector<std::string>(),
           std::set<std::string> computeSolutions = std::vector<std::string>()
@@ -170,6 +170,9 @@ namespace AGNOS
       const int groupRank() const
       { return _groupRank; }
 
+      /** Parameter dimension */
+      unsigned int dimension(){ return _dimension; }
+
       /** solution names this surrogateModel is built for */
       std::set<std::string> getSolutionNames( ) const
       { return _solutionNames; }
@@ -192,9 +195,9 @@ namespace AGNOS
       int _groupRank;
       
       /** expansion order */
-      std::vector<unsigned int>                           _order;  
-      unsigned int _increaseOrder ;
-      unsigned int _multiplyOrder ;
+      std::vector<unsigned int> _order;  
+      std::vector<unsigned int> _increaseOrder ;
+      unsigned int              _multiplyOrder ;
 
       /** coefficients vectors */
       std::map< std::string, std::shared_ptr<DistMatrix> >                 _coefficients;
@@ -279,7 +282,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
           std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
-          unsigned int increaseOrder ,
+          std::vector<unsigned int> increaseOrder ,
           unsigned int multiplyOrder ,
           std::set<std::string> evaluateSolutions , 
           std::set<std::string> computeSolutions 
@@ -303,11 +306,16 @@ namespace AGNOS
 
       // augment order appropriately
       _order = primarySurrogate->getExpansionOrder() ;
-      _increaseOrder = increaseOrder ;
+      if (increaseOrder.empty())
+        _increaseOrder = std::vector<unsigned int>(_dimension,0) ;
+      else
+        _increaseOrder = increaseOrder;
+      assert(_increaseOrder.size() == _dimension);
+
       _multiplyOrder = multiplyOrder ;
       for (unsigned int i=0; i<_order.size();i++)
       {
-        _order[i] += _increaseOrder ;
+        _order[i] += _increaseOrder[i] ;
         _order[i] *= _multiplyOrder ;
       }
 
@@ -677,7 +685,7 @@ namespace AGNOS
         _order = _evalSurrogate->getExpansionOrder();
         for (unsigned int i=0; i<_order.size();i++)
         {
-          _order[i] += _increaseOrder ;
+          _order[i] += _increaseOrder[i] ;
           _order[i] *= _multiplyOrder ;
         }
 

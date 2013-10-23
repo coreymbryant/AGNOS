@@ -43,7 +43,7 @@ namespace AGNOS
        * primarySurrogate to perform evaluations in the constructions */
       SurrogatePseudoSpectral( 
           std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
-          unsigned int increaseOrder = 0,
+          std::vector<unsigned int> increaseOrder = std::vector<unsigned int>(),
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::set<std::string>(),
           std::set<std::string> computeSolutions = std::set<std::string>()
@@ -127,7 +127,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     SurrogatePseudoSpectral<T_S,T_P>::SurrogatePseudoSpectral( 
         std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
-        unsigned int increaseOrder ,
+        std::vector<unsigned int> increaseOrder ,
         unsigned int multiplyOrder ,
         std::set<std::string> evaluateSolutions,
         std::set<std::string> computeSolutions
