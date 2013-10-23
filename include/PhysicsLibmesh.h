@@ -29,18 +29,29 @@ namespace AGNOS
    * 
    ***********************************************/
   void write_gnuplot(EquationSystems &es,
-        unsigned int index,       // The adaptive step count
+        const T_S& paramVector,       // The parameter vector
         std::string solution_type = "primal") // primal or adjoint solve
   {
     MeshBase &mesh = es.get_mesh();
 
     std::ostringstream file_name_gp;
+    /* file_name_gp << solution_type */
+    /*               << ".out.gp." */
+    /*               << std::setw(2) */
+    /*               << std::setfill('0') */
+    /*               << std::right */
+    /*               << index; */
     file_name_gp << solution_type
-                  << ".out.gp."
-                  << std::setw(2)
-                  << std::setfill('0')
-                  << std::right
-                  << index;
+                  << ".out.gp" ;
+    for (unsigned int i=0; i<paramVector.size(); i++)
+    {
+      file_name_gp 
+        << "_"
+        << std::setiosflags(std::ios::scientific) 
+        << std::setprecision(1) 
+        << std::setw(3) 
+        << paramVector(i) ;
+    }
 
     GnuPlotIO(mesh).write_equation_systems
       (file_name_gp.str(), es);
@@ -52,18 +63,23 @@ namespace AGNOS
    * 
    ***********************************************/
   void write_vtk(EquationSystems &es,
-        unsigned int index,       // The adaptive step count
+        const T_S& paramVector,       // The parameter vector
         std::string solution_type = "primal") // primal or adjoint solve
   {
     MeshBase &mesh = es.get_mesh();
 
     std::ostringstream file_name;
-    file_name << solution_type
-                  << ".out.pvtu."
-                  << std::setw(2)
-                  << std::setfill('0')
-                  << std::right
-                  << index;
+    file_name<< solution_type
+                  << ".out.gp" ;
+    for (unsigned int i=0; i<paramVector.size(); i++)
+    {
+      file_name
+        << "_"
+        << std::setiosflags(std::ios::scientific) 
+        << std::setprecision(1) 
+        << std::setw(3) 
+        << paramVector(i) ;
+    }
 
     VTKIO(mesh).write_equation_systems
       (file_name.str(), es);
@@ -105,7 +121,6 @@ namespace AGNOS
         return resultVector ;
       }
 
-      
       /** Return libMesh mesh object */
       const libMesh::Mesh getMesh( ) const { return *_mesh; }
 
@@ -141,6 +156,9 @@ namespace AGNOS
        * (can be overridden in derived class) */
       virtual void _buildErrorEstimator();
 
+      /** control vizualization output */
+      bool         _writePrimalViz;
+      bool         _writeAdjointViz;
 
   };
 
@@ -182,6 +200,8 @@ namespace AGNOS
 
     // other options
     _resolveAdjoint       = input("resolveAdjoint",false);
+    _writePrimalViz        = input("writePrimalViz",false);
+    _writeAdjointViz       = input("writeAdjointViz",false);
     // -----------------------------------------------------------
 
 
@@ -333,11 +353,14 @@ namespace AGNOS
         // solve system
         system.solve();
         
-        //TODO make this an option somehow
-        if ( this->_mesh->mesh_dimension() == 1)
-          write_gnuplot(es,0,"primal");
-        else
-            write_vtk(es,0,"primal");
+        //save the vizualizaton if requested
+        if (_writePrimalViz)
+        {
+          if ( this->_mesh->mesh_dimension() == 1)
+            write_gnuplot(es,paramVector,"primal");
+          else
+              write_vtk(es,paramVector,"primal");
+        }
         
         // save solution in solutionVectors
         std::vector<Number> primalSolution;
@@ -492,12 +515,15 @@ namespace AGNOS
         NumericVector<Number> &dual_solution = system.get_adjoint_solution(0);
         primal_solution.swap(dual_solution);
         
-        //TODO make this an option somehow
-        if ( this->_mesh->mesh_dimension() == 1)
-          write_gnuplot(es,0,"adjoint");
-        else
-            write_vtk(es,0,"adjoint");
-        primal_solution.swap(dual_solution);
+        //save the vizualizaton if requested
+        if (_writeAdjointViz)
+        {
+          if ( this->_mesh->mesh_dimension() == 1)
+            write_gnuplot(es,paramVector,"adjoint");
+          else
+              write_vtk(es,paramVector,"adjoint");
+          primal_solution.swap(dual_solution);
+        }
 
         if(AGNOS_DEBUG)
         {
