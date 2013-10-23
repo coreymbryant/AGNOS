@@ -386,8 +386,18 @@ namespace AGNOS
           order.push_back( input("order", 0, i) ) ;
 
       /** Get increaseOrder */
-      unsigned int increaseOrder = input("increaseOrder",0);
-      /** Get increaseOrder */
+      /** Get length of input vectors */
+      int incOrderDim = input.vector_variable_size("increaseOrder");
+      std::vector<unsigned int> increaseOrder;;
+
+      if (incOrderDim == 1)
+        for (unsigned int i=0; i < _paramDim; i++)
+          increaseOrder.push_back( input("increaseOrder", 0) ) ;
+      else
+        for (unsigned int i=0; i < _paramDim; i++)
+          increaseOrder.push_back( input("increaseOrder", 0, i) ) ;
+      
+      /** Get multiplyOrder */
       unsigned int multiplyOrder = input("multiplyOrder",1);
 
 
