@@ -1011,7 +1011,7 @@ namespace AGNOS
         //get integration points for higher order quad rule
         std::vector<unsigned int> integrationOrder = this->_order;
         for(unsigned int i=0; i<integrationOrder.size();i++)
-          integrationOrder[i] += 1;
+          integrationOrder[i] += 0;
 
         QuadratureTensorProduct integrationQuadratureRule(
             this->_parameters, integrationOrder );
@@ -1089,42 +1089,48 @@ namespace AGNOS
         exit(1);
       }
 
-      //---------
-      //get integration points for higher order quad rule
-      std::vector<unsigned int> integrationOrder = this->_order;
-      std::vector<unsigned int> comparisonOrder 
-        = comparisonModel.getExpansionOrder() ;
-      for(unsigned int i=0; i<integrationOrder.size();i++)
-        integrationOrder[i] 
-          = std::max(integrationOrder[i],comparisonOrder[i]) 
-          + 2;
-
-      QuadratureTensorProduct integrationQuadratureRule(
-          this->_parameters, integrationOrder );
-
-      unsigned int dimension = this->_dimension;
-      unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-      double** quadPoints = integrationQuadratureRule.getQuadPoints();
-      double* quadWeights = integrationQuadratureRule.getQuadWeights();
-
-
-
-      //----------
-      // loop over quad points
-      for(unsigned int i=0; i<nQuadPoints; i++)
+      if(this->_groupRank==0)
       {
-        T_S paramValues(dimension);
-        for(unsigned int j=0; j<paramValues.size(); j++)
-          paramValues(j) = quadPoints[i][j];
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+        std::vector<unsigned int> comparisonOrder 
+          = comparisonModel.getExpansionOrder() ;
+        for(unsigned int i=0; i<integrationOrder.size();i++)
+          integrationOrder[i] 
+            = std::max(integrationOrder[i],comparisonOrder[i]) 
+            + 0;
 
-        T_P diffVec = this->evaluate(solutionName,paramValues);
-        diffVec -= comparisonModel.evaluate(solutionName,paramValues);
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
 
 
-        l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
-        /* l2norm += 1  * quadWeights[i] ; */ 
 
-      } // end loop over quad points
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
+        {
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
+
+          T_P diffVec = this->evaluate(solutionName,paramValues);
+          std::cout << " test: base model eval " << std::endl;
+          diffVec -= comparisonModel.evaluate(solutionName,paramValues);
+          std::cout << " test: comparison model eval " << std::endl;
+
+
+          l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
+          /* l2norm += 1  * quadWeights[i] ; */ 
+
+        } // end loop over quad points
+
+      } // end of if groupRank == 0
 
       
       // take square root
