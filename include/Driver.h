@@ -14,6 +14,8 @@
 #include "PhysicsLibmesh.h"
 #include "Element.h"
 
+#include <mpi.h>
+
 
 
 
@@ -64,6 +66,14 @@ namespace AGNOS
       void printSettings( ) ;
       void printSolution( unsigned int iteration=1 ) ;
 
+      void computeErrors( 
+          AGNOS::Element<T_S,T_P>&  elem,
+          double& globalPhysics,
+          double& globalTotal,
+          double& globalSurrogate,
+          double& maxElemError
+          ) ;
+
 
     protected:
       std::shared_ptr< PhysicsModel<T_S,T_P> > _initPhysics( GetPot& input );
@@ -82,6 +92,9 @@ namespace AGNOS
       /** Determine which space to refine based on relative error estiamtes */
       bool          _adaptiveDriver;
       double        _refinePercentage ;
+      /** force simultaneous refinement of both spaces */
+      bool _simultRefine;
+      // ---------------------
       // ---------------------
       
       // ---------------------
@@ -103,6 +116,8 @@ namespace AGNOS
       // SURROGATE VARIABLES
       std::map<std::string, unsigned int> _surrogateNames;
       bool _refineSurrogate;
+      bool _hRefine;
+      bool _pRefine;
       bool _anisotropic;
       // ---------------------
 
@@ -110,6 +125,7 @@ namespace AGNOS
       // PHYSICS VARIABLES
       bool _refinePhysics;
       // ---------------------
+      
 
       // ---------------------
       // OUTPUT VARIABLES
@@ -151,6 +167,7 @@ namespace AGNOS
     _refinePercentage = input("driver/refinePercentage",0.20);
     
     // ADAPTIVE SETTINGS
+    _simultRefine = input("driver/simultRefine",1);
     
     
     // PARAMETER SETTINGS
@@ -177,6 +194,8 @@ namespace AGNOS
     // SURROGATE MODEL(s) SETTINGS
     input.set_prefix("surrogateModels/") ;
     _refineSurrogate = input("refine",false);
+    _hRefine = input("hRefine",false);
+    _pRefine = input("pRefine",true);
     _anisotropic = input("anisotropic",false);
 
     /* initialize surrogate model container */
@@ -521,36 +540,12 @@ namespace AGNOS
       for (; elit!=_activeElems.end(); elit++)
       {
 
-        elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
-        globalPhysicsError += elit->_physicsError ;
-        _physicsComm.broadcast(elit->_physicsError);
-
-        // safe guard against there not being a secondary surrogate
-        if (elit->surrogates().size() < 2)
-        {
-          std::cout << std::endl;
-          std::cerr << 
-            " ERROR: secondary 'error' surrogate has not been constructed"
-            << std::endl;
-          std::cout << std::endl;
-          exit(1);
-        }
-        else
-        {
-          elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
-          elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
-                *(elit->surrogates()[1]), "errorEstimate");
-          globalTotalError += elit->_totalError;
-          globalSurrogateError += elit->_surrogateError ;
-
-          _physicsComm.broadcast(elit->_totalError);
-          _physicsComm.broadcast(elit->_surrogateError);
-
-          // keep track of max of error
-          if (elit->_totalError >= maxElementError)
-            maxElementError = elit->_totalError ;
-
-        } // end if errorSurrogate exists
+        computeErrors( 
+            *elit, 
+            globalPhysicsError,
+            globalTotalError,
+            globalSurrogateError,
+            maxElementError);
 
       } // end for active elements
 
@@ -593,13 +588,13 @@ namespace AGNOS
         if ( elit->_totalError >= _refinePercentage * maxElementError )
         {
           // Determine which space to refine
-          if ( _refinePhysics 
+          if ( ( _refinePhysics 
               && 
               ( (!_adaptiveDriver)
                 ||
                 (globalSurrogateError <= globalPhysicsError)  
               )
-              //TODO add some more conditions here 
+              ) || _simultRefine
              ) 
           {
             if(AGNOS_DEBUG)
@@ -622,122 +617,177 @@ namespace AGNOS
           } // end of if refine physics
 
           //otherwise refine surrogate
-          else if ( _refineSurrogate 
+          else if ( ( _refineSurrogate 
               &&
               ( (!_adaptiveDriver)
                 ||
                 (globalSurrogateError >= globalPhysicsError)
               )
-              // TODO more conditions
+              ) || _simultRefine
               )
           {
 
             if(AGNOS_DEBUG)
-              std::cout << "DEBUG: refine surrogate rank-" << globalRank << std::endl;
-            std::vector<unsigned int> increase(_paramDim,0) ;
-            if (!_anisotropic)
-              for (unsigned int i=0; i< increase.size(); i++)
-                increase[i]++;
-            // if anisotropic refinement is being used we need to determine
-            // which direction to refine in
+              std::cout << "DEBUG: refine surrogate rank-" 
+                << globalRank << std::endl;
+
+            // perform h refinement
+            if ( _hRefine && false ) // TODO conditions
+            {
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: h refineing element rank-" 
+                  << globalRank << std::endl;
+
+              std::vector< Element<T_S,T_P> > children = elit->split() ;
+              // TODO remove old element if necessary
+                /* _elemsToUpdate.pop(); */
+
+              double childPhysicsError = 0.;
+              double childTotalError = 0.;
+              double childSurrogateError = 0.;
+              double childMaxError = 0.;
+
+              for (unsigned int c=0; c<children.size(); c++)
+              {
+                computeErrors(
+                    children[c],
+                    childPhysicsError,
+                    childTotalError,
+                    childSurrogateError,
+                    childMaxError
+                    );
+                // TODO don't do this unless we decide to split
+                // cosntruct a new surrogate for this element
+                /* std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > childSurrogates = */
+                /*     _initSurrogate( input, children[c].parameters(), children[c].physics() ) ; */
+                /* children[c].setSurrogates( childSurrogates ); */ 
+
+                // TODO save element to update queue
+                /* _elemsToUpdate.push(children[c]) ; */
+              }
+            }
+            // perform p refinement
+            else if( _pRefine )
+            {
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: p refineing element rank-" 
+                  << globalRank << std::endl;
+              std::vector<unsigned int> increase(_paramDim,0) ;
+              if (!_anisotropic)
+                for (unsigned int i=0; i< increase.size(); i++)
+                  increase[i]++;
+              // if anisotropic refinement is being used we need to determine
+              // which direction to refine in
+              else
+              {
+                // TODO we could also give option for other types of anisotropic
+                // refinement
+                
+                // if adaptiveDriver, use error Surrogate
+                if (_adaptiveDriver)
+                {
+                  // get error coefficients
+                  std::map< std::string, LocalMatrix> errorCoeffs =
+                    elit->surrogates()[1]->getCoefficients() ;
+    
+
+                  // copy index sets (these are already sorted by construction)
+                  std::vector< std::vector<unsigned int> > sortedN 
+                    = elit->surrogates()[0]->indexSet() ;
+                  std::vector< std::vector<unsigned int> > sortedM 
+                    = elit->surrogates()[1]->indexSet() ;
+
+                  if(AGNOS_DEBUG)
+                  {
+                    std::cout << " N: " << std::endl;
+                    for (unsigned int i=0; i<sortedN.size(); i++)
+                    {
+                      for (unsigned int j=0; j<sortedN[i].size(); j++)
+                        std::cout << sortedN[i][j] << " " ;
+                      std::cout << std::endl;
+                          
+                    }
+                    std::cout << " sorted M: " << std::endl;
+                    for (unsigned int i=0; i<sortedM.size(); i++)
+                    {
+                      for (unsigned int j=0; j<sortedM[i].size(); j++)
+                        std::cout << sortedM[i][j] << " " ;
+                      std::cout << std::endl;
+                          
+                    }
+                  }
+
+
+                  unsigned int i, unique, maxIndex;
+                  double maxCoefficient = 0; 
+                  std::vector<std::vector<unsigned int> >::iterator sit = sortedM.begin(); 
+                  for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
+                  {
+                    if ( *sit != sortedN[i-unique] )
+                    {
+                      unique++;
+
+                      if ( std::abs(errorCoeffs["errorEstimate"](i,0)) >= maxCoefficient )
+                      {
+                        maxCoefficient = std::abs(errorCoeffs["errorEstimate"](i,0)) ;
+                        maxIndex = i;
+                      }
+
+                      if(AGNOS_DEBUG)
+                      {
+                        std::cout << " found one: index:" << i << "    " ;
+                        for (unsigned int j=0; j<sit->size(); j++)
+                          std::cout << (*sit)[j] << " " ;
+                        std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
+                        std::cout << std::endl;
+                      }
+                    }
+                  }
+
+                  if(AGNOS_DEBUG)
+                    std::cout << "   maxIndex = " << maxIndex << std::endl;
+                  for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
+                    if ( sortedM[maxIndex][j] >
+                        elit->surrogates()[0]->getExpansionOrder()[j] )
+                      increase[j]++;
+
+                  if(AGNOS_DEBUG)
+                  {
+                    std::cout << "increase = " ;
+                    for (unsigned int i=0; i<increase.size(); i++)
+                      std::cout << increase[i] << " " ;
+                    std::cout << std::endl;
+                  }
+
+                  exit(1) ;
+
+                  
+                  // determine largest coeff of error surrogate
+                  
+                  // increase only that dir
+                  
+                } // end if adaptiveDriver
+
+              } // end if anisotropic
+
+
+              // refine all surrogates. We don't need to worry about the
+              // anisotropic causing problems with secondary surrogates,
+              // refinement based on primary takes precedence. 
+              for(unsigned int i=0;i<elit->surrogates().size(); i++)
+                elit->surrogates()[i]->refine( increase ) ;
+            }
             else
             {
-              // TODO we could also give option for other types of anisotropic
-              // refinement
-              
-              // if adaptiveDriver, use error Surrogate
-              if (_adaptiveDriver)
-              {
-                // get error coefficients
-                std::map< std::string, LocalMatrix> errorCoeffs =
-                  elit->surrogates()[1]->getCoefficients() ;
-  
-
-                // copy index sets (these are already sorted by construction)
-                std::vector< std::vector<unsigned int> > sortedN 
-                  = elit->surrogates()[0]->indexSet() ;
-                std::vector< std::vector<unsigned int> > sortedM 
-                  = elit->surrogates()[1]->indexSet() ;
-
-                if(AGNOS_DEBUG)
-                {
-                  std::cout << " N: " << std::endl;
-                  for (unsigned int i=0; i<sortedN.size(); i++)
-                  {
-                    for (unsigned int j=0; j<sortedN[i].size(); j++)
-                      std::cout << sortedN[i][j] << " " ;
-                    std::cout << std::endl;
-                        
-                  }
-                  std::cout << " sorted M: " << std::endl;
-                  for (unsigned int i=0; i<sortedM.size(); i++)
-                  {
-                    for (unsigned int j=0; j<sortedM[i].size(); j++)
-                      std::cout << sortedM[i][j] << " " ;
-                    std::cout << std::endl;
-                        
-                  }
-                }
-
-
-                unsigned int i, unique, maxIndex;
-                double maxCoefficient = 0; 
-                std::vector<std::vector<unsigned int> >::iterator sit = sortedM.begin(); 
-                for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
-                {
-                  if ( *sit != sortedN[i-unique] )
-                  {
-                    unique++;
-
-                    if ( std::abs(errorCoeffs["errorEstimate"](i,0)) >= maxCoefficient )
-                    {
-                      maxCoefficient = std::abs(errorCoeffs["errorEstimate"](i,0)) ;
-                      maxIndex = i;
-                    }
-
-                    if(AGNOS_DEBUG)
-                    {
-                      std::cout << " found one: index:" << i << "    " ;
-                      for (unsigned int j=0; j<sit->size(); j++)
-                        std::cout << (*sit)[j] << " " ;
-                      std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
-                      std::cout << std::endl;
-                    }
-                  }
-                }
-
-                if(AGNOS_DEBUG)
-                  std::cout << "   maxIndex = " << maxIndex << std::endl;
-                for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
-                  if ( sortedM[maxIndex][j] >
-                      elit->surrogates()[0]->getExpansionOrder()[j] )
-                    increase[j]++;
-
-                if(AGNOS_DEBUG)
-                {
-                  std::cout << "increase = " ;
-                  for (unsigned int i=0; i<increase.size(); i++)
-                    std::cout << increase[i] << " " ;
-                  std::cout << std::endl;
-                }
-
-                exit(1) ;
-
-                
-                // determine largest coeff of error surrogate
-                
-                // increase only that dir
-                
-              } // end if adaptiveDriver
-
-            } // end if anisotropic
-
-
-            // refine all surrogates. We don't need to worry about the
-            // anisotropic causing problems with secondary surrogates,
-            // refinement based on primary takes precedence. 
-            for(unsigned int i=0;i<elit->surrogates().size(); i++)
-              elit->surrogates()[i]->refine( increase ) ;
+              std::cout << std::endl;
+              std::cerr << 
+                " ERROR: surrogate marked for refinement but both hRefine ";
+              std::cerr 
+                << "        and pRefine are set to false. "
+                << std::endl;
+              std::cout << std::endl;
+              exit(1);
+            }
             
             // add to update queue
             _elemsToUpdate.push(*elit);
@@ -805,42 +855,12 @@ namespace AGNOS
         for (; elit!=_activeElems.end(); elit++)
         {
 
-          /* if(elit->surrogates()[0]->groupRank()==0) */
-          /* { */
-            elit->_physicsError   = (elit->surrogates()[0]->l2Norm("errorEstimate"))(0);
-            globalPhysicsError += elit->_physicsError ;
-            _physicsComm.broadcast(elit->_physicsError);
-
-            // safe guard against there not being a secondary surrogate
-            if (elit->surrogates().size() < 2)
-            {
-              std::cout << std::endl;
-              std::cerr << 
-                " ERROR: secondary 'error' surrogate has not been constructed"
-                << std::endl;
-              std::cout << std::endl;
-              exit(1);
-            }
-            else
-            {
-              elit->_totalError     = (elit->surrogates()[1]->l2Norm("errorEstimate"))(0);
-              elit->_surrogateError = elit->surrogates()[0]->l2NormDifference( 
-                    *(elit->surrogates()[1]), "errorEstimate");
-              globalTotalError += elit->_totalError;
-              globalSurrogateError += elit->_surrogateError ;
-
-              _physicsComm.broadcast(elit->_totalError);
-              _physicsComm.broadcast(elit->_surrogateError);
-
-              // keep track of max of error
-              if (elit->_totalError >= maxElementError)
-                maxElementError = elit->_totalError ;
-
-            } // end if errorSurrogate exists
-
-          /* } // end if groupRank==0 */
-
-          
+          computeErrors( 
+              *elit, 
+              globalPhysicsError,
+              globalTotalError,
+              globalSurrogateError,
+              maxElementError);
 
         } // end for active elements
 
@@ -1217,7 +1237,66 @@ namespace AGNOS
     }
     return;
   }
-    
+
+
+/********************************************//**
+ * \brief compute element errors
+ ***********************************************/
+  void Driver::computeErrors( 
+      AGNOS::Element<T_S,T_P>&  elem,
+      double& globalPhysics,
+      double& globalTotal,
+      double& globalSurrogate,
+      double& maxElementError
+      ) 
+  {
+    double physicsError;
+    physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
+
+    /**Add to global tally  */
+    globalPhysics+= physicsError ;
+
+    /**MPI all reduce to sum each procs contribution */
+    MPI_Allreduce( MPI_IN_PLACE, &physicsError, 1, MPI_REAL, MPI_SUM, _comm.get());
+    elem._physicsError = physicsError ;
+
+    // safe guard against there not being a secondary surrogate
+    if (elem.surrogates().size() < 2)
+    {
+      std::cout << std::endl;
+      std::cerr << 
+        " ERROR: secondary 'error' surrogate has not been constructed"
+        << std::endl;
+      std::cout << std::endl;
+      exit(1);
+    }
+    else
+    {
+      double totalError     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
+      double surrogateError = elem.surrogates()[0]->l2NormDifference( 
+            *(elem.surrogates()[1]), "errorEstimate");
+
+      /**Add to global tally */
+      globalTotal += totalError;
+      globalSurrogate += surrogateError ;
+
+      /**MPI reduce to all procs */
+      MPI_Allreduce( MPI_IN_PLACE, &totalError, 1, MPI_REAL, MPI_SUM, _comm.get());
+      MPI_Allreduce( MPI_IN_PLACE, &surrogateError, 1, MPI_REAL, MPI_SUM, _comm.get());
+      elem._totalError = totalError ;
+      elem._surrogateError = surrogateError ;
+
+
+
+      // TODO fix this to find max across whole comm
+      // keep track of max of error
+      // comm.sum( ) ??
+      if (elem._totalError >= maxElementError)
+        maxElementError = elem._totalError ;
+
+    } // end if errorSurrogate exists
+  }
+  
 }
 #endif // DRIVER_H
 
