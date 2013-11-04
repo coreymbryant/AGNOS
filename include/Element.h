@@ -137,7 +137,6 @@ namespace AGNOS
       /* std::vector<std::shared_ptr<AGNOS::Parameter> > newParameters = */
       /*   _parameters; */
 
-      // TODO 
       //  split parameters
       //  Create new 1d parameters that will be needed in tensor product
       std::vector< std::vector< std::shared_ptr<AGNOS::Parameter> > > allParams;
