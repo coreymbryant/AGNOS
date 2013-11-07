@@ -161,8 +161,8 @@ int main(int argc, char* argv[])
     // rank0 from each physics group belongs in this group
     int stride = physicsNodeSize;
     int lastRank = size-stride;
-    if (lastRank == 0)
-      lastRank = size - 1;
+    /* if (lastRank == 0) */
+    /*   lastRank = size - 1; */
     int ranges[1][3] = { {0,lastRank,stride} } ;
     std::cout << "ranges: 0," << stride << "," << lastRank
       << std::endl;
