@@ -1,6 +1,7 @@
 [driver]
 maxIter = '4'
 adaptive = true
+simultRefine = false
 []
 
 [parallel]
