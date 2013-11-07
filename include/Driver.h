@@ -167,7 +167,7 @@ namespace AGNOS
     _refinePercentage = input("driver/refinePercentage",0.20);
     
     // ADAPTIVE SETTINGS
-    _simultRefine = input("driver/simultRefine",1);
+    _simultRefine = input("driver/simultRefine",false);
     
     
     // PARAMETER SETTINGS
@@ -590,14 +590,14 @@ namespace AGNOS
           // Determine which space to refine
           if ( ( _refinePhysics 
               && 
-              ( (!_adaptiveDriver)
-                ||
+              ( //(!_adaptiveDriver)
+                //||
                 (globalSurrogateError <= globalPhysicsError)  
               )
               ) || _simultRefine
              ) 
           {
-            if(AGNOS_DEBUG)
+            /* if(AGNOS_DEBUG) */
               std::cout << "DEBUG: refine physics rank-" << globalRank << std::endl;
           
             // mark my physics to be refined if it hasn't been
@@ -619,15 +619,15 @@ namespace AGNOS
           //otherwise refine surrogate
           else if ( ( _refineSurrogate 
               &&
-              ( (!_adaptiveDriver)
-                ||
+              ( //(!_adaptiveDriver)
+                //||
                 (globalSurrogateError >= globalPhysicsError)
               )
               ) || _simultRefine
               )
           {
 
-            if(AGNOS_DEBUG)
+            /* if(AGNOS_DEBUG) */
               std::cout << "DEBUG: refine surrogate rank-" 
                 << globalRank << std::endl;
 
@@ -674,12 +674,20 @@ namespace AGNOS
                   << globalRank << std::endl;
               std::vector<unsigned int> increase(_paramDim,0) ;
               if (!_anisotropic)
+              {
+              if(AGNOS_DEBUG)
+                std::cout << "DEBUG: uniform p refineing element rank-" 
+                  << globalRank << std::endl;
                 for (unsigned int i=0; i< increase.size(); i++)
                   increase[i]++;
+              }
               // if anisotropic refinement is being used we need to determine
               // which direction to refine in
               else
               {
+                /* if(AGNOS_DEBUG) */
+                  std::cout << "DEBUG: anisotropic p refineing element rank-" 
+                    << globalRank << std::endl;
                 // TODO we could also give option for other types of anisotropic
                 // refinement
                 
@@ -697,7 +705,7 @@ namespace AGNOS
                   std::vector< std::vector<unsigned int> > sortedM 
                     = elit->surrogates()[1]->indexSet() ;
 
-                  if(AGNOS_DEBUG)
+                  /* if(AGNOS_DEBUG) */
                   {
                     std::cout << " N: " << std::endl;
                     for (unsigned int i=0; i<sortedN.size(); i++)
@@ -718,40 +726,50 @@ namespace AGNOS
                   }
 
 
-                  unsigned int i, unique, maxIndex;
+                  // determine largest coeff of error surrogate
+                  unsigned int i, unique, maxIndex = 0;
                   double maxCoefficient = 0; 
                   std::vector<std::vector<unsigned int> >::iterator sit = sortedM.begin(); 
-                  for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
+
+                  if (!errorCoeffs.empty())
                   {
-                    if ( *sit != sortedN[i-unique] )
+                    for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
                     {
-                      unique++;
-
-                      if ( std::abs(errorCoeffs["errorEstimate"](i,0)) >= maxCoefficient )
+                      if ( *sit != sortedN[i-unique] )
                       {
-                        maxCoefficient = std::abs(errorCoeffs["errorEstimate"](i,0)) ;
-                        maxIndex = i;
-                      }
+                        unique++;
 
-                      if(AGNOS_DEBUG)
-                      {
-                        std::cout << " found one: index:" << i << "    " ;
-                        for (unsigned int j=0; j<sit->size(); j++)
-                          std::cout << (*sit)[j] << " " ;
-                        std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
-                        std::cout << std::endl;
-                      }
-                    }
-                  }
+                        if ( std::abs(errorCoeffs["errorEstimate"](i,0)) >= maxCoefficient )
+                        {
+                          maxCoefficient = std::abs(errorCoeffs["errorEstimate"](i,0)) ;
+                          maxIndex = i;
+                        }
 
-                  if(AGNOS_DEBUG)
+                        /* if(AGNOS_DEBUG) */
+                        {
+                          std::cout << " found one: index:" << i << "    " ;
+                          for (unsigned int j=0; j<sit->size(); j++)
+                            std::cout << (*sit)[j] << " " ;
+                          std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
+                          std::cout << std::endl;
+                        } // if AGNOS_DEBUG
+                      } // if unique index
+                    } // for each index M
+                  } // if errorCoeffs not empty
+
+                  this->_comm.broadcast(maxIndex,0);
+                  this->_physicsComm.broadcast(maxIndex,0);
+
+                  /* if(AGNOS_DEBUG) */
                     std::cout << "   maxIndex = " << maxIndex << std::endl;
+                  
+                  // increase only that dir
                   for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
                     if ( sortedM[maxIndex][j] >
                         elit->surrogates()[0]->getExpansionOrder()[j] )
                       increase[j]++;
 
-                  if(AGNOS_DEBUG)
+                  /* if(AGNOS_DEBUG) */
                   {
                     std::cout << "increase = " ;
                     for (unsigned int i=0; i<increase.size(); i++)
@@ -759,12 +777,7 @@ namespace AGNOS
                     std::cout << std::endl;
                   }
 
-                  exit(1) ;
 
-                  
-                  // determine largest coeff of error surrogate
-                  
-                  // increase only that dir
                   
                 } // end if adaptiveDriver
 
@@ -1257,7 +1270,8 @@ namespace AGNOS
     globalPhysics+= physicsError ;
 
     /**MPI all reduce to sum each procs contribution */
-    MPI_Allreduce( MPI_IN_PLACE, &physicsError, 1, MPI_REAL, MPI_SUM, _comm.get());
+    if (this->_comm.size() > 1)
+      MPI_Allreduce( MPI_IN_PLACE, &physicsError, 1, MPI_REAL, MPI_SUM, this->_comm.get());
     elem._physicsError = physicsError ;
 
     // safe guard against there not being a secondary surrogate
@@ -1281,8 +1295,11 @@ namespace AGNOS
       globalSurrogate += surrogateError ;
 
       /**MPI reduce to all procs */
-      MPI_Allreduce( MPI_IN_PLACE, &totalError, 1, MPI_REAL, MPI_SUM, _comm.get());
-      MPI_Allreduce( MPI_IN_PLACE, &surrogateError, 1, MPI_REAL, MPI_SUM, _comm.get());
+      if (this->_comm.size() > 1)
+      {
+        MPI_Allreduce( MPI_IN_PLACE, &totalError, 1, MPI_REAL, MPI_SUM, _comm.get());
+        MPI_Allreduce( MPI_IN_PLACE, &surrogateError, 1, MPI_REAL, MPI_SUM, _comm.get());
+      }
       elem._totalError = totalError ;
       elem._surrogateError = surrogateError ;
 

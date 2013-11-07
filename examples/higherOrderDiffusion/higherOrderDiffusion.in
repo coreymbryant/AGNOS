@@ -1,7 +1,13 @@
 [driver]
 maxIter = '1'
 adaptive = true
+simultRefine = false
 []
+
+[parallel]
+physicsNodeSize = 1
+[]
+
 
 [parameters]
 dimension = '10'
@@ -27,7 +33,7 @@ refine = true
 
 
 [surrogateModels]
-modelNames = 'primarySurrogate'
+modelNames = 'primarySurrogate errorSurrogate'
 refine = true
 anisotropic = true
 
@@ -39,7 +45,7 @@ anisotropic = true
   [./errorSurrogate]
   type = 'PseudoSpectralTensorProduct'
   primarySurrogate = 'primarySurrogate'
-  increaseOrder = '1'   
+  increaseOrder = '1 0 0 0 0 0 0 0 0 0'   
   multiplyOrder = '1'  
   evaluateSolutions = 'primal adjoint'
   computeSolutions='errorEstimate'
