@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <cstring>
-#include <forward_list>
+#include <list>
 #include <queue>
 #include <iterator>
 

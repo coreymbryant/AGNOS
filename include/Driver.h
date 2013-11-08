@@ -76,6 +76,7 @@ namespace AGNOS
 
 
     protected:
+      GetPot& _input;
       std::shared_ptr< PhysicsModel<T_S,T_P> > _initPhysics( GetPot& input );
       std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > 
         _initSurrogate( GetPot& input, 
@@ -99,7 +100,7 @@ namespace AGNOS
       
       // ---------------------
       // ELEMENT VARIABLES
-      std::forward_list<AGNOS::Element<T_S,T_P> > _activeElems;
+      std::list<AGNOS::Element<T_S,T_P> > _activeElems;
       std::queue<AGNOS::Element<T_S,T_P> >        _elemsToUpdate;
       // ---------------------
       
@@ -152,7 +153,7 @@ namespace AGNOS
       const Communicator& physicsComm,
       GetPot& input 
       ) :
-    _comm(comm), _physicsComm(physicsComm) 
+    _comm(comm), _physicsComm(physicsComm), _input(input) 
   {
 
     if(AGNOS_DEBUG)
@@ -481,7 +482,8 @@ namespace AGNOS
           }
       }
     
-      std::cout << "sectionName: " << sectionName << std::endl;
+      if(AGNOS_DEBUG)
+        std::cout << "sectionName: " << sectionName << std::endl;
       input.set_prefix("surrogateModels/") ;
     }
 
@@ -524,7 +526,7 @@ namespace AGNOS
     }
 
 
-    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
     
     // initialize global errors
@@ -557,12 +559,12 @@ namespace AGNOS
     _physicsComm.broadcast(globalPhysicsError);
     
     std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-    /* errorOut << globalPhysicsError << " " ; */
+    errorOut << globalPhysicsError << " " ;
 
     std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
     std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
-    /* errorOut << globalTotalError << " "  ; */
-    /* errorOut << globalSurrogateError << std::endl; */
+    errorOut << globalTotalError << " "  ;
+    errorOut << globalSurrogateError << std::endl;
 
 
 
@@ -583,7 +585,7 @@ namespace AGNOS
       
       // loop through active elements , if error is above threshold mark
       // unique physics objects
-      for (elit=_activeElems.begin(); elit!=_activeElems.end(); elit++)
+      for (elit=_activeElems.begin(); elit!=_activeElems.end(); ++elit)
       {
         if ( elit->_totalError >= _refinePercentage * maxElementError )
         {
@@ -630,23 +632,24 @@ namespace AGNOS
             /* if(AGNOS_DEBUG) */
               std::cout << "DEBUG: refine surrogate rank-" 
                 << globalRank << std::endl;
+             
 
-            // perform h refinement
-            if ( _hRefine && false ) // TODO conditions
+            // test if h refinement is practical
+            double childMaxSurrogateError = 0.;
+            std::vector< Element<T_S,T_P> > children ;
+            if ( _hRefine ) // TODO conditions
             {
-              if(AGNOS_DEBUG)
+              /* if(AGNOS_DEBUG) */
                 std::cout << "DEBUG: h refineing element rank-" 
                   << globalRank << std::endl;
 
-              std::vector< Element<T_S,T_P> > children = elit->split() ;
-              // TODO remove old element if necessary
-                /* _elemsToUpdate.pop(); */
+              children = elit->split() ;
 
               double childPhysicsError = 0.;
               double childTotalError = 0.;
               double childSurrogateError = 0.;
               double childMaxError = 0.;
-
+              double childErrorSum = 0.;
               for (unsigned int c=0; c<children.size(); c++)
               {
                 computeErrors(
@@ -656,15 +659,52 @@ namespace AGNOS
                     childSurrogateError,
                     childMaxError
                     );
-                // TODO don't do this unless we decide to split
-                // cosntruct a new surrogate for this element
-                /* std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > childSurrogates = */
-                /*     _initSurrogate( input, children[c].parameters(), children[c].physics() ) ; */
-                /* children[c].setSurrogates( childSurrogates ); */ 
 
-                // TODO save element to update queue
-                /* _elemsToUpdate.push(children[c]) ; */
+                // add contribution to sum
+                childErrorSum += childSurrogateError ;
+                // if this child has larger error save as max
+                if ( childSurrogateError > childMaxSurrogateError)
+                  childMaxSurrogateError = childSurrogateError ;
               }
+
+              // make sure contributions roughly equal element error
+              if( std::abs(childErrorSum - elit->_totalError) <= 1e-9 )
+              {
+                std::cerr << std::endl;
+                std::cerr 
+                  << " ERROR: children error contributions don't add up to \n"
+                  << "        total element error" 
+                  << std::endl;
+                std::cerr << std::endl;
+                exit(1);
+              } // end if contributions match
+            } /// end if hRefine
+
+
+            // perform h refinement
+            // TODO make percentage an option??
+            if ( _hRefine 
+                && 
+                (childMaxSurrogateError>= (0.25 * elit->_surrogateError) ) 
+                )
+            {
+              
+              // cosntruct new surrogates for each child element
+              for (unsigned int c=0; c<children.size(); c++)
+              {
+                std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > 
+                  childSurrogates = _initSurrogate( 
+                      _input, children[c].parameters(), children[c].physics() ) ;
+                children[c].setSurrogates( childSurrogates ); 
+
+                // save element to update queue
+                _activeElems.push_front(children[c]) ;
+                _elemsToUpdate.push(children[c]) ;
+              }
+              // remove old element from active too
+              elit = _activeElems.erase(elit);
+              elit--;
+
             }
             // perform p refinement
             else if( _pRefine )
@@ -789,6 +829,10 @@ namespace AGNOS
               // refinement based on primary takes precedence. 
               for(unsigned int i=0;i<elit->surrogates().size(); i++)
                 elit->surrogates()[i]->refine( increase ) ;
+              
+              // add to update queue
+              _elemsToUpdate.push(*elit);
+
             }
             else
             {
@@ -802,9 +846,6 @@ namespace AGNOS
               exit(1);
             }
             
-            // add to update queue
-            _elemsToUpdate.push(*elit);
-
           } // end of if refine surrogate
 
         } // end of active element and if above threshold loop
@@ -819,7 +860,10 @@ namespace AGNOS
           }
         }
 
+        if ( elit == _activeElems.end() )
+          break;
       } // loop over active elements
+      std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
 
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: pre update elements rank-" << globalRank << std::endl;
@@ -863,9 +907,9 @@ namespace AGNOS
         globalTotalError = 0.;
 
         // loop through all active elements
-        std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+        std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
           _activeElems.begin();
-        for (; elit!=_activeElems.end(); elit++)
+        for (; elit!=_activeElems.end(); ++elit)
         {
 
           computeErrors( 
@@ -886,12 +930,12 @@ namespace AGNOS
       _physicsComm.broadcast(globalPhysicsError);
       
       std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-      /* errorOut << globalPhysicsError << " " ; */
+      errorOut << globalPhysicsError << " " ;
 
       std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
       std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
-      /* errorOut << globalTotalError << " "  ; */
-      /* errorOut << globalSurrogateError << std::endl; */
+      errorOut << globalTotalError << " "  ;
+      errorOut << globalSurrogateError << std::endl;
 
     } // end for nIter
 
@@ -1086,7 +1130,7 @@ namespace AGNOS
     out << "#     nElems = " <<
       std::distance(_activeElems.begin(),_activeElems.end()) << std::endl;
 
-    std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
     for (; elit!=_activeElems.end(); elit++)
     {
@@ -1123,7 +1167,7 @@ namespace AGNOS
     std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
     for(; sid !=_surrogateNames.end(); sid++)
     {
-      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
         _activeElems.begin();
       for (; elit!=_activeElems.end(); elit++)
       {
@@ -1168,7 +1212,7 @@ namespace AGNOS
         out << "#     " << sid->first << ": " << std::endl;
       }
 
-      std::forward_list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
         _activeElems.begin();
       for (; elit!=_activeElems.end(); elit++)
       {
@@ -1305,9 +1349,7 @@ namespace AGNOS
 
 
 
-      // TODO fix this to find max across whole comm
       // keep track of max of error
-      // comm.sum( ) ??
       if (elem._totalError >= maxElementError)
         maxElementError = elem._totalError ;
 
