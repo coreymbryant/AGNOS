@@ -284,12 +284,13 @@ namespace AGNOS
       // ------------------------------------
 
 
-      std::cout << "physicsGroup: " << this->_physicsGroup
-        << " groupRank: " << this->_groupRank 
-        << " global rank: " << globalRank 
-        << " nPts: " << this->_integrationIndices.size()
-        << " comm.size: " << this->_nPhysicsGroups 
-        << std::endl;
+      /* if (AGNOS_DEBUG) */
+        std::cout << "physicsGroup: " << this->_physicsGroup
+          << " groupRank: " << this->_groupRank 
+          << " global rank: " << globalRank 
+          << " nPts: " << this->_integrationIndices.size()
+          << " comm.size: " << this->_nPhysicsGroups 
+          << std::endl;
 
 
       // ------------------------------------
@@ -317,7 +318,7 @@ namespace AGNOS
       // ------------------------------------
 
       
-      this->_comm.barrier();
+      /* this->_comm.barrier(); */
 
 
       // ------------------------------------
@@ -367,7 +368,7 @@ namespace AGNOS
         // ------------------------------------
        
         
-        this->_comm.barrier();
+        /* this->_comm.barrier(); */
 
 
         // ------------------------------------
@@ -384,7 +385,7 @@ namespace AGNOS
 
 
           // let proc 0 catch up
-          this->_comm.barrier();
+          /* this->_comm.barrier(); */
 
           // Matrix to save solutions 
           unsigned int tempSize;
@@ -513,7 +514,7 @@ namespace AGNOS
         }
 
 
-        this->_comm.barrier();
+        /* this->_comm.barrier(); */
 
         // clean up primary evals
         this->_primaryEvaluations.clear();
@@ -525,7 +526,7 @@ namespace AGNOS
 
 
 
-      this->_comm.barrier();
+      /* this->_comm.barrier(); */
       if (this->_groupRank==0)
         polyValues->close();
 
@@ -714,7 +715,7 @@ namespace AGNOS
 
 
 
-        this->_comm.barrier();
+        /* this->_comm.barrier(); */
 
 
 
@@ -1120,9 +1121,9 @@ namespace AGNOS
             paramValues(j) = quadPoints[i][j];
 
           T_P diffVec = this->evaluate(solutionName,paramValues);
-          std::cout << " test: base model eval " << std::endl;
+          /* std::cout << " test: base model eval " << std::endl; */
           diffVec -= comparisonModel.evaluate(solutionName,paramValues);
-          std::cout << " test: comparison model eval " << std::endl;
+          /* std::cout << " test: comparison model eval " << std::endl; */
 
 
           l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
