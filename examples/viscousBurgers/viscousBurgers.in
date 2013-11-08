@@ -1,6 +1,7 @@
 [driver]
 maxIter = '2'
 adaptive = true
+simultRefine = false
 []
 
 [parameters]
@@ -14,7 +15,7 @@ maxs = '1.0 1.0'
 
 [physics]
 type = 'viscousBurgers'
-refine = true
+refine = false
 
   [./viscousBurgers]
   solutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
@@ -37,6 +38,8 @@ refine = true
 [surrogateModels]
 modelNames = 'primarySurrogate errorSurrogate'
 refine = true
+hRefine = true
+pRefine = true
 anisotropic = false
 
   [./primarySurrogate]
