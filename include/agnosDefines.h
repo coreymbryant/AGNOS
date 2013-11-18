@@ -40,7 +40,7 @@
 typedef libMesh::DenseVector<double> T_S ;
 typedef libMesh::DenseVector<double> T_P ;
 typedef libMesh::Parallel::Communicator Communicator;
-typedef libMesh::NumericVector<double> Vector;
+typedef libMesh::PetscVector<double> Vector;
 typedef libMesh::PetscMatrix<double> DistMatrix;
 typedef libMesh::DenseMatrix<double> LocalMatrix;
 
