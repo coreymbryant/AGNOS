@@ -327,22 +327,54 @@ namespace AGNOS
         std::cout << "     --> Solving at " << _nIntegrationPoints 
           << " integration points " << std::endl;
       
+      // ------------------------------------
+      // Get primalSurrogate evaluations if needed
+      // ------------------------------------
+      this->_primaryEvaluations.clear();
+      this->_primaryEvaluations.reserve( nPts );
+      if ( ! this->_evalNames.empty() )
+      {
+        // loop through all integration points
+        for(unsigned int pt=0; pt < this->_nIntegrationPoints; pt++)
+        {
+          std::cout << "pt " << pt << std::endl;
+          if (AGNOS_DEBUG)
+            std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
+              << std::endl;
+          
+          // determine if its one of this processes points
+          bool localPoint = false;
+          if (nPts > 0)
+            localPoint = ( 
+              (pt >= this->_integrationIndices.front()) 
+              && 
+              (pt <= this->_integrationIndices.back()) 
+              ) ;
+
+          std::map<std::string,T_P> evaluations;
+          if (this->_groupRank==0)
+            evaluations  = this->_evalSurrogate->evaluate(
+                this->_evalNames, _integrationPoints[pt], localPoint  ) ;
+          if (localPoint)
+            this->_primaryEvaluations.push_back(evaluations);
+        }
+      }
+      // ------------------------------------
 
       // ------------------------------------
+      // TODO update since its not necessary now
       // loop through all integration points, even if not mine so that
       // evaluations of primary surrogate operate collectively.
       std::map<std::string, std::shared_ptr<DistMatrix> > solContrib;
       std::map<std::string,T_P> myContribs ;
       for(unsigned int pt=0; pt < this->_nIntegrationPoints; pt++)
       {
-        if ( pt%10 == 0)
+        /* if ( pt%10 == 0) */
           std::cout << "pt " << pt << std::endl;
 
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: beginning of pt" << std::endl;
 
-        
-        // determine if its one of this processes points
         bool localPoint = false;
         if (nPts > 0)
           localPoint = ( 
@@ -350,22 +382,8 @@ namespace AGNOS
             && 
             (pt <= this->_integrationIndices.back()) 
             ) ;
-
+        
       
-        // ------------------------------------
-        // Get primalSurrogate evaluations if needed
-        this->_primaryEvaluations.clear();
-        if ( ! this->_evalNames.empty() )
-        {
-          if (AGNOS_DEBUG)
-            std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
-              << std::endl;
-
-          if (this->_groupRank==0)
-            this->_primaryEvaluations  = this->_evalSurrogate->evaluate(
-                this->_evalNames, _integrationPoints[pt], localPoint  ) ;
-        }
-        // ------------------------------------
        
         
         /* this->_comm.barrier(); */
@@ -516,14 +534,14 @@ namespace AGNOS
 
         /* this->_comm.barrier(); */
 
-        // clean up primary evals
-        this->_primaryEvaluations.clear();
-
 
         if (AGNOS_DEBUG)
           std::cout << "DEBUG: end of pt" << std::endl;
       }// end of pts
 
+
+      // clean up primary evals
+      this->_primaryEvaluations.clear();
 
 
       /* this->_comm.barrier(); */
@@ -614,7 +632,8 @@ namespace AGNOS
       // get data for this integration point
       std::map< std::string, T_P > contrib ;
       if ( ! this->_primaryEvaluations.empty() )
-        contrib = this->_primaryEvaluations;
+        contrib =
+          this->_primaryEvaluations[index-this->_integrationIndices.front()];
       T_S integrationPoint = _integrationPoints[index];
       double integrationWeight = _integrationWeights[index];
 
@@ -664,7 +683,7 @@ namespace AGNOS
         bool saveLocal  /**< save solution locally after evaluation*/
         ) const
     {
-      if(AGNOS_DEBUG)
+      /* if(AGNOS_DEBUG) */
         std::cout << "DEBUG: entering surrogate evaluate" << std::endl;
 
       // initalize some data structure
@@ -741,7 +760,7 @@ namespace AGNOS
 
 
 
-          if(AGNOS_DEBUG)
+          /* if(AGNOS_DEBUG) */
             std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
               "with size:" <<  solSize << std::endl;
 
@@ -756,6 +775,8 @@ namespace AGNOS
               &resultMat
               );
 
+        std::cout << "DEBUG: post MatMatMult" << std::endl;
+
           // initiate matrix from MM product result
           std::shared_ptr<DistMatrix> coeffMatrix(
               new DistMatrix(resultMat,this->_comm) ) ;
@@ -763,27 +784,34 @@ namespace AGNOS
           // localize result on each processor
           if (saveLocal)
           {
-            std::vector<double> localResult;
+            std::vector<double> localResult(solSize,0.);
+            std::cout << "DEBUG: pre assign" << std::endl;
+            // TODO This is the slow part
             for (unsigned int i=coeffMatrix->row_start(); 
                 i<coeffMatrix->row_stop(); i++)
             {
-              localResult.resize(solSize);
+              /* std::cout << "row: " << i << std::endl; */
               for (unsigned int j=0; j<solSize; j++)
+              {
+                /* std::cout << "row: " << i << std::endl; */
                 localResult[j]=(*coeffMatrix)(i,j)  ;
+              }
             }
             
+            std::cout << "DEBUG: pre insert" << std::endl;
             // save result in return map
             surrogateValue.insert(
                 std::pair< std::string, T_P >(*id, T_P(localResult) ) 
                 ) ;
 
           }
+          std::cout << "DEBUG: post saveLocal" << std::endl;
 
 
         } // solNames
       }
 
-      if(AGNOS_DEBUG)
+      /* if(AGNOS_DEBUG) */
         std::cout << "DEBUG: leaving surrogate evaluate" << std::endl;
       return surrogateValue;
     }
