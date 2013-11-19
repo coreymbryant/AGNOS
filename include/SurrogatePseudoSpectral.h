@@ -683,59 +683,42 @@ namespace AGNOS
         bool saveLocal  /**< save solution locally after evaluation*/
         ) const
     {
-      /* if(AGNOS_DEBUG) */
+      if(AGNOS_DEBUG)
         std::cout << "DEBUG: entering surrogate evaluate" << std::endl;
 
       // initalize some data structure
       unsigned int totalNCoeff = this->_totalNCoeff;
       std::map< std::string, T_P> surrogateValue;
 
+      PetscErrorCode ierr;
+
       if(this->_groupRank==0)
       {
 
         // initalize polyValues data structure
-        // NOTE: we will fill all polys on each proc, 
-        //        i.e. global m = comm.size
-        //        local m = 1
-        DistMatrix polyValues(this->_comm);
-        polyValues.init( 
-            this->_nPhysicsGroups,           // global dim m
-            totalNCoeff,                  // global dim n
-            saveLocal,                    // local dim m
-            this->_coeffIndices.size(),   // local dim n
-            totalNCoeff,                  // # non-zero/row on proc
-            totalNCoeff                   // # non-zero/row off proc
-            );
+        Vec polyValuesVec;
+        ierr = VecCreateMPI(
+            this->_comm.get(),  // comm
+            PETSC_DECIDE,       // local size (let petsc decide)
+            totalNCoeff,        // global size
+            &polyValuesVec);    // vector
+        Vector polyValues(polyValuesVec,this->_comm);
         polyValues.zero();
 
-
-
-        if (saveLocal)
-        {
-          // make sure we only have one local row
-          assert( (polyValues.row_stop() - polyValues.row_start()) == 1);
           
-          // evaluate all basis polys at given parameterValue
-          std::vector<double> myPolyVals = evaluateBasis( 
-              this->_indexSet,
-              parameterValues 
-              );
+        // evaluate all basis polys at given parameterValue
+        std::vector<double> myPolyVals = evaluateBasis( 
+            this->_indexSet,
+            parameterValues 
+            );
         
-          // copy poly vals into Petsc data structure
-          for(unsigned int i=0; i<myPolyVals.size(); i++)
-            polyValues.set( polyValues.row_start(), i , myPolyVals[i] ) ;
-        }
-        else
-        {
-          // make sure we have NO local rows
-          assert( (polyValues.row_stop() - polyValues.row_start()) == 0);
-        }
+        // copy poly vals into Petsc data structure
+        for(unsigned int i=0; i<polyValues.local_size(); i++)
+          polyValues.set( i+polyValues.first_local_index() ,
+              myPolyVals[i+polyValues.first_local_index()] ) ;
+
+        // close vector
         polyValues.close();
-
-
-
-        /* this->_comm.barrier(); */
-
 
 
         // loop over all solutions requested
@@ -759,59 +742,46 @@ namespace AGNOS
             = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
 
 
-
-          /* if(AGNOS_DEBUG) */
+          if(AGNOS_DEBUG)
             std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
               "with size:" <<  solSize << std::endl;
 
 
-          // compute matrix matrix product b/w polyValues and coefficient matrix
-          Mat resultMat ;
-          PetscErrorCode ierr;
-          ierr = MatMatMult( 
-              polyValues.mat(),
+          // create vector to store result of evaluation
+          Vec resultVec;;
+          ierr = VecCreateMPI(
+              this->_comm.get(), 
+              PETSC_DECIDE,
+              solSize,
+              &resultVec);
+          Vector result(resultVec,this->_comm);
+          result.zero();
+
+          // compute  matrix vector product b/w polyValues and coefficient matrix
+          ierr = MatMultTranspose( 
               (const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])->mat(),
-              MAT_INITIAL_MATRIX,PETSC_DEFAULT,
-              &resultMat
+              polyValues.vec(),
+              result.vec()
               );
 
-        std::cout << "DEBUG: post MatMatMult" << std::endl;
-
-          // initiate matrix from MM product result
-          std::shared_ptr<DistMatrix> coeffMatrix(
-              new DistMatrix(resultMat,this->_comm) ) ;
 
           // localize result on each processor
+          std::vector<double> localResult(solSize,0.);
+          result.localize(localResult);
+            
           if (saveLocal)
           {
-            std::vector<double> localResult(solSize,0.);
-            std::cout << "DEBUG: pre assign" << std::endl;
-            // TODO This is the slow part
-            for (unsigned int i=coeffMatrix->row_start(); 
-                i<coeffMatrix->row_stop(); i++)
-            {
-              /* std::cout << "row: " << i << std::endl; */
-              for (unsigned int j=0; j<solSize; j++)
-              {
-                /* std::cout << "row: " << i << std::endl; */
-                localResult[j]=(*coeffMatrix)(i,j)  ;
-              }
-            }
-            
-            std::cout << "DEBUG: pre insert" << std::endl;
             // save result in return map
             surrogateValue.insert(
                 std::pair< std::string, T_P >(*id, T_P(localResult) ) 
                 ) ;
 
           }
-          std::cout << "DEBUG: post saveLocal" << std::endl;
-
 
         } // solNames
-      }
+      } // if groupRank ==0
 
-      /* if(AGNOS_DEBUG) */
+      if(AGNOS_DEBUG)
         std::cout << "DEBUG: leaving surrogate evaluate" << std::endl;
       return surrogateValue;
     }
