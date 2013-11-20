@@ -175,6 +175,7 @@ namespace AGNOS
           logCoeff += _ck[i] * _xik[i] * 
             std::sin(_lambdak[i]*M_PI*x1) * std::cos(_lambdak[i]*M_PI*x2)  ;
 
+
         // The residual contribution from this element
         for (unsigned int i=0; i != n_u_dofs; i++)
           F(i) += JxW[qp] * ( 
@@ -442,6 +443,10 @@ namespace AGNOS
             i++)
           static_cast<DiffusionSystem*>(this->_system)->_xik[i] 
             = parameterValues(i) ;
+        /* std::cout << "xi = " ; */
+        /* for(unsigned int i=0; i<parameterValues.size();i++) */
+        /*   std::cout << parameterValues(i) << "  " ; */
+        /* std::cout << std::endl; */
       }
       else
       {
