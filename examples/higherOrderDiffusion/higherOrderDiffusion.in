@@ -13,8 +13,8 @@ physicsNodeSize = 1
 dimension = '10'
 nInitialHRefinements = '0'
 types ='UNIFORM'
-mins = '0.0'
-maxs = '1.0'
+mins = '0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0'
+maxs = '1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0'
 []
 
 [physics]
@@ -39,7 +39,7 @@ anisotropic = true
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '0'
+  order = '0 0 0 0 0 0 0 0 0 0'
   [../]
 
   [./errorSurrogate]

@@ -175,17 +175,29 @@ namespace AGNOS
     _paramDim = input("parameters/dimension", 1);
     _nInitialHRefinements = input("parameters/nInitialHRefinements", 0);
 
+    // read in parameer dimension and bounds
+    // TODO if less than dim but greater than one -> error
+    //      if one and dim > 1 set all as same
     std::vector< std::shared_ptr<AGNOS::Parameter> > parameters;
     parameters.reserve(_paramDim);
+
+
+    // construct parameter structures
+    int paramType   = 0;
+    double paramMin = -1.0;
+    double paramMax =  1.0;
+    // read in parameter type and bounds
+    // if all directions are not provided we assume they match the last
+    // provided directions sections
     for (unsigned int i=0; i < _paramDim; i++)
+    {
+      paramType = input("parameters/types",paramType,i);
+      paramMin  = input("parameters/mins",paramMin,i); 
+      paramMax  = input("parameters/maxs",paramMax,i);
       parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
-            new AGNOS::Parameter( 
-              input("parameters/types",0,i),
-              input("parameters/mins",-1.0,i), 
-              input("parameters/maxs", 1.0,i))
-            )
+            new AGNOS::Parameter( paramType, paramMin, paramMax )) 
           );
-    
+    }
 
     
     // PHYSICS SETTINGS
