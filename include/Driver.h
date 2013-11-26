@@ -570,6 +570,7 @@ namespace AGNOS
     _physicsComm.broadcast(globalSurrogateError);
     _physicsComm.broadcast(globalPhysicsError);
     
+      std::cout << "NElEM:  "  << _activeElems.size() << std::endl;
     std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
     errorOut << globalPhysicsError << " " ;
 
@@ -941,6 +942,7 @@ namespace AGNOS
       _physicsComm.broadcast(globalSurrogateError);
       _physicsComm.broadcast(globalPhysicsError);
       
+      std::cout << "NElEM:  "  << _activeElems.size() << std::endl;
       std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
       errorOut << globalPhysicsError << " " ;
 

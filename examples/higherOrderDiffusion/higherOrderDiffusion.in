@@ -27,6 +27,8 @@ refine = true
 
   numberHRefinements = '1'
   numberPRefinements = '0'
+  writePrimalViz = 'true'
+  writeAdjointViz = 'true'
   [../]
 
 []
