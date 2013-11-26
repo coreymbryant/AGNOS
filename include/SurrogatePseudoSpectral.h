@@ -337,7 +337,6 @@ namespace AGNOS
         // loop through all integration points
         for(unsigned int pt=0; pt < this->_nIntegrationPoints; pt++)
         {
-          std::cout << "pt " << pt << std::endl;
           if (AGNOS_DEBUG)
             std::cout << "DEBUG: evaluating primarySurrogate at pt: " << pt 
               << std::endl;
@@ -1034,6 +1033,7 @@ namespace AGNOS
             = this->evaluate(solutionNames,paramValues);
           for (id=solutionNames.begin(); id != solutionNames.end(); id++)
           {
+
             for(unsigned int j=0; j<l2norm[*id].size();j++)
               l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
                 * quadWeights[i] ; 
