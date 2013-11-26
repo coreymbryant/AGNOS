@@ -69,8 +69,7 @@ namespace AGNOS
     MeshBase &mesh = es.get_mesh();
 
     std::ostringstream file_name;
-    file_name<< solution_type
-                  << ".out.gp" ;
+    file_name<< solution_type ;
     for (unsigned int i=0; i<paramVector.size(); i++)
     {
       file_name
@@ -80,6 +79,9 @@ namespace AGNOS
         << std::setw(3) 
         << paramVector(i) ;
     }
+    file_name << ".vtu" ;
+
+    std::cout << file_name.str() << std::endl;
 
     VTKIO(mesh).write_equation_systems
       (file_name.str(), es);
@@ -199,9 +201,9 @@ namespace AGNOS
     _maxRefineSteps       = input("maxRefineSteps",1);
 
     // other options
-    _resolveAdjoint       = input("resolveAdjoint",false);
     _writePrimalViz        = input("writePrimalViz",false);
     _writeAdjointViz       = input("writeAdjointViz",false);
+    _resolveAdjoint       = input("resolveAdjoint",false);
     // -----------------------------------------------------------
 
 

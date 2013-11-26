@@ -443,10 +443,10 @@ namespace AGNOS
             i++)
           static_cast<DiffusionSystem*>(this->_system)->_xik[i] 
             = parameterValues(i) ;
-        /* std::cout << "xi = " ; */
-        /* for(unsigned int i=0; i<parameterValues.size();i++) */
-        /*   std::cout << parameterValues(i) << "  " ; */
-        /* std::cout << std::endl; */
+        std::cout << "xi = " ;
+        for(unsigned int i=0; i<parameterValues.size();i++)
+          std::cout << parameterValues(i) << "  " ;
+        std::cout << std::endl;
       }
       else
       {
