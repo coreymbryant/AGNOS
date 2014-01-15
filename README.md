@@ -8,4 +8,14 @@ different function.
 
 (Agnostos is the Greek word for unknown.)
 
+Build order:
+ - gcc
+ - mpi (open-mpi or mpich)
+ - (mkl)
+ - petsc
+ - trilinos
+ - vtk
+ - tbb
+ - boost 
+ - cpp-unit (for tests only)
 
