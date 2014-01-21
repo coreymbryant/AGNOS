@@ -23,12 +23,16 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 # Flags we need to pass to the linker
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
-						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
-						 $(LIBMESH_LDFLAGS)
+             $(BOOST_PROGRAM_OPTIONS_LIBS) \
+             $(LIBMESH_LIBS) \
+             $(LIBMESH_LDFLAGS)
+						 
+						 
+						 
 
 # run_SOURCES =$(top_srcdir)/src/run.C \
 # 							 $(top_srcdir)/src/agnos.C
-# agnos_LDADD = $(LIBMESH_LDFLAGS)
+# agnos_LDADD = $(LIBMESH_LIBS)
 agnos_SOURCES = agnos.C
 
 #
