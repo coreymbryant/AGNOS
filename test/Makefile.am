@@ -20,20 +20,24 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
-							 $(LIBMESH_CPPFLAGS) \
-							 $(CPPUNIT_CFLAGS)
+							 $(LIBMESH_CPPFLAGS)
+
 # AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
-LIBS = $(CPPUNIT_LIBS)
+# LIBS = $(CPPUNIT_LIBS)
 
 #------------------------------------
 # Flags we need to pass to the linker
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
-						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
+             $(BOOST_PROGRAM_OPTIONS_LIBS) \
+             $(LIBMESH_LIBS) \
+             $(LIBMESH_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-						 $(LIBMESH_LDFLAGS)
+						 $(CPPUNIT_LIBS)
 
+
+polynomialTest_LDADD = $(CPPUNIT_LIBS)
 polynomialTest_SOURCES 			= driver.C PolynomialTest.cpp
 catenaryTest_SOURCES 				= driver.C CatenaryTest.cpp
 evaluationTest_SOURCES 			= driver.C EvaluationTest.cpp
