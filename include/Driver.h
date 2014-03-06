@@ -518,6 +518,9 @@ namespace AGNOS
 
     // First iteration
     // TODO can we combine this into iter loop?
+    std::cout 
+      << "----------------- ITER " << 1 << " -----------------" 
+      << std::endl;
 
     while (!_elemsToUpdate.empty())
     {
@@ -570,7 +573,7 @@ namespace AGNOS
     _physicsComm.broadcast(globalSurrogateError);
     _physicsComm.broadcast(globalPhysicsError);
     
-      std::cout << "NElEM:  "  << _activeElems.size() << std::endl;
+    std::cout << " NElEM:  "  << _activeElems.size() << std::endl;
     std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
     errorOut << globalPhysicsError << " " ;
 
@@ -586,6 +589,9 @@ namespace AGNOS
     {
 
     maxElementError = 0;
+    std::cout 
+      << "----------------- ITER " << iter << " -----------------" 
+      << std::endl;
 
     int globalRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
@@ -1325,7 +1331,7 @@ namespace AGNOS
     physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
 
     /**Add to global tally  */
-    globalPhysics+= physicsError ;
+    globalPhysics+= pow(physicsError,2.) ;
 
     /**MPI all reduce to sum each procs contribution */
     if (this->_comm.size() > 1)
@@ -1349,8 +1355,8 @@ namespace AGNOS
             *(elem.surrogates()[1]), "errorEstimate");
 
       /**Add to global tally */
-      globalTotal += totalError;
-      globalSurrogate += surrogateError ;
+      globalTotal += pow(totalError,2.);
+      globalSurrogate += pow(surrogateError,2.) ;
 
       /**MPI reduce to all procs */
       if (this->_comm.size() > 1)
@@ -1368,6 +1374,12 @@ namespace AGNOS
         maxElementError = elem._totalError ;
 
     } // end if errorSurrogate exists
+
+    /**Take square roots for l2norm */
+    std::sqrt( globalTotal );
+    std::sqrt( globalSurrogate );
+    std::sqrt( globalPhysics );
+
   }
   
 }
