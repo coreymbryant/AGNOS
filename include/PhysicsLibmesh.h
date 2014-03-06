@@ -149,7 +149,7 @@ namespace AGNOS
 
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */
-      virtual void _setParameterValues( const T_S& parameterValues ) = 0;
+      using PhysicsModel<T_S,T_P>::_setParameterValues;
 
       /** build mesh refinement object (can be overidden in derived class) */
       virtual void _buildMeshRefinement();

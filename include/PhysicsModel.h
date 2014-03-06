@@ -86,6 +86,9 @@ namespace AGNOS
         if(AGNOS_DEBUG)
           std::cout << "DEBUG: calling provided compute function\n" ;
 
+        // set parameter values
+        this->_setParameterValues( paramVector );
+
         if(_compute_function != NULL)
           this->_compute_function(paramVector, solutionVectors);
 
@@ -126,6 +129,10 @@ namespace AGNOS
       void(* _compute_function)(
           const T_S& paramVector, 
           std::map<std::string, T_P >& solutionVectors ) ;
+
+      /** derived PhysicsModel classes need to handle settig parameter values
+       * themselves */
+      virtual void _setParameterValues( const T_S& parameterValues ) {};
       
   }; // PhysicsModel class
 
