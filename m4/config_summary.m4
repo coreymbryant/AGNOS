@@ -35,7 +35,7 @@ echo libMesh....................... : $LIBMESH_PREFIX
 echo libMesh CXXFLAGS.............. : $LIBMESH_CXXFLAGS
 echo libMesh INCLUDE............... : $LIBMESH_INCLUDE
 echo Boost......................... : $BOOST_ROOT
-echo GRINS......................... : $GRINS_PREFIX
+#echo GRINS......................... : $GRINS_PREFIX
 #echo QUESO......................... : $QUESO_PREFIX
 #echo Trilinos...................... : $TRILINOS_PREFIX
 #echo HDF5.......................... : $HDF5_PREFIX
@@ -47,6 +47,11 @@ echo '  'cppunit.......................... : $enablecppunit
   if (test "x$enablecppunit" = "xyes"); then
   echo '     'CPPUNIT_CFLAGS................ : $CPPUNIT_CFLAGS
   echo '     'CPPUNIT_LIBS.................. : $CPPUNIT_LIBS
+  fi
+echo '  'channelflow...................... : $enablechannelflow
+  #TODO
+  if (test "x$enablechannelflow" = "xyes"); then
+  echo '     'CHANNELFLOW_DIR............... : $CHANNELFLOW_DIR
   fi
 
 echo
