@@ -1,3 +1,7 @@
+if ENABLE_CHANNELFLOW
+SUBDIRS = channelFlow
+endif
+
 EXTRA_DIST = 
 #--------------------------------------
 #Local Directories to include for build
@@ -52,9 +56,11 @@ viscousburgers_SCRIPTS = $(top_builddir)/examples/viscousBurgers/run.sh
 EXTRA_DIST += $(viscousburgers_DATA)
 
 
+
 MAINTAINERCLEANFILES = Makefile.in \
 											 catenary/testFile.dat \
 											 higherOrderDiffusion/testFile.dat \
 											 catenaryLibmesh/testFile.dat \
-											 viscousBurgers/testFile.dat 
+											 viscousBurgers/testFile.dat \
+											 channelFlow/*.dat 
 

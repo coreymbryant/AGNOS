@@ -94,7 +94,7 @@ dnl AX_CXXFLAGS_WARN_ALL
 
 
 # -------------------------------------------------------------
-# cppunit C++ unit testing -- enabled by default
+# cppunit C++ unit testing -- disabled by default
 # -------------------------------------------------------------
 AC_ARG_ENABLE(cppunit,
              AC_HELP_STRING([--enable-cppunit],
@@ -104,12 +104,33 @@ AC_ARG_ENABLE(cppunit,
 		   no)  enablecppunit=no ;;
  		    *)  AC_MSG_ERROR(bad value ${enableval} for --enable-cppunit) ;;
 		 esac],
-		 [enablecppunit=$enableoptional])
+		 [enablecppunit=no])
 if (test "$enablecppunit" = yes) ; then
   AM_PATH_CPPUNIT([1.10.0],[enablecppunit=yes],[enablecppunit=no])
 fi
-AM_CONDITIONAL(LIBMESH_ENABLE_CPPUNIT, test x$enablecppunit = xyes)
+AM_CONDITIONAL(ENABLE_CPPUNIT, test x$enablecppunit = xyes)
 # -------------------------------------------------------------
+
+
+#--------------------------------
+# Check for channelFlow library
+#--------------------------------
+AC_ARG_ENABLE(channelflow,
+             AC_HELP_STRING([--enable-channelflow],
+                            [Build with channelflow library for RANS simulations]),
+		[case "${enableval}" in
+		  yes)  enablechannelflow=yes ;;
+		   no)  enablechannelflow=no ;;
+ 		    *)  AC_MSG_ERROR(bad value ${enableval} for --enable-channelflow) ;;
+		 esac],
+		 [enablechannelflow=no])
+if (test "$enablechannelflow" = yes) ; then
+  AC_DEFINE_UNQUOTED([CHANNELFLOW_DIR],$CHANNELFLOW_DIR,[channelflow dir
+                      location])
+  AC_SUBST(CHANNELFLOW_DIR)
+fi
+AM_CONDITIONAL(ENABLE_CHANNELFLOW, test x$enablechannelflow = xyes)
+
 
 #--------------------------------
 # Query configuration environment
@@ -150,6 +171,7 @@ AC_CONFIG_FILES(examples/catenary/run.sh,	      [chmod +x examples/catenary/run.
 AC_CONFIG_FILES(examples/catenaryLibmesh/run.sh,[chmod +x examples/catenaryLibmesh/run.sh])
 AC_CONFIG_FILES(examples/higherOrderDiffusion/run.sh,[chmod +x examples/higherOrderDiffusion/run.sh])
 AC_CONFIG_FILES(examples/viscousBurgers/run.sh,	[chmod +x examples/viscousBurgers/run.sh])
+AC_CONFIG_FILES(examples/channelFlow/run.sh,	[chmod +x examples/channelFlow/run.sh])
 
 dnl-----------------------------------------------
 dnl Generate Makefiles
@@ -159,6 +181,7 @@ AC_CONFIG_FILES([
                  src/Makefile 
                  test/Makefile 
                  examples/Makefile 
+                 examples/channelFlow/Makefile 
                  doxygen/Makefile])
 
 

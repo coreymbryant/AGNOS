@@ -1,0 +1,5 @@
+#!/bin/bash
+
+#@prefix@/bin/agnos ./viscousBurgers.in 
+echo "NOT IMPLEMENTED YET"
+./channelFlow

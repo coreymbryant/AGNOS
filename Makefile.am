@@ -3,7 +3,11 @@ include $(top_srcdir)/doxygen/aminclude.am
 AUTOMAKE_OPTIONS = foreign 
 ACLOCAL_AMFLAGS  = -I m4 -I m4/common
 
-SUBDIRS          = src test examples doxygen 
+SUBDIRS          = src examples doxygen 
+if ENABLE_CPPUNIT
+SUBDIRS += test
+endif
+
 #SUBDIRS 				+= contrib
 # EXTRA_DIST       = CHANGES LICENSE COPYING docs contrib
 EXTRA_DIST       = docs contrib
@@ -48,6 +52,7 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
 											 examples/higherOrderDiffusion/Makefile.in\
 											 examples/catenaryLibmesh/Makefile.in 		\
 											 examples/viscousBurgers/Makefile.in 			\
+											 examples/channelFlow/Makefile.in 				\
 											 doxygen/Makefile.in
 
 
