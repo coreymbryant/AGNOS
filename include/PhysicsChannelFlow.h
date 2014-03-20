@@ -14,7 +14,6 @@
 namespace AGNOS
 {
 
-#ifdef AGNOS_ENABLE_CHANNELFLOW
 
   /********************************************//**
    * \brief PhysicsModel class for running turbulence simulations using
@@ -83,7 +82,6 @@ namespace AGNOS
     /*   = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ; */
   }
 
-#endif
 
 }
 
