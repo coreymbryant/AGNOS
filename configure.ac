@@ -128,9 +128,9 @@ if (test "$enablechannelflow" = yes) ; then
   AC_DEFINE_UNQUOTED([CHANNELFLOW_DIR],$CHANNELFLOW_DIR,[channelflow dir
                       location])
   AC_SUBST(CHANNELFLOW_DIR)
+  AC_DEFINE(ENABLE_CHANNELFLOW,1,[Define if we are using channelflow])
 fi
 AM_CONDITIONAL(ENABLE_CHANNELFLOW, test x$enablechannelflow = xyes)
-AC_DEFINE(ENABLE_CHANNELFLOW,1,[Define if we are using channelflow])
 
 
 #--------------------------------
