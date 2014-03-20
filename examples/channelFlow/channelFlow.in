@@ -1,0 +1,56 @@
+[driver]
+maxIter = '1'
+adaptive = false
+simultRefine = false
+[]
+
+[parameters]
+dimension = '1'
+nInitialHRefinements = '0'
+types ='UNIFORM'
+mins = '-1.0'
+maxs = '1.0'
+[]
+
+
+[physics]
+type = 'channelFlow'
+refine = false
+channel_input = 'Retau_1.0.in'
+
+[]
+
+
+[surrogateModels]
+modelNames = 'primarySurrogate errorSurrogate'
+refine = true
+hRefine = false
+pRefine = true
+anisotropic = false
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '0'
+  computeSolutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
+  [../]
+
+  [./errorSurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  primarySurrogate = 'primarySurrogate'
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
+  evaluateSolutions = 'primal adjoint'
+  computeSolutions='errorEstimate qoi'
+  [../]
+
+[]
+
+
+[output]
+filename = './testFile.dat'
+solutions = 'errorEstimate qoi'
+coefficients        = 1
+points              = 1
+weights             = 1
+index_set           = 1
+[]
