@@ -10,6 +10,7 @@
 #include "PhysicsCatenary.h"
 #include "PhysicsCatenaryLibmesh.h"
 #include "PhysicsHigherOrderDiffusion.h"
+#include "PhysicsChannelFlow.h"
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 #include "Element.h"
@@ -296,6 +297,15 @@ namespace AGNOS
           std::shared_ptr<AGNOS::PhysicsViscousBurgers<T_S,T_P> >(
             new AGNOS::PhysicsViscousBurgers<T_S,T_P>(
               _physicsComm, input )
+            ) ;
+      input.set_prefix("");
+    }
+    else if ( physicsName == "channelFlow" )
+    {
+      input.set_prefix("physics/");
+      physics =
+          std::shared_ptr<AGNOS::PhysicsChannelFlow<T_S,T_P> >(
+            new AGNOS::PhysicsChannelFlow<T_S,T_P>( _physicsComm, input )
             ) ;
       input.set_prefix("");
     }
