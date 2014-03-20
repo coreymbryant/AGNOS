@@ -10,7 +10,9 @@
 #include "PhysicsCatenary.h"
 #include "PhysicsCatenaryLibmesh.h"
 #include "PhysicsHigherOrderDiffusion.h"
+#ifdef AGNOS_ENABLE_CHANNELFLOW
 #include "PhysicsChannelFlow.h"
+#endif // AGNOS_ENABLE_CHANNEL_FLOW
 #include "PhysicsModel.h"
 #include "PhysicsLibmesh.h"
 #include "Element.h"
@@ -300,6 +302,7 @@ namespace AGNOS
             ) ;
       input.set_prefix("");
     }
+#ifdef AGNOS_ENABLE_CHANNELFLOW
     else if ( physicsName == "channelFlow" )
     {
       input.set_prefix("physics/");
@@ -309,6 +312,7 @@ namespace AGNOS
             ) ;
       input.set_prefix("");
     }
+#endif // AGNOS_ENABLE_CHANNEL_FLOW
     else if ( physicsName == "catenaryLibmesh" )
     {
       input.set_prefix("physics/catenaryLibmesh/");
