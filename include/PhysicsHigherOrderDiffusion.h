@@ -156,7 +156,7 @@ namespace AGNOS
     // calculated at each quadrature point by summing the
     // solution degree-of-freedom values by the appropriate
     // weight functions.
-    unsigned int n_qpoints = c.get_element_qrule()->n_points();
+    unsigned int n_qpoints = c.get_element_qrule().n_points();
 
 
 
@@ -225,7 +225,7 @@ namespace AGNOS
 
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(0).size();
-    unsigned int n_qpoints = c.get_element_qrule()->n_points();
+    unsigned int n_qpoints = c.get_element_qrule().n_points();
 
     // Fill the QoI RHS corresponding to this QoI. Since this is the 0th QoI
     // we fill in the [0][i] subderivatives, i corresponding to the variable index.
@@ -266,7 +266,7 @@ namespace AGNOS
 
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(0).size();
-    unsigned int n_qpoints = c.get_element_qrule()->n_points();
+    unsigned int n_qpoints = c.get_element_qrule().n_points();
 
     // Fill the QoI RHS corresponding to this QoI. Since this is the 0th QoI
     // we fill in the [0][i] subderivatives, i corresponding to the variable index.
