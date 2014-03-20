@@ -27,6 +27,10 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
              $(LIBMESH_LIBS) \
              $(LIBMESH_LDFLAGS)
 						 
+if ENABLE_CHANNELFLOW
+AM_CPPFLAGS += -I$(CHANNELFLOW_DIR)/include
+AM_LDFLAGS += -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
+endif
 						 
 						 
 
