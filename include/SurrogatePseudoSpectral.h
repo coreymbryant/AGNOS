@@ -293,8 +293,11 @@ namespace AGNOS
           << std::endl;
 
 
+
       // ------------------------------------
       // Initialize data structures
+      // TODO: issues start here if libMesh not built with
+      // --disable-default-commWorld
       std::shared_ptr<DistMatrix> polyValues;
       if (this->_groupRank ==0)
       {
