@@ -66,8 +66,9 @@ AC_CHECK_LIB(mpich, MPI_Init, [USING_MPICH=1
 #----------------
 BOOST_REQUIRE([1.36])
 BOOST_MATH()
-# BOOST_PROGRAM_OPTIONS()
+BOOST_PROGRAM_OPTIONS()
 BOOST_TEST()
+AC_CACHE_SAVE
 
 dnl----------------
 dnl Libmesh Config
