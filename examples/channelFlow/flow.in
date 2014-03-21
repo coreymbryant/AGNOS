@@ -1,0 +1,75 @@
+# To run use:
+# mpirun -np 1 ../../../src/channel flow.in --node_major_dofs --n_threads=1 -ksp_max_it 100 -ksp_gmres_restart 30 -pc_factor_zeropivot 0 -sub_pc_factor_zeropivot 0 -ksp_rtol 1e-12 -ksp_atol 1e-20 -ksp_converged_reason 
+
+#ModelParams = '1.477278e+00
+#	    1.679727e+00
+#	    1.715308e+00
+#	    9.440381e-01
+#	    4.697012e-01
+#	    1.726478e+00
+#	    1.429388e+00'
+
+#ModelParams = '1.506821021633549362e+00, 5.669570898550996274e-01, 2.642805917358326262e-01, 8.067832629679374534e-01, 2.313997281958760421e+00, 8.561087810743228665e-01, 1.617306240142466933e+00'
+ModelParams = '1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0'
+
+# The turbulence model
+Model = 'Spalart-Allmaras'
+
+#DataFile = 'test.txt' 
+DataFile = '../../../../data/inverseProblemData_Re950.dat'
+#ComparisonFile = 'sa_error_maxLike_Re944.dat'
+
+#
+# Algorithmic parameters
+[Algorithm]
+
+  [./Transient]
+    dt        = 1e-2
+    t_order   = 1
+    dt_max    = 1.e3
+    max_steps = 100
+    rate      = 2.0 
+    max_growth_factor = 10.0 # 5.0
+    tolerance = 1e-14
+            
+  [../Linear]
+    tolerance = 1.e-12
+    max_steps = 5000 # This overrides -ksp_max_it on the command line
+    
+  [../Nonlinear]
+    tolerance = 1.e-20
+    max_steps = 2
+    matrix_free = 0
+    jacobian = 'true' # 'false' # false = finite difference residual to get jac
+
+[]
+
+#
+# Mesh details
+[Mesh]
+  #file = 'channel_from_dns.xda'
+  file = 'channel_Re944_grid.xda'
+  refine = 0
+[]
+
+#
+# Some parameters
+[Parameters]
+  Retau = 944.0
+[]
+
+
+#
+# Output parameters
+[Output]
+  interval = -1 # 100
+
+  file     = 'output/soln.${Mesh/refine}'
+  format   = 'gmv xda'
+
+  mesh_file = 'output/mesh.${Mesh/refine}'
+  mesh_format = 'xda'
+
+  convergence_history = 'output/resHistory.out'
+[]
+
