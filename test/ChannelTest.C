@@ -8,9 +8,11 @@
 #include "libmesh/transient_system.h"
 #include "libmesh/dense_vector.h"
 
-// local
+// channel
 #include "channel_config.h"
-#include "discrete_flow.h"
+
+// local
+#include "PhysicsChannelFlow.h"
 
 // boost
 #define BOOST_TEST_MODULE channelTest
@@ -18,8 +20,9 @@
 #include <boost/test/floating_point_comparison.hpp>
 
 
-BOOST_AUTO_TEST_CASE( _discrete_flow_interpolate_ )
+BOOST_AUTO_TEST_CASE( channel_constructor )
 {
+  
   // Set dummy inputs for libmesh initialization
   int ac=1;
   char** av = new char* [ac];
@@ -32,12 +35,14 @@ BOOST_AUTO_TEST_CASE( _discrete_flow_interpolate_ )
   // Initialize libmesh
   LibMeshInit init (ac, av);
 
-  // turn off performance logging to minimize screen output
-  libMesh::perflog.disable_logging();
-  
-  delete [] name;
-  delete [] av;
+  {
+  GetPot inputfile;
+  inputfile = GetPot( );
+  inputfile.set("channel_input","flow.in") ;
+  AGNOS::PhysicsChannelFlow<T_S,T_P> flowSolver(
+      Communicator(MPI_COMM_NULL),inputfile
+      );
+  }
 
-  // check that libmesh is initialized
-  BOOST_CHECK( libMesh::initialized() );
+  BOOST_CHECK( 1 );
 }
