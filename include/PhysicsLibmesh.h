@@ -133,7 +133,7 @@ namespace AGNOS
       /* const GetPot&         _input; */
 
       /** mesh and equation pointers */
-      libMesh::FEMSystem*                      _system;
+      libMesh::FEMSystem*                   _system;
       libMesh::EquationSystems*             _equationSystems;
       libMesh::Mesh*                        _mesh; // mesh
       libMesh::MeshRefinement*              _meshRefinement;
@@ -175,6 +175,12 @@ namespace AGNOS
       const Communicator& comm_in,
       const GetPot&           input
       ) : 
+    _system(NULL),
+    _equationSystems(NULL),
+    _mesh(NULL), // mesh
+    _meshRefinement(NULL),
+    _errorEstimator(NULL),
+    _qois(NULL),
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
@@ -249,12 +255,7 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-    /* delete _system; */
-    delete _mesh;
-    delete _meshRefinement;
-    delete _errorEstimator;
-    delete _qois;
-    delete _equationSystems;
+
   }
 
 /********************************************//**
