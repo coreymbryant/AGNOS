@@ -103,7 +103,7 @@ namespace AGNOS
 
     // build mesh 
     libMesh::MeshTools::Generation::build_line(
-        *this->_mesh,this->_nElem,_min,_max,EDGE2);
+        *static_cast<libMesh::Mesh*>(this->_mesh),this->_nElem,_min,_max,EDGE2);
     this->_mesh->print_info();
     //----------------------------------------------
 

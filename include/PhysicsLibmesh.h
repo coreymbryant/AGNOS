@@ -124,7 +124,7 @@ namespace AGNOS
       }
 
       /** Return libMesh mesh object */
-      const libMesh::Mesh getMesh( ) const { return *_mesh; }
+      const libMesh::MeshBase& getMesh( ) const { return *_mesh; }
 
     protected:
       /** communicator reference */
@@ -135,7 +135,7 @@ namespace AGNOS
       /** mesh and equation pointers */
       libMesh::FEMSystem*                   _system;
       libMesh::EquationSystems*             _equationSystems;
-      libMesh::Mesh*                        _mesh; // mesh
+      libMesh::MeshBase*                    _mesh; 
       libMesh::MeshRefinement*              _meshRefinement;
       libMesh::AdjointRefinementEstimator*  _errorEstimator;
       libMesh::QoISet*                      _qois;
