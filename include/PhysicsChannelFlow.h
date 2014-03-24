@@ -7,6 +7,7 @@
 
 /** channelflow includes */
 #include "channel_solver.h"
+#include "channel_system.h"
 
 
 /** libMesh includes */
@@ -68,6 +69,17 @@ namespace AGNOS
 
     flowSolver->get_es().print_info();
 
+    /** Get pointers to members of ChannelSystem */
+    this->_equationSystems = &(flowSolver->get_es());
+    this->_mesh = const_cast<libMesh::MeshBase*>(&flowSolver->get_mesh()); // mesh
+    this->_system = &(
+        this->_equationSystems->template get_system<ChannelSystem>("flow")
+        ) ;
+    /** Build mesh refinement object */
+    /* this->_buildMeshRefinement(); */
+    /** Build error estimator object */
+    /* this->_buildErrorEstimator(); */
+    /* this->_qois; */
 
     /* // Get parameter vector from input file */
     /* std::vector<double>* params=NULL; */
@@ -121,9 +133,13 @@ namespace AGNOS
   void PhysicsChannelFlow<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
-    // TODO
-    /* static_cast<BurgersSystem*>(this->_system)->_mu */ 
-    /*   = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ; */
+
+    /** Convert T_S vector to stl vector before calling turbulence model
+     * setParameters()*/
+    const std::vector<double> params = parameterValues.get_values();
+
+    static_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
+        params);
   }
 
 
