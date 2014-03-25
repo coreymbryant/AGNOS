@@ -1,14 +1,4 @@
 
-// Do we need both versions of the defined functions, or just get by with the
-// one given the solution and pass it in if needed
-//
-// Solve functions intentially do not return the solution. There may be cases
-// where we want to solve the problem internally but not create a new instance
-// of the solution. Create get..Solution functions to check if solution exists
-// and if not solve problem first. These should be what is used by surrogate
-// model.
-
-
 
 #ifndef PHYSICS_MODEL_H
 #define PHYSICS_MODEL_H
@@ -36,8 +26,7 @@ namespace AGNOS
           const GetPot& input
           ) :
         _input(input),
-        _communicator(comm_in),
-        _compute_function(NULL)
+        _communicator(comm_in)
       {
         // -----------------------------------------------------------
         // which solutions do we want to compute a surrogate for
@@ -77,25 +66,10 @@ namespace AGNOS
        * errorSurrogate where surrogate primal and adjoint solutions are
        * provided in solutionVectors.
        *
-       * Should be redefined in derived classes*/
+       * Must be redefined in derived classes*/
       virtual void compute( 
-          const T_S& paramVector, 
-          std::map<std::string, T_P >& solutionVectors 
-          ) 
-      { 
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: calling provided compute function\n" ;
-
-        // set parameter values
-        this->_setParameterValues( paramVector );
-
-        if(_compute_function != NULL)
-          this->_compute_function(paramVector, solutionVectors);
-
-        if(AGNOS_DEBUG)
-          std::cout << "DEBUG: ending call to provided compute function\n" ;
-
-      }
+          const T_S& paramVector, std::map<std::string, T_P >& solutionVectors 
+          ) = 0;
 
       /** Refinement methods for the physics model */
       virtual void refine( ) {};
@@ -103,16 +77,6 @@ namespace AGNOS
       /** return requested solution names */
       std::set<std::string> getSolutionNames( ) const
         { return _solutionNames; }
-
-
-      /** attach a user defined compute function */
-      void attach_compute_function(
-          void fptr(const T_S& paramVector,std::map<std::string,T_P>& solutionVectors)
-          )
-      {
-        libmesh_assert(fptr);
-        _compute_function = fptr;
-      }
 
       /** return reference to communicator */
       const Communicator& comm() const { return _communicator; }
@@ -125,14 +89,9 @@ namespace AGNOS
       /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
       std::set<std::string> _solutionNames;
 
-      /** Function pointer to compute function */
-      void(* _compute_function)(
-          const T_S& paramVector, 
-          std::map<std::string, T_P >& solutionVectors ) ;
-
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */
-      virtual void _setParameterValues( const T_S& parameterValues ) {};
+      virtual void _setParameterValues( const T_S& parameterValues ) = 0;
       
   }; // PhysicsModel class
 
