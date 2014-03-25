@@ -107,7 +107,7 @@ namespace AGNOS
 
       /** Function called by SurrogateModel to solve for requested solution
        * vectors at each evaluation point in parameter space  */
-      void compute( 
+      virtual void compute( 
           const T_S& paramVector, 
           std::map<std::string, T_P >& solutionVectors 
           ) ;
@@ -124,18 +124,13 @@ namespace AGNOS
       }
 
       /** Return libMesh mesh object */
-      const libMesh::Mesh getMesh( ) const { return *_mesh; }
+      const libMesh::MeshBase& getMesh( ) const { return *_mesh; }
 
     protected:
-      /** communicator reference */
-      /* const Communicator&   _communicator; */
-      /** reference to input file just incase its needed after initialization */
-      /* const GetPot&         _input; */
-
       /** mesh and equation pointers */
-      libMesh::FEMSystem*                      _system;
+      libMesh::FEMSystem*                   _system;
       libMesh::EquationSystems*             _equationSystems;
-      libMesh::Mesh*                        _mesh; // mesh
+      libMesh::MeshBase*                    _mesh; 
       libMesh::MeshRefinement*              _meshRefinement;
       libMesh::AdjointRefinementEstimator*  _errorEstimator;
       libMesh::QoISet*                      _qois;
@@ -147,9 +142,9 @@ namespace AGNOS
       unsigned int _numberPRefinements;
       unsigned int _maxRefineSteps;
 
-      /** derived PhysicsModel classes need to handle settig parameter values
-       * themselves */
-      using PhysicsModel<T_S,T_P>::_setParameterValues;
+      /** control vizualization output */
+      bool         _writePrimalViz;
+      bool         _writeAdjointViz;
 
       /** build mesh refinement object (can be overidden in derived class) */
       virtual void _buildMeshRefinement();
@@ -158,9 +153,40 @@ namespace AGNOS
        * (can be overridden in derived class) */
       virtual void _buildErrorEstimator();
 
-      /** control vizualization output */
-      bool         _writePrimalViz;
-      bool         _writeAdjointViz;
+      /** Insert solution vector to map. Helper function used in compute(..)*/
+      void _insertSolVec( 
+          libMesh::NumericVector<Number>& vec,
+          std::string vecName,
+          std::map<std::string, T_P >& mapOfVecs 
+          ) ;
+      /** Insert solution vector to map. Helper function used in compute(..)*/
+      void _insertSolVec( 
+        T_P& vec, std::string vecName, std::map<std::string, T_P >& mapOfVecs ) 
+      {
+        mapOfVecs.insert( 
+            std::pair<std::string,T_P>( vecName, vec )
+              );
+        return;
+      }
+
+
+      /** Solve primal problem. Called in compute(..) if requested */
+      virtual void _solve( ) ;
+
+      /** Solve adjoint problem. Called in compute(..) if requested */
+      virtual void _adjointSolve( libMesh::QoISet& qois ) ;
+
+      /** Set primal solution to provided vector */
+      virtual void _setPrimalSolution( T_P& solutionVector );
+
+      /** Set adjoint solution 'j' to provided vector */
+      virtual void _setAdjointSolution( 
+          T_P& solutionVector, unsigned int j=0 );
+
+      /** derived PhysicsModel classes need to handle settig parameter values
+       * themselves */
+      using PhysicsModel<T_S,T_P>::_setParameterValues;
+
 
   };
 
@@ -175,6 +201,12 @@ namespace AGNOS
       const Communicator& comm_in,
       const GetPot&           input
       ) : 
+    _system(NULL),
+    _equationSystems(NULL),
+    _mesh(NULL), // mesh
+    _meshRefinement(NULL),
+    _errorEstimator(NULL),
+    _qois(NULL),
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
@@ -249,13 +281,85 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-    /* delete _system; */
-    delete _mesh;
-    delete _meshRefinement;
-    delete _errorEstimator;
-    delete _qois;
-    delete _equationSystems;
+
   }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsLibmesh<T_S,T_P>::_setPrimalSolution(
+        T_P& solutionVector ) 
+    {
+      // set primal solution with value from solutionVectors
+      NumericVector<Number>& solution = *(_system->solution) ;
+      solution.close();
+      for (unsigned int i=0; i<solution.size(); i++)
+        solution.set(i, solutionVector(i) ) ;
+      solution.close();
+
+      return;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsLibmesh<T_S,T_P>::_setAdjointSolution( 
+        T_P& solutionVector, unsigned int j )
+    {
+      // set adjoint solution from solutionVectors
+      NumericVector<Number>& adjoint_solution =
+        _system->get_adjoint_solution(j) ;
+
+      for (unsigned int i=0; i<adjoint_solution.size(); i++)
+        adjoint_solution.set(i, solutionVector(i)) ;
+      adjoint_solution.close();
+
+      return ;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsLibmesh<T_S,T_P>::_insertSolVec( 
+        libMesh::NumericVector<Number>& vec,
+        std::string vecName,
+        std::map<std::string, T_P >& mapOfVecs 
+        ) 
+      {
+        std::vector<Number> localVec;
+        vec.localize(localVec);
+        mapOfVecs.insert( 
+            std::pair<std::string,T_P>( vecName, T_P(localVec) )
+              );
+
+        return;
+      }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsLibmesh<T_S,T_P>::_solve( ) 
+    {
+      // solve system
+      _system->solve();
+      return;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsLibmesh<T_S,T_P>::_adjointSolve(
+        libMesh::QoISet& qois ) 
+    {
+      // solve adjoint equation
+      _system->adjoint_solve( qois );
+      return;
+    }
 
 /********************************************//**
  * \brief 
@@ -348,28 +452,26 @@ namespace AGNOS
       
 
       // PRIMAL SOLUTION
-      /** Primal solution must always be computed so no reason to check against
-       * requested solutions. Only check if it has been provided */
+      /** Primal solution must always be computed unless it was provided
+        */
       if (!solutionVectors.count("primal"))
       {
-        // solve system
-        system.solve();
         
+        // solve system
+        _solve( ) ;
+
         //save the vizualizaton if requested
         if (_writePrimalViz)
         {
           if ( this->_mesh->mesh_dimension() == 1)
             write_gnuplot(es,paramVector,"primal");
           else
-              write_vtk(es,paramVector,"primal");
+            write_vtk(es,paramVector,"primal");
         }
         
         // save solution in solutionVectors
-        std::vector<Number> primalSolution;
-        system.solution->localize(primalSolution);
-        solutionVectors.insert( 
-            std::pair<std::string,T_P>( "primal", T_P(primalSolution) )
-              );
+        _insertSolVec( *(system.solution), "primal", solutionVectors );
+        
         if (AGNOS_DEBUG)
         {
           int globalRank;
@@ -398,11 +500,7 @@ namespace AGNOS
           std::cout << "Refining for adjoint|error solve" << std::endl;
 
         // set primal solution with value from solutionVectors
-        NumericVector<Number>& solution = *(system.solution) ;
-        solution.close();
-        for (unsigned int i=0; i<solution.size(); i++)
-          solution.set(i,solutionVectors["primal"](i)) ;
-        solution.close();
+        _setPrimalSolution( solutionVectors["primal"] ) ;
 
 
         // Initialize and resize the error_per_cell in case we need it later
@@ -490,26 +588,19 @@ namespace AGNOS
             system.add_adjoint_solution();
           
           // set adjoint solution from solutionVectors
-          NumericVector<Number>& adjoint_solution =
-            system.get_adjoint_solution(0) ;
-          for (unsigned int i=0; i<adjoint_solution.size(); i++)
-            adjoint_solution.set(i,solutionVectors["adjoint"](i)) ;
-          adjoint_solution.close();
+          _setAdjointSolution( solutionVectors["adjoint"], 0 );
         }
         else // solve adjoint
         {
           if(AGNOS_DEBUG)
             std::cout << "Solving adjoint solution" << std::endl;
-          system.adjoint_solve();
+          _adjointSolve( *_qois ) ;
           
+          // save adjoint solution if its in the set of requested vectors
           if ( this->_solutionNames.count("adjoint") )
           {
             // save adjoint in solutionVectors
-            std::vector<Number> adjointSolution ;
-            system.get_adjoint_solution(0).localize(adjointSolution);
-            solutionVectors.insert( 
-                std::pair<std::string,T_P >( "adjoint", T_P(adjointSolution) )
-                  );
+            _insertSolVec( system.get_adjoint_solution(0), "adjoint", solutionVectors );
           }
         }
         
@@ -556,10 +647,7 @@ namespace AGNOS
           }
 
           // save error estimate in solutionVectors
-          solutionVectors.insert( 
-              std::pair<std::string,T_P >(
-                "errorEstimate", errorEstimate)
-                );
+          _insertSolVec( errorEstimate, "errorEstimate", solutionVectors );
 
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: error[0]:" << errorEstimate(0) << std::endl;
@@ -786,10 +874,8 @@ namespace AGNOS
           }
 
           // save errorIndicators in solutionVectors
-          solutionVectors.insert( 
-              std::pair<std::string,T_P >(
-                "errorIndicators", errorIndicators)
-                );
+          _insertSolVec( errorIndicators, "errorIndicators", solutionVectors );
+
         } // end if error indicators
 
         // Don't bother projecting the solution; we'll restore from backup

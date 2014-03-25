@@ -16,7 +16,7 @@ maxs = '1.0'
 [physics]
 type = 'channelFlow'
 refine = false
-channel_input = 'Retau_1.0.in'
+channel_input = 'flow.in'
 
 []
 
