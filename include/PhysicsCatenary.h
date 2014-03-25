@@ -3,13 +3,13 @@
 #ifndef PHYSICS_CATENARY_H
 #define PHYSICS_CATENARY_H
 
-#include "PhysicsModel.h"
+#include "PhysicsUser.h"
 
 namespace AGNOS
 {
 
   /********************************************//**
-   * \brief Example PhysicsModel class - catenary chain
+   * \brief Example PhysicsUser class - catenary chain
    *
    * A simple, single dof, system useful for testing purposes
    *
@@ -19,7 +19,7 @@ namespace AGNOS
    * 
    ***********************************************/
   template<class T_S, class T_P>
-  class PhysicsCatenary : public PhysicsModel<T_S,T_P>
+  class PhysicsCatenary : public PhysicsUser<T_S,T_P>
   {
 
   public:
@@ -50,6 +50,7 @@ namespace AGNOS
 
     /** forcing magnitude */
     double m_forcing;
+
   };
 
 
@@ -63,7 +64,7 @@ namespace AGNOS
         const Communicator& comm_in,
         const GetPot& input
       ) :
-    PhysicsModel<T_S,T_P>(comm_in,input),
+    PhysicsUser<T_S,T_P>(comm_in,input),
     _communicator(comm_in),_input(input)
   {
     m_forcing = input("forcing",-10.0) ;

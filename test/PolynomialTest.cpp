@@ -14,6 +14,7 @@
 
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
+#include "PhysicsUser.h"
 
 using namespace AGNOS;
 
@@ -112,8 +113,8 @@ using namespace AGNOS;
               )
             ); 
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsUser<T_S,T_P> > myPhysics(
+          new PhysicsUser<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&linearFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -154,8 +155,8 @@ using namespace AGNOS;
               )
             ); 
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsUser<T_S,T_P> > myPhysics(
+          new PhysicsUser<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&linearFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -197,8 +198,8 @@ using namespace AGNOS;
               )
             ); 
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsUser<T_S,T_P> > myPhysics(
+          new PhysicsUser<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&quadFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -238,8 +239,8 @@ using namespace AGNOS;
               )
             ); 
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsUser<T_S,T_P> > myPhysics(
+          new PhysicsUser<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&quadFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
@@ -289,8 +290,8 @@ using namespace AGNOS;
               )
             ); 
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsUser<T_S,T_P> > myPhysics(
+          new PhysicsUser<T_S,T_P>(physicsComm,inputfile) );
         myPhysics->attach_compute_function(&mixedFunction);
 
         PseudoSpectralTensorProduct<T_S,T_P>* mySurrogate = new 
