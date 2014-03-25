@@ -36,7 +36,7 @@ namespace AGNOS
       PhysicsViscousBurgers( const Communicator& comm_in, const GetPot& input );
 
       /** Destructor */
-      /* virtual ~PhysicsViscousBurgers( ); */
+      virtual ~PhysicsViscousBurgers( );
 
       /** Redefine exactQoi for this model */
       T_P exactQoi( )
@@ -108,7 +108,7 @@ namespace AGNOS
 
     // build mesh 
     libMesh::MeshTools::Generation::build_line(
-        *this->_mesh,this->_nElem,-1.*_L,_L,EDGE2);
+        *static_cast<libMesh::Mesh*>(this->_mesh),this->_nElem,-1.*_L,_L,EDGE2);
     this->_mesh->print_info();
 
     //----------------------------------------------
@@ -207,6 +207,20 @@ namespace AGNOS
       = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ;
   }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+  PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers()
+  {
+    /* if( this->_system != NULL          ){ delete this->_system; } */
+    if( this->_mesh != NULL            ){ delete this->_mesh; }
+    if( this->_meshRefinement != NULL  ){ delete this->_meshRefinement; }
+    if( this->_errorEstimator != NULL  ){ delete this->_errorEstimator; }
+    if( this->_qois != NULL            ){ delete this->_qois; }
+    if( this->_equationSystems != NULL ){ delete this->_equationSystems; }
+
+  }
 
 }
 

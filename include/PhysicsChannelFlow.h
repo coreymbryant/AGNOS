@@ -7,6 +7,7 @@
 
 /** channelflow includes */
 #include "channel_solver.h"
+#include "channel_system.h"
 
 
 /** libMesh includes */
@@ -57,18 +58,73 @@ namespace AGNOS
   {
     // read in parameters unique to this model
     // -> this is handled by the ChannelSolver 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: pre channel_input " << std::endl;
     const std::string channelInputFile 
-      = input("channel_input","./channel.in");
+      = input("channel_input","./flow.in");
+
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: pre ChannelSolver init " << std::endl;
     flowSolver.reset( new ChannelSolver(channelInputFile) );
 
     flowSolver->get_es().print_info();
 
-    exit(1);
+    /** Get pointers to members of ChannelSystem */
+    this->_equationSystems = &(flowSolver->get_es());
+    this->_mesh = const_cast<libMesh::MeshBase*>(&flowSolver->get_mesh()); // mesh
+    this->_system = &(
+        this->_equationSystems->template get_system<ChannelSystem>("flow")
+        ) ;
+    /** Build mesh refinement object */
+    /* this->_buildMeshRefinement(); */
+    /** Build error estimator object */
+    /* this->_buildErrorEstimator(); */
+    /* this->_qois; */
 
+    /* // Get parameter vector from input file */
+    /* std::vector<double>* params=NULL; */
+    /* std::vector<double> tmp; */
+    /* if (flowSolver->myControl.have_variable("ModelParams")) */
+    /* { */
+    /*   tmp = flowSolver->myControl.vector_value<double>("ModelParams"); */
+    /*   params = &tmp; */
+    /* } */
     
+    /* // Solve the flow */
+    /* try */
+    /* { */
+    /*   flowSolver->solve(0, params); */
+    /* } */
+    /* catch(int err) */
+    /* { */
+    /*   // only throw when we successfully run requested number of iters and fail */
+    /*   // to converge! */
+    /*   std::cout */ 
+    /*     << "*************** Flow solver failed to converge ****************" */ 
+    /*     << std::endl; */
+    /*   exit(1); */
+    /* } */
 
+
+    /* flowSolver->output(); */
+
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: post ChannelSolver init " << std::endl;
 
   }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  /* template<class T_S, class T_P> */
+  /* PhysicsChannelFlow<T_S,T_P>::~PhysicsChannelFlow() */
+  /* { */
+  /*   /1* delete flowSolver ; *1/ */
+
+  /*   if (AGNOS_DEBUG) */
+  /*     std::cout << "DEBUG: post PhysicsChannelFlow destructor " << std::endl; */
+
+  /* } */
 
   /********************************************//**
    * \brief 
@@ -77,9 +133,13 @@ namespace AGNOS
   void PhysicsChannelFlow<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
-    // TODO
-    /* static_cast<BurgersSystem*>(this->_system)->_mu */ 
-    /*   = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ; */
+
+    /** Convert T_S vector to stl vector before calling turbulence model
+     * setParameters()*/
+    const std::vector<double> params = parameterValues.get_values();
+
+    static_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
+        params);
   }
 
 

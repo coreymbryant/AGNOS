@@ -161,16 +161,19 @@ using namespace AGNOS;
 
         std::vector<unsigned int> myOrder(dimension,2);
 
-        std::shared_ptr<PhysicsModel<T_S,T_P> > constantPhysics(
-          new PhysicsModel<T_S,T_P>(physicsComm,inputfile) );
+        std::shared_ptr<PhysicsModel<T_S,T_P> > myPhysics;
+        std::shared_ptr<PhysicsUser<T_S,T_P> > constantPhysics( 
+            new PhysicsUser<T_S,T_P>(physicsComm,inputfile) 
+            );
         constantPhysics->attach_compute_function(&constantFunction);
+        myPhysics = constantPhysics;
 
         std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates ;
         surrogates.push_back( 
             std::shared_ptr<SurrogateModel<T_S,T_P> > (
               new PseudoSpectralTensorProduct<T_S,T_P>(
                   comm,
-                  constantPhysics,
+                  myPhysics,
                   myParameters, 
                   myOrder  
                   )
@@ -180,7 +183,7 @@ using namespace AGNOS;
         AGNOS::Element<T_S,T_P> baseElement(
             myParameters,
             surrogates,
-            constantPhysics
+            myPhysics
             );
         baseElement.surrogates()[0]->build( );
 

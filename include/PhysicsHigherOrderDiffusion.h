@@ -352,7 +352,7 @@ namespace AGNOS
     // MeshTools::Generation::build_square (
     // nElem per side
     libMesh::MeshTools::Generation::build_square(
-        *this->_mesh,
+        *static_cast<libMesh::Mesh*>(this->_mesh),
         this->_nElem,
         this->_nElem,
         0.,1.,

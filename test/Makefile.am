@@ -34,7 +34,22 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
              $(LIBMESH_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
 						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-						 $(CPPUNIT_LIBS)
+						 $(CPPUNIT_LIBS) \
+						 $(BOOST_LDFLAGS) \
+						 $(BOOST_LIBS)
+
+TESTS =
+
+if ENABLE_CHANNELFLOW
+
+# channel flow test
+check_PROGRAMS       += ChannelTest
+ChannelTest_SOURCES   = ChannelTest.C
+ChannelTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
+ChannelTest_LDADD     = -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
+TESTS += ChannelTest
+endif
+
 
 
 polynomialTest_LDADD = $(CPPUNIT_LIBS)
@@ -47,7 +62,7 @@ viscousBurgersTest_SOURCES  = driver.C ViscousBurgersTest.cpp
 elementTest_SOURCES  				= driver.C ElementTest.cpp
 
 
-TESTS  = polynomialTest.sh
+TESTS += polynomialTest.sh
 TESTS += catenaryTest.sh
 TESTS += evaluationTest.sh
 TESTS += parallelCatenary.sh
