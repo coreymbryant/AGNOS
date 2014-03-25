@@ -723,6 +723,8 @@ namespace AGNOS
             {
               
               // cosntruct new surrogates for each child element
+              // TODO: optionally keep old surrogate for elems with non-dominant
+              // error contributions
               for (unsigned int c=0; c<children.size(); c++)
               {
                 std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > 
