@@ -1,4 +1,6 @@
-bin_PROGRAMS  = channelFlow
+bin_PROGRAMS  = 
+
+EXTRA_DIST = 
 
 AM_CPPFLAGS = -I$(top_srcdir)/include \
 							-I$(top_srcdir)/contrib/sandia_rules \
@@ -19,7 +21,11 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 
 
-channelFlow_SOURCES = channelFlow.C
+
+channelFlowdir = $(prefix)/examples/channelFlow
+channelFlow_SCRIPTS = $(top_builddir)/examples/channelFlow/run.sh
+channelFlow_DATA = $(top_srcdir)/examples/channelFlow/channelFlow.in $(top_srcdir)/examples/channelFlow/flow.in $(top_srcdir)/examples/channelFlow/channel_Re944_grid.xda
+EXTRA_DIST += $(channelFlow_DATA)
 
 
 CLEANFILES = *.out
