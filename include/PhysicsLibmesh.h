@@ -123,12 +123,25 @@ namespace AGNOS
         return resultVector ;
       }
 
+      /** Return libMesh system object */
+      const libMesh::System& getSystem( ) const { return *_system; }
+      /** Return libMesh es object */
+      const libMesh::EquationSystems& getEquationSystems( ) const { 
+        return *_equationSystems; }
       /** Return libMesh mesh object */
       const libMesh::MeshBase& getMesh( ) const { return *_mesh; }
+      /** Return libMesh mesh refinement object */
+      const libMesh::MeshRefinement& getMeshRefinement( ) const { 
+        return *_meshRefinement; }
+      /** Return libMesh estimator object */
+      const libMesh::AdjointRefinementEstimator& getEstimator( ) const { 
+        return *_errorEstimator; }
+      /** Return libMesh QoISet object */
+      const libMesh::QoISet& getQois( ) const { return *_qois; }
 
     protected:
       /** mesh and equation pointers */
-      libMesh::FEMSystem*                   _system;
+      libMesh::System*                      _system;
       libMesh::EquationSystems*             _equationSystems;
       libMesh::MeshBase*                    _mesh; 
       libMesh::MeshRefinement*              _meshRefinement;
@@ -185,7 +198,17 @@ namespace AGNOS
 
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */
-      using PhysicsModel<T_S,T_P>::_setParameterValues;
+      virtual void _setParameterValues( const T_S& parameterValues ) 
+      {
+        std::cout << std::endl ;
+        std::cout 
+          << "WARNING: _setParameterValues should be implemented by derived\n"
+          << "         classes. Without this interface AGNOS can not change\n"
+          << "         system parameters and properly construct a surrogate\n"
+          << "         model.\n"
+          << std::endl ;
+        return;
+      }
 
 
   };
@@ -212,7 +235,8 @@ namespace AGNOS
 
 
     if(AGNOS_DEBUG)
-      std::cout << "DEBUG: libMesh initialized?:" << libMesh::initialized() << std::endl;
+      std::cout << "DEBUG: libMesh initialized?:" << libMesh::initialized() 
+        << std::endl;
 
 
     // -----------------------------------------------------------
@@ -281,7 +305,6 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsLibmesh<T_S,T_P>::~PhysicsLibmesh( )
   {
-
   }
 
 /********************************************//**
@@ -294,6 +317,10 @@ namespace AGNOS
       // set primal solution with value from solutionVectors
       NumericVector<Number>& solution = *(_system->solution) ;
       solution.close();
+
+      // make sure sizes agree
+      agnos_assert( (solution.size() == solutionVector.size())) ;
+
       for (unsigned int i=0; i<solution.size(); i++)
         solution.set(i, solutionVector(i) ) ;
       solution.close();
@@ -311,6 +338,9 @@ namespace AGNOS
       // set adjoint solution from solutionVectors
       NumericVector<Number>& adjoint_solution =
         _system->get_adjoint_solution(j) ;
+
+      // make sure sizes agree
+      agnos_assert( (adjoint_solution.size() == solutionVector.size())) ;
 
       for (unsigned int i=0; i<adjoint_solution.size(); i++)
         adjoint_solution.set(i, solutionVector(i)) ;
@@ -380,7 +410,7 @@ namespace AGNOS
 
 
       // An EquationSystems reference will be convenient.
-      FEMSystem& system = *_system;
+      System& system = *_system;
       EquationSystems& es = system.get_equation_systems();
 
       // The current mesh
@@ -399,7 +429,7 @@ namespace AGNOS
         es.print_info();
       }
       
-      // broadcast contrib to all physics procs
+      // broadcast solutionVectors to all physics procs
       int groupRank;
       MPI_Comm_rank(this->_communicator.get(),&groupRank);
       typename std::map<std::string,T_P>::iterator cid ;
@@ -452,8 +482,7 @@ namespace AGNOS
       
 
       // PRIMAL SOLUTION
-      /** Primal solution must always be computed unless it was provided
-        */
+      // Primal solution must always be computed unless it was provided
       if (!solutionVectors.count("primal"))
       {
         
