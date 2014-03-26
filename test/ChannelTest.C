@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE( channel_constructor )
   char** av = new char* [ac];
 
   char* name = new char[27];
-  strcpy(name, "_discrete_flow_interpolate_");
+  strcpy(name, "dummy");
   
   av[0] = name;
   

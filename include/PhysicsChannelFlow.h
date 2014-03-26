@@ -74,10 +74,10 @@ namespace AGNOS
 
     //  Get pointers to members of ChannelSystem 
     this->_equationSystems = &(_flowSolver->get_es());
-    this->_mesh = const_cast<libMesh::MeshBase*>(&_flowSolver->get_mesh()); // mesh
     this->_system = &(
         this->_equationSystems->template get_system<ChannelSystem>("flow")
         ) ;
+    this->_mesh = &(this->_system->get_mesh()); 
     //  Build mesh refinement object 
     this->_buildMeshRefinement();
     // Set up QoIs 
@@ -153,7 +153,7 @@ namespace AGNOS
     // setParameters()
     const std::vector<double> params = parameterValues.get_values();
 
-    static_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
+    dynamic_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
         params);
   }
 

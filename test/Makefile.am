@@ -40,9 +40,19 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 
 TESTS =
 
-if ENABLE_CHANNELFLOW
+#------------------------------------
+# libmesh test
+#------------------------------------
+check_PROGRAMS       += LibmeshTest
+LibmeshTest_SOURCES   = LibmeshTest.C
+# LibmeshTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
+# LibmeshTest_LDADD     = -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
+TESTS += LibmeshTest
 
+#------------------------------------
 # channel flow test
+#------------------------------------
+if ENABLE_CHANNELFLOW
 check_PROGRAMS       += ChannelTest
 ChannelTest_SOURCES   = ChannelTest.C
 ChannelTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
