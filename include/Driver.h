@@ -186,9 +186,9 @@ namespace AGNOS
 
 
     // construct parameter structures
-    std::string paramType = "";
-    double paramMin = -1.0;
-    double paramMax =  1.0;
+    std::string paramType = "CONSTANT";
+    double paramMin = 1.0;
+    double paramMax = 1.0;
     // read in parameter type and bounds
     // if all directions are not provided we assume they match the last
     // provided directions sections
