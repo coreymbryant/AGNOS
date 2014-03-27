@@ -135,13 +135,12 @@ namespace AGNOS
 
   /********************************************//**
    * All parameters bust be set. If only a subset of parameters are being
-   * treated as uncertain then set the deterministic parameters min AND max
-   * valeus to the deterministic value and the type to UNIFORM. This will cause
-   * them to be treated as deterministic even though they will still be seen by
-   * AGNOS. 
+   * treated as uncertain then set the deterministic parameters to CONSTANT.
+   * This will cause them to be treated as deterministic even though they will
+   * still be seen by AGNOS. 
    *
    * NOTE: This may cause issues in the future if we want try to do anisotropic
-   *       refinement. 
+   * refinement. 
    *
    ***********************************************/
   template<class T_S,class T_P>

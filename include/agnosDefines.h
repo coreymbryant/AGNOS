@@ -58,7 +58,7 @@ typedef libMesh::DenseMatrix<double> LocalMatrix;
   do {                                                                  \
     if (!(asserted)) {                                                  \
       std::cerr << "Assertion `" #asserted "' failed." << std::endl; \
-      std::abort();                                                  \
+      std::abort() ; \
     } } while(0)
 
 namespace AGNOS{
