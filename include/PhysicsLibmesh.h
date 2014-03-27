@@ -108,6 +108,7 @@ namespace AGNOS
       /** Function called by SurrogateModel to solve for requested solution
        * vectors at each evaluation point in parameter space  */
       virtual void compute( 
+          std::set<std::string>& computeSolutions,
           const T_S& paramVector, 
           std::map<std::string, T_P >& solutionVectors 
           ) ;
@@ -233,6 +234,9 @@ namespace AGNOS
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
+    // default to only primal solution
+    if(this->_availableSolutions.size() == 0)
+      this->_availableSolutions.insert("primal");
 
     if(AGNOS_DEBUG)
       std::cout << "DEBUG: libMesh initialized?:" << libMesh::initialized() 
@@ -396,6 +400,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::compute(
+        std::set<std::string>& computeSolutions,
         const T_S& paramVector,
         std::map<std::string, T_P >& solutionVectors 
         ) 
@@ -406,6 +411,9 @@ namespace AGNOS
         std::cout << "DEBUG:         rank: " << this->_communicator.rank() 
           << std::endl;
       }
+
+
+      //TODO check that every computSolution requested is present for this model
       
 
 
@@ -520,9 +528,9 @@ namespace AGNOS
       // copied from libmesh adjoint_error_refinement_estimator estimate_errors
       // routine
       /** if adjoint is requested, and not provided, or resolve flag is set */
-      if( this->_solutionNames.count("adjoint" ) 
-          || this->_solutionNames.count("errorEstimator") 
-          || this->_solutionNames.count("errorIndicators") 
+      if( computeSolutions.count("adjoint" ) 
+          || computeSolutions.count("errorEstimator") 
+          || computeSolutions.count("errorIndicators") 
           )
       {
         if(AGNOS_DEBUG)
@@ -626,7 +634,7 @@ namespace AGNOS
           _adjointSolve( *_qois ) ;
           
           // save adjoint solution if its in the set of requested vectors
-          if ( this->_solutionNames.count("adjoint") )
+          if ( computeSolutions.count("adjoint") )
           {
             // save adjoint in solutionVectors
             _insertSolVec( system.get_adjoint_solution(0), "adjoint", solutionVectors );
@@ -657,7 +665,7 @@ namespace AGNOS
         // ----------------------------------
         // ERROR ESTIMATE AND ERROR INDICATORS
         // Compute global error estimate if requested
-        if ( this->_solutionNames.count("errorEstimate") ) 
+        if ( computeSolutions.count("errorEstimate") ) 
         {
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: Computing errorEstimate" << std::endl;
@@ -684,7 +692,7 @@ namespace AGNOS
 
 
         // compute indicators if they were requested
-        if (  this->_solutionNames.count("errorIndicators") )
+        if (  computeSolutions.count("errorIndicators") )
         {
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: computing error indicators" << std::endl;
@@ -971,7 +979,7 @@ namespace AGNOS
       
 
       // QUANTITY OF INTEREST
-      if ( this->_solutionNames.count("qoi") )
+      if ( computeSolutions.count("qoi") )
       {
         if(AGNOS_DEBUG)
           std::cout << "DEBUG computing qoi value" << std::endl;
@@ -1001,7 +1009,7 @@ namespace AGNOS
       /** exact solution is optional, but it also depends on if it has been
        * defined in the derived class
        */
-      if( this->_solutionNames.count("exactQoi" ) )
+      if( computeSolutions.count("exactQoi" ) )
       {
         // save solution in solutionVectors
         solutionVectors.insert( 

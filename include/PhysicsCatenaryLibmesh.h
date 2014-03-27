@@ -87,6 +87,14 @@ namespace AGNOS
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
+    // define available solution names
+    this->_availableSolutions.insert("primal");
+    this->_availableSolutions.insert("adjoint");
+    this->_availableSolutions.insert("qoi");
+    this->_availableSolutions.insert("errorEstimate");
+    this->_availableSolutions.insert("errorIndicators");
+    this->_availableSolutions.insert("exactQoi");
+
     _min    = input("min",0.);
     _max    = input("max",1.);
     _nElem  = input("nElem",4);

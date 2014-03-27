@@ -29,28 +29,23 @@ namespace AGNOS
         _communicator(comm_in)
       {
         // -----------------------------------------------------------
-        // which solutions do we want to compute a surrogate for
-        _solutionNames.clear( );
-
-        for(unsigned int i=0; i<input.vector_variable_size("solutions") ; i++)
-          _solutionNames.insert( input("solutions"," ",i) ) ;
-        
+        // which solutions are available in this phyisc class?
         // default to only primal solution
-        if(_solutionNames.size() == 0)
-          _solutionNames.insert("primal");
+        if(_availableSolutions.size() == 0)
+          _availableSolutions.insert("primal");
 
         if(AGNOS_DEBUG)
         {
-          std::set<std::string>::iterator it = _solutionNames.begin();
+          std::set<std::string>::iterator it = _availableSolutions.begin();
           std::cout << "Requested solutons: " ;
-          for (; it!=_solutionNames.end(); ++it)
+          for (; it!=_availableSolutions.end(); ++it)
             std::cout <<  *it << " " ;
           std::cout << std::endl ;
         }
 
 
         if(AGNOS_DEBUG)
-          std::cout << "solutionNames.size():" << _solutionNames.size() << std::endl;
+          std::cout << "solutionNames.size():" << _availableSolutions.size() << std::endl;
         // -----------------------------------------------------------
 
 
@@ -68,6 +63,7 @@ namespace AGNOS
        *
        * Must be redefined in derived classes*/
       virtual void compute( 
+          std::set<std::string>& computeSolutions,
           const T_S& paramVector, std::map<std::string, T_P >& solutionVectors 
           ) = 0;
 
@@ -75,8 +71,8 @@ namespace AGNOS
       virtual void refine( ) {};
 
       /** return requested solution names */
-      std::set<std::string> getSolutionNames( ) const
-        { return _solutionNames; }
+      std::set<std::string> getAvailableSolutions( ) const
+        { return _availableSolutions; }
 
       /** return reference to communicator */
       const Communicator& comm() const { return _communicator; }
@@ -89,8 +85,9 @@ namespace AGNOS
       const Communicator &_communicator;
       /** reference to input file just incase its needed after initialization */
       const GetPot&         _input;
-      /** set of solutions to get (e.g. "primal","adjoint","qoi",etc. */
-      std::set<std::string> _solutionNames;
+      /** set of solutions available for this physics 
+       * (e.g.  "primal","adjoint","qoi",etc. */
+      std::set<std::string> _availableSolutions;
 
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */
