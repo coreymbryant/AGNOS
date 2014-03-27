@@ -171,7 +171,7 @@ dnl Generate run scripts for examples
 dnl-----------------------------------------------
 AC_CONFIG_FILES(examples/catenary/run.sh,	      [chmod +x examples/catenary/run.sh])
 AC_CONFIG_FILES(examples/catenaryLibmesh/run.sh,[chmod +x examples/catenaryLibmesh/run.sh])
-AC_CONFIG_FILES(examples/higherOrderDiffusion/run.sh,[chmod +x examples/higherOrderDiffusion/run.sh])
+AC_CONFIG_FILES(examples/diffusion/run.sh,[chmod +x examples/diffusion/run.sh])
 AC_CONFIG_FILES(examples/viscousBurgers/run.sh,	[chmod +x examples/viscousBurgers/run.sh])
 AC_CONFIG_FILES(examples/channelFlow/run.sh,	[chmod +x examples/channelFlow/run.sh])
 
