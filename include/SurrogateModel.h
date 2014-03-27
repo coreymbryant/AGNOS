@@ -83,7 +83,7 @@ namespace AGNOS
           bool saveLocal = true /**< save solution locally after evaluation*/
           ) const ;
 
-      /** Refine the surrogate model. Must be definied in derived classes. */
+      /** Refine the surrogate model.  */
       virtual void refine( 
           const std::vector<unsigned int>& increase 
             = std::vector<unsigned int>() 
