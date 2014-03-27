@@ -40,13 +40,13 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
   BOOST_REQUIRE( physics.getAvailableSolutions().count("primal") == 1 );
 
   // check default values set in constructor
-  BOOST_CHECK( physics._useUniformRefinement ) ;
-  BOOST_CHECK( physics._numberHRefinements ==1 ) ;
-  BOOST_CHECK( physics._numberPRefinements == 0);
-  BOOST_CHECK( physics._maxRefineSteps == 1);
-  BOOST_CHECK( !physics._writePrimalViz  );
-  BOOST_CHECK( !physics._writeAdjointViz );
-  BOOST_CHECK( !physics._resolveAdjoint );
+  BOOST_REQUIRE( physics._useUniformRefinement ) ;
+  BOOST_REQUIRE( physics._numberHRefinements ==1 ) ;
+  BOOST_REQUIRE( physics._numberPRefinements == 0);
+  BOOST_REQUIRE( physics._maxRefineSteps == 1);
+  BOOST_REQUIRE( !physics._writePrimalViz  );
+  BOOST_REQUIRE( !physics._writeAdjointViz );
+  BOOST_REQUIRE( !physics._resolveAdjoint );
 
 }
 
@@ -62,20 +62,20 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_initRoutines )
   // test buildMeshRefinement 
   physics._mesh = new libMesh::Mesh(physics._communicator);
   physics._buildMeshRefinement();
-  BOOST_CHECK(physics._meshRefinement-> coarsen_by_parents() );
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE(physics._meshRefinement-> coarsen_by_parents() );
+  BOOST_REQUIRE_CLOSE( 
       physics._meshRefinement->absolute_global_tolerance(),
       1e-6, 1e-16 );
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE_CLOSE( 
     physics._meshRefinement->refine_fraction(),
     0.7, 1e-16);
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE_CLOSE( 
     physics._meshRefinement->coarsen_fraction(), 
     0.3, 1e-16 );  
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE_CLOSE( 
     physics._meshRefinement->coarsen_threshold(),
     1e-5, 1e-16);
-  BOOST_CHECK( physics._meshRefinement->max_h_level() == 15 );
+  BOOST_REQUIRE( physics._meshRefinement->max_h_level() == 15 );
 
   // test buildErroEstimator
   physics._qois = new libMesh::QoISet;
@@ -84,10 +84,10 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_initRoutines )
   physics._qois->add_indices(qoi_indices);
   physics._qois->set_weight(0, 1.0);
   physics._buildErrorEstimator();
-  BOOST_CHECK(
+  BOOST_REQUIRE(
     physics._errorEstimator->number_h_refinements == physics._numberHRefinements
     );
-  BOOST_CHECK(
+  BOOST_REQUIRE(
     physics._errorEstimator->number_p_refinements == physics._numberPRefinements
     );
 
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
   // _setPrimalSolution
   NumericVector<Number>& sol = *(physics._system->solution);
   physics._setPrimalSolution( testVec );
-  BOOST_CHECK_CLOSE(
+  BOOST_REQUIRE_CLOSE(
       sol(0), 10., 1) ;
   // _setAdjointSolution
   physics._system->add_adjoint_solution() ;
@@ -144,12 +144,12 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
 
   physics._insertSolVec( 
       *(physics._system->solution), "primal", solutionVectors );
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE_CLOSE( 
       solutionVectors["primal"](0), 10., 1e-16 );
 
   physics._insertSolVec( 
       physics._system->get_adjoint_solution(0), "adjoint", solutionVectors );
-  BOOST_CHECK_CLOSE( 
+  BOOST_REQUIRE_CLOSE( 
       solutionVectors["adjoint"](0), 10., 1e-16 );
 
     if( physics._mesh != NULL            ){ delete physics._mesh; }
