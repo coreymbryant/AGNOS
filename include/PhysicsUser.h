@@ -99,9 +99,9 @@ namespace AGNOS
     {
       std::cerr << std::endl;
       std::cerr 
-        << "ERROR: No compute function is defined for the PhysicsUser class."
-        << "       Either redefine compute or use attach_compute_function(..)" 
-        << "       to attach a user defined compute routine. "  ;
+        << "ERROR: No compute function is defined for the PhysicsUser class.\n"
+        << "       Either redefine compute or use attach_compute_function(..)\n" 
+        << "       to attach a user defined compute routine. \n"  ;
       std::cerr << std::endl;
       exit(1);
     }

@@ -54,6 +54,12 @@ typedef libMesh::DenseMatrix<double> LocalMatrix;
 /* #include "PhysicsCatenary.h" */
 /* #include "PhysicsCatenaryLibmesh.h" */
 
+#define agnos_assert(asserted)                                        \
+  do {                                                                  \
+    if (!(asserted)) {                                                  \
+      std::cerr << "Assertion `" #asserted "' failed." << std::endl; \
+      std::abort();                                                  \
+    } } while(0)
 
 namespace AGNOS{
 }

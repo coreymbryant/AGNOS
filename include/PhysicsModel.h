@@ -81,6 +81,9 @@ namespace AGNOS
       /** return reference to communicator */
       const Communicator& comm() const { return _communicator; }
       
+      /** return reference to GetPot input object */
+      const GetPot& input() const { return _input; }
+      
     protected:
       /** communicator reference */
       const Communicator &_communicator;
