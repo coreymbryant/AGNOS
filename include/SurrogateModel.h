@@ -246,7 +246,7 @@ namespace AGNOS
         _comm(comm),
         _physics(physics), 
         _parameters(parameters),
-        _dimension( parameters.size() ), 
+        _dimension( parameters.size() ),
         _order(order)
     {
       int globalRank,globalSize;
@@ -273,6 +273,20 @@ namespace AGNOS
           << std::endl;
         assert(0);
       }
+      // we have to set the order for constant parameters and make sure they are
+      // set to 0th order
+      else
+        for( unsigned int i=0; i<_parameters.size(); i++ )
+          if ( _parameters[i]->type() == CONSTANT )
+            if (_order[i] != 0)
+            {
+              std::cout 
+                << "WARNING: forcing CONSTANT parameter (" 
+                << i 
+                << ") order to 0th order \n" ;
+              _order[i] = 0;
+            }
+
 
     }
 
@@ -310,7 +324,20 @@ namespace AGNOS
         _increaseOrder = std::vector<unsigned int>(_dimension,0) ;
       else
         _increaseOrder = increaseOrder;
-      assert(_increaseOrder.size() == _dimension);
+
+      agnos_assert(_increaseOrder.size() == _dimension);
+
+      // check/reset increase order for CONSTANT parameters
+        for( unsigned int i=0; i<_parameters.size(); i++ )
+          if ( _parameters[i]->type() == CONSTANT )
+            if (_increaseOrder[i] != 0)
+            {
+              std::cout 
+                << "WARNING: forcing CONSTANT parameter (" 
+                << i 
+                << ") increaseOrder to 0 \n" ;
+              _increaseOrder[i] = 0;
+            }
 
       _multiplyOrder = multiplyOrder ;
       for (unsigned int i=0; i<_order.size();i++)
