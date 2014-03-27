@@ -34,7 +34,8 @@ namespace AGNOS
           const Communicator&               comm,
           std::shared_ptr<PhysicsModel<T_S,T_P> >            physics,
           const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-          const std::vector<unsigned int>&  order
+          const std::vector<unsigned int>&  order,
+          std::set<std::string> computeSolutions = std::set<std::string>()
           );
 
       /** Secondary Constructor. 
@@ -240,14 +241,16 @@ namespace AGNOS
         const Communicator&               comm,
         std::shared_ptr<PhysicsModel<T_S,T_P> >           physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-        const std::vector<unsigned int>&          order
+        const std::vector<unsigned int>&          order,
+        std::set<std::string> computeSolutions 
         )
       : 
         _comm(comm),
         _physics(physics), 
         _parameters(parameters),
         _dimension( parameters.size() ),
-        _order(order)
+        _order(order),
+        _solutionNames(computeSolutions)
     {
       int globalRank,globalSize;
       MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
@@ -259,9 +262,26 @@ namespace AGNOS
       assert( _groupRank == (globalRank % _physics->comm().size() ) );
 
 
-      _solutionNames.clear();
-      _solutionNames = physics->getSolutionNames();
-
+      //check against available physics solutions
+      std::set<std::string> physicsSolutions = physics->getAvailableSolutions();
+      if (_solutionNames.empty())
+        _solutionNames = physicsSolutions ;
+      else
+      {
+        std::set<std::string>::iterator solName = _solutionNames.begin() ;
+        for( ; solName != _solutionNames.end(); solName++)
+          if ( !physicsSolutions.count(*solName) ) 
+          {
+            std::cerr << std::endl;
+            std::cerr 
+              << "ERROR: requested solution "
+              << *solName << " " 
+              << " is not available in this PhysicsModel class. \n" ;
+            std::cerr << std::endl;
+            std::abort();
+          }
+      }
+      
 
       if (_order.size() != parameters.size() )
       {

@@ -59,8 +59,15 @@ namespace AGNOS
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
+    // define available solution names
+    this->_availableSolutions.insert("primal");
+    this->_availableSolutions.insert("adjoint");
+    this->_availableSolutions.insert("qoi");
+    this->_availableSolutions.insert("errorEstimate");
+    this->_availableSolutions.insert("errorIndicators");
+
     // read in parameters unique to this model
-    // -> this is handled by the ChannelSolver 
+    // - this is handled by the ChannelSolver 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre channel_input " << std::endl;
     const std::string channelInputFile 
