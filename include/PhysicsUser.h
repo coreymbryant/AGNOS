@@ -32,11 +32,14 @@ namespace AGNOS
     /** Function called by SurrogateModel to solve for requested solution
      * vectors at each evaluation point in parameter space  */
     virtual void compute( 
+        std::set<std::string>& computeSolutions,
         const T_S& paramVector, std::map<std::string, T_P >& solutionVectors ); 
 
     /** attach a user defined compute function */
     void attach_compute_function(
-        void fptr(const T_S& paramVector,std::map<std::string,T_P>& solutionVectors)
+        void fptr(
+          std::set<std::string>& computeSolutions,
+          const T_S& paramVector,std::map<std::string,T_P>& solutionVectors)
         )
     {
       libmesh_assert(fptr);
@@ -50,6 +53,7 @@ namespace AGNOS
 
     /** Function pointer to compute function */
     void(* _compute_function)(
+        std::set<std::string>& computeSolutions,
         const T_S& paramVector, 
         std::map<std::string, T_P >& solutionVectors ) ;
   };
@@ -83,6 +87,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
   void PhysicsUser<T_S,T_P>::compute( 
+      std::set<std::string>& computeSolutions,
       const T_S& paramVector, 
       std::map<std::string, T_P >& solutionVectors 
       )
@@ -94,7 +99,7 @@ namespace AGNOS
     this->_setParameterValues( paramVector );
 
     if(_compute_function != NULL)
-      this->_compute_function(paramVector, solutionVectors);
+      this->_compute_function(computeSolutions, paramVector, solutionVectors);
     else
     {
       std::cerr << std::endl;

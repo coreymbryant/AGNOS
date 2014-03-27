@@ -30,7 +30,8 @@ namespace AGNOS
           const Communicator&               comm,
           std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
           const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-          const std::vector<unsigned int>&  order
+          const std::vector<unsigned int>&  order,
+          std::set<std::string> computeSolutions = std::set<std::string>()
           );
 
 
@@ -114,9 +115,11 @@ namespace AGNOS
         const Communicator&               comm,
         std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-        const std::vector<unsigned int>& order
+        const std::vector<unsigned int>& order,
+        std::set<std::string> computeSolutions
         )
-      : SurrogateModel<T_S,T_P>( comm, physics, parameters, order) 
+      : SurrogateModel<T_S,T_P>( comm, physics, parameters, order,
+          computeSolutions) 
     {
     }
 
@@ -645,7 +648,7 @@ namespace AGNOS
         std::cout << "DEBUG: computeContribution( ) pre compute()" << std::endl;
 
       // get solution for this integration point
-      physics->compute( integrationPoint, contrib );
+      physics->compute( this->_solutionNames, integrationPoint, contrib );
 
 
       // clear out any evaluations that were provided by evalSurrogate, and that
@@ -732,8 +735,10 @@ namespace AGNOS
             (!const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->getSolutionNames().count(*id))
           {
             std::cout << std::endl;
-            std::cerr << 
-              " ERROR: requested evaluation for solution that isn't present  "
+            std::cerr 
+              << " ERROR: requested evaluation for solution " 
+              << *id << ", " 
+              << "which isn't present."
               << std::endl;
             std::cout << std::endl;
             std::abort();

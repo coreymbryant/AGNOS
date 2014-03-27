@@ -411,14 +411,14 @@ namespace AGNOS
       for(unsigned int n=0; n < input.vector_variable_size("computeSolutions"); n++)
         computeSolutions.insert( input("computeSolutions","", n) );
 
+      /** Determine which type of surrogate we have, primary or secondary */
+      std::string primarySurrogate = input("primarySurrogate","");
+
       /** solutions we will evaluate from a primary surrogate */
       std::set<std::string> evaluateSolutions ;
       for(unsigned int n=0; n < input.vector_variable_size("evaluateSolutions"); n++)
         evaluateSolutions.insert( input("evaluateSolutions","", n) );
 
-
-      /** Determine which type of surrogate we have, primary or secondary */
-      std::string primarySurrogate = input("primarySurrogate","");
 
       /** Get length of input vectors */
       int orderDim = input.vector_variable_size("order");
@@ -462,7 +462,8 @@ namespace AGNOS
                       _comm, 
                       physics,
                       parameters, 
-                      order  )
+                      order,
+                      computeSolutions )
                     ) 
                   );
             }

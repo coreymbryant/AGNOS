@@ -25,7 +25,8 @@ namespace AGNOS
         const Communicator&               comm,
         std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-        const std::vector<unsigned int>&  order
+        const std::vector<unsigned int>&  order,
+        std::set<std::string> computeSolutions = std::set<std::string>()
         );
 
       /** Secondary Constructor. 
@@ -73,10 +74,12 @@ namespace AGNOS
         const Communicator&               comm,
         std::shared_ptr<PhysicsModel<T_S,T_P> >               physics,
         const std::vector<std::shared_ptr<AGNOS::Parameter> >&     parameters,
-        const std::vector<unsigned int>& order
+        const std::vector<unsigned int>& order,
+        std::set<std::string> computeSolutions
         )
       :
-        SurrogatePseudoSpectral<T_S,T_P>( comm, physics, parameters, order)
+        SurrogatePseudoSpectral<T_S,T_P>( comm, physics,
+            parameters, order, computeSolutions)
     {
     }
 

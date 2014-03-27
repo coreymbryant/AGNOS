@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
   BOOST_REQUIRE( &physics.getEstimator() == NULL );
   BOOST_REQUIRE( &physics.getQois() == NULL );
   BOOST_REQUIRE( physics.comm().get() == MPI_COMM_NULL );
-  BOOST_REQUIRE( physics.getSolutionNames().count("primal") == 1 );
+  BOOST_REQUIRE( physics.getAvailableSolutions().count("primal") == 1 );
 
   // check default values set in constructor
   BOOST_CHECK( physics._useUniformRefinement ) ;
