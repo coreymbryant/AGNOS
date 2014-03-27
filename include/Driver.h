@@ -9,7 +9,7 @@
 #include "PhysicsViscousBurgers.h"
 #include "PhysicsCatenary.h"
 #include "PhysicsCatenaryLibmesh.h"
-#include "PhysicsHigherOrderDiffusion.h"
+#include "PhysicsDiffusion.h"
 #ifdef AGNOS_ENABLE_CHANNELFLOW
 #include "PhysicsChannelFlow.h"
 #endif // AGNOS_ENABLE_CHANNEL_FLOW
@@ -332,12 +332,12 @@ namespace AGNOS
             ) ;
       input.set_prefix("");
     }
-    else if ( physicsName == "higherOrderDiffusion" )
+    else if ( physicsName == "diffusion" )
     {
-      input.set_prefix("physics/higherOrderDiffusion/");
+      input.set_prefix("physics/diffusion/");
       physics =
-          std::shared_ptr<AGNOS::PhysicsHigherOrderDiffusion<T_S,T_P> >(
-            new AGNOS::PhysicsHigherOrderDiffusion<T_S,T_P>(
+          std::shared_ptr<AGNOS::PhysicsDiffusion<T_S,T_P> >(
+            new AGNOS::PhysicsDiffusion<T_S,T_P>(
               _physicsComm, input )
             ) ;
       input.set_prefix("");

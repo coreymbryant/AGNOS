@@ -32,14 +32,17 @@ namespace AGNOS
       PhysicsChannelFlow( const Communicator& comm_in, const GetPot& input );
 
       /** Destructor */
-      /* virtual ~PhysicsChannelFlow( ); */
+      virtual ~PhysicsChannelFlow( );
     
     protected:
       /** set parameter values */
       virtual void _setParameterValues( const T_S& parameterValues ) ;
 
+      /** Redefine _solve( ) routine to call rely on _flowSolver */
+      void _solve( );
+
       /** ChannelSolver object */
-      std::shared_ptr<ChannelSolver> flowSolver ;
+      std::shared_ptr<ChannelSolver> _flowSolver ;
       
 
 
@@ -65,48 +68,31 @@ namespace AGNOS
 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre ChannelSolver init " << std::endl;
-    flowSolver.reset( new ChannelSolver(channelInputFile) );
+    _flowSolver.reset( new ChannelSolver(channelInputFile) );
 
-    flowSolver->get_es().print_info();
+    _flowSolver->get_es().print_info();
 
-    /** Get pointers to members of ChannelSystem */
-    this->_equationSystems = &(flowSolver->get_es());
-    this->_mesh = const_cast<libMesh::MeshBase*>(&flowSolver->get_mesh()); // mesh
+    //  Get pointers to members of ChannelSystem 
+    this->_equationSystems = &(_flowSolver->get_es());
     this->_system = &(
         this->_equationSystems->template get_system<ChannelSystem>("flow")
         ) ;
-    /** Build mesh refinement object */
-    /* this->_buildMeshRefinement(); */
-    /** Build error estimator object */
-    /* this->_buildErrorEstimator(); */
-    /* this->_qois; */
-
-    /* // Get parameter vector from input file */
-    /* std::vector<double>* params=NULL; */
-    /* std::vector<double> tmp; */
-    /* if (flowSolver->myControl.have_variable("ModelParams")) */
-    /* { */
-    /*   tmp = flowSolver->myControl.vector_value<double>("ModelParams"); */
-    /*   params = &tmp; */
-    /* } */
+    this->_mesh = &(this->_system->get_mesh()); 
+    //  Build mesh refinement object 
+    this->_buildMeshRefinement();
+    // Set up QoIs 
+    this->_qois = new libMesh::QoISet;
+    std::vector<unsigned int> qoi_indices;
+    qoi_indices.push_back(0);
+    this->_qois->add_indices(qoi_indices);
+    /* this->_qois->set_weight(0, 1.0); */
+    // Build estimator object 
+    this->_buildErrorEstimator();
     
-    /* // Solve the flow */
-    /* try */
-    /* { */
-    /*   flowSolver->solve(0, params); */
-    /* } */
-    /* catch(int err) */
-    /* { */
-    /*   // only throw when we successfully run requested number of iters and fail */
-    /*   // to converge! */
-    /*   std::cout */ 
-    /*     << "*************** Flow solver failed to converge ****************" */ 
-    /*     << std::endl; */
-    /*   exit(1); */
-    /* } */
 
 
-    /* flowSolver->output(); */
+    // TODO how are we going to take care of output 
+    /* _flowSolver->output(); */
 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: post ChannelSolver init " << std::endl;
@@ -116,29 +102,58 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  /* template<class T_S, class T_P> */
-  /* PhysicsChannelFlow<T_S,T_P>::~PhysicsChannelFlow() */
-  /* { */
-  /*   /1* delete flowSolver ; *1/ */
+  template<class T_S, class T_P>
+  PhysicsChannelFlow<T_S,T_P>::~PhysicsChannelFlow()
+  {
 
-  /*   if (AGNOS_DEBUG) */
-  /*     std::cout << "DEBUG: post PhysicsChannelFlow destructor " << std::endl; */
-
-  /* } */
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: post PhysicsChannelFlow destructor " << std::endl;
+  }
 
   /********************************************//**
    * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+  void PhysicsChannelFlow<T_S,T_P>::_solve( )
+  {
+    // Solve the flow
+    try
+    {
+      _flowSolver->solve( this->_communicator.rank() );
+    }
+    catch(int err)
+    {
+      // only throw when we successfully run requested number of iters and fail
+      // to converge!
+      std::cout 
+        << "*************** Flow solver failed to converge ****************" 
+        << std::endl;
+      exit(1);
+    }
+
+  }
+
+  /********************************************//**
+   * All parameters bust be set. If only a subset of parameters are being
+   * treated as uncertain then set the deterministic parameters min AND max
+   * valeus to the deterministic value and the type to UNIFORM. This will cause
+   * them to be treated as deterministic even though they will still be seen by
+   * AGNOS. 
+   *
+   * NOTE: This may cause issues in the future if we want try to do anisotropic
+   *       refinement. 
+   *
    ***********************************************/
   template<class T_S,class T_P>
   void PhysicsChannelFlow<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
 
-    /** Convert T_S vector to stl vector before calling turbulence model
-     * setParameters()*/
+    // Convert T_S vector to stl vector before calling turbulence model
+    // setParameters()
     const std::vector<double> params = parameterValues.get_values();
 
-    static_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
+    dynamic_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
         params);
   }
 
