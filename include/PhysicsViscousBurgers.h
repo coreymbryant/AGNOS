@@ -90,48 +90,43 @@ namespace AGNOS
     _nonlinearSteps      = input("nNonlinearSteps",15);
     _nonlinearTolerance  = input("nonlinearTolerance",1.e-9);
     //----------------------------------------------
-    
 
-
+    //----------------------------------------------
     // initialize mesh object
-    this->_mesh = new libMesh::Mesh(this->_communicator);
+    // build temporary mesh 
+    libMesh::Mesh mesh(this->_communicator);
+    libMesh::MeshTools::Generation::build_line(
+        mesh,this->_nElem,-1.*_L,_L,EDGE2);
+    // deep copy to PhysicsLibmesh object pointer
+    this->_mesh = new libMesh::Mesh(mesh);
+    this->_mesh->print_info();
     //----------------------------------------------
     
-
-
     // build mesh refinement object 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre mesh_refinement " << std::endl;
     this->_buildMeshRefinement();
     //----------------------------------------------
     
-
-    // build mesh 
-    libMesh::MeshTools::Generation::build_line(
-        *static_cast<libMesh::Mesh*>(this->_mesh),this->_nElem,-1.*_L,_L,EDGE2);
-    this->_mesh->print_info();
-
-    //----------------------------------------------
-
-
     // define equation system
     this->_equationSystems 
       = new libMesh::EquationSystems(*this->_mesh);
-    this->_system = 
-      &( this->_equationSystems->template add_system<BurgersSystem>("Burgers") );
-    static_cast<BurgersSystem*>(this->_system)->_L = _L ; 
+    BurgersSystem& burgersSystem = 
+      this->_equationSystems->template add_system<BurgersSystem>("Burgers") ;
+    this->_system = &( burgersSystem );
+    burgersSystem._L = _L ;
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: post add system" << std::endl;
     //----------------------------------------------
     
 
     // No transient time solver
-    this->_system->time_solver =
-        AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
+    burgersSystem.time_solver =
+        AutoPtr<TimeSolver>(new SteadySolver(burgersSystem) );
     {
-      /* NewtonSolver *solver = new NewtonSolver(*this->_system); */
-      PetscDiffSolver *solver = new PetscDiffSolver(*this->_system);
-      this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      /* NewtonSolver *solver = new NewtonSolver(burgersSystem); */
+      PetscDiffSolver *solver = new PetscDiffSolver(burgersSystem);
+      burgersSystem.time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
       
       //TODO read in these setting?
       solver->quiet                       = true;
@@ -203,7 +198,9 @@ namespace AGNOS
   void PhysicsViscousBurgers<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
-    static_cast<BurgersSystem*>(this->_system)->_mu 
+    /* *(this->_system)._mu */ 
+    /*   = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ; */
+    dynamic_cast<BurgersSystem*>(this->_system)->_mu 
       = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ;
   }
 
@@ -213,13 +210,11 @@ namespace AGNOS
   template<class T_S,class T_P>
   PhysicsViscousBurgers<T_S,T_P>::~PhysicsViscousBurgers()
   {
-    /* if( this->_system != NULL          ){ delete this->_system; } */
     if( this->_mesh != NULL            ){ delete this->_mesh; }
     if( this->_meshRefinement != NULL  ){ delete this->_meshRefinement; }
     if( this->_errorEstimator != NULL  ){ delete this->_errorEstimator; }
     if( this->_qois != NULL            ){ delete this->_qois; }
     if( this->_equationSystems != NULL ){ delete this->_equationSystems; }
-
   }
 
 }

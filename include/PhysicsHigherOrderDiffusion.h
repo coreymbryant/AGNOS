@@ -102,6 +102,24 @@ namespace AGNOS
         DirichletBoundary(allBoundaries,variables,&zf) );
     if (AGNOS_DEBUG)
       std::cout << "post BC set up" << std::endl;
+    
+    // No transient time solver
+    this->time_solver =
+        AutoPtr<TimeSolver>(new SteadySolver(*this));
+    {
+      NewtonSolver *solver = new NewtonSolver(*this);
+      this->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      
+      solver->quiet                       = true;
+      solver->verbose                     = false;
+      solver->max_nonlinear_iterations    = 1;
+      solver->continue_after_max_iterations = true;
+      solver->continue_after_backtrack_failure = true;
+      
+    }
+    if (AGNOS_DEBUG)
+      std::cout << "post solver set up" << std::endl;
+
 
     // Do the parent's initialization after variables are defined
     FEMSystem::init_data();
@@ -318,6 +336,11 @@ namespace AGNOS
   template<class T_S, class T_P>
   PhysicsHigherOrderDiffusion<T_S,T_P>::~PhysicsHigherOrderDiffusion( )
   {
+    if( this->_mesh != NULL            ){ delete this->_mesh; }
+    if( this->_meshRefinement != NULL  ){ delete this->_meshRefinement; }
+    if( this->_errorEstimator != NULL  ){ delete this->_errorEstimator; }
+    if( this->_qois != NULL            ){ delete this->_qois; }
+    if( this->_equationSystems != NULL ){ delete this->_equationSystems; }
   }
 
 
@@ -336,9 +359,24 @@ namespace AGNOS
     _nElem  = input("nElem",100);
 
     
-    //------------------------
+
+    //----------------------------------------------
     // initialize mesh object
-    this->_mesh = new libMesh::Mesh(this->_communicator,2);
+    // build temporary mesh 
+    libMesh::Mesh mesh(this->_communicator,2);
+    // MeshTools::Generation::build_square (
+    // nElem per side
+    libMesh::MeshTools::Generation::build_square(
+        mesh,
+        this->_nElem,
+        this->_nElem,
+        0.,1.,
+        0.,1.,
+        TRI6);
+    // deep copy to PhysicsLibmesh object pointer
+    this->_mesh = new libMesh::Mesh(mesh);
+    this->_mesh->print_info();
+    //----------------------------------------------
 
 
     // build mesh refinement object 
@@ -348,49 +386,18 @@ namespace AGNOS
     //----------------------------------------------
 
 
-    // build mesh 
-    // MeshTools::Generation::build_square (
-    // nElem per side
-    libMesh::MeshTools::Generation::build_square(
-        *static_cast<libMesh::Mesh*>(this->_mesh),
-        this->_nElem,
-        this->_nElem,
-        0.,1.,
-        0.,1.,
-        TRI6);
-    this->_mesh->print_info();
-
-    //----------------------------------------------
 
 
     // define equation system
     this->_equationSystems 
       = new libMesh::EquationSystems(*this->_mesh);
-    this->_system = &( 
-        this->_equationSystems->template
-        add_system<DiffusionSystem>("HigherOrderDiffusion")
-        ) ;
+    DiffusionSystem& diffusionSystem = this->_equationSystems->template
+        add_system<DiffusionSystem>("HigherOrderDiffusion") ;
+    this->_system = &( diffusionSystem ) ;
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: post add system" << std::endl;
     //----------------------------------------------
     
-
-    // No transient time solver
-    this->_system->time_solver =
-        AutoPtr<TimeSolver>(new SteadySolver(*this->_system));
-    {
-      NewtonSolver *solver = new NewtonSolver(*this->_system);
-      this->_system->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
-      
-      solver->quiet                       = true;
-      solver->verbose                     = false;
-      solver->max_nonlinear_iterations    = 1;
-      solver->continue_after_max_iterations = true;
-      solver->continue_after_backtrack_failure = true;
-      
-    }
-    if (AGNOS_DEBUG)
-      std::cout << "post solver set up" << std::endl;
 
 
 
@@ -433,15 +440,17 @@ namespace AGNOS
     void PhysicsHigherOrderDiffusion<T_S,T_P>::_setParameterValues( 
         const T_S& parameterValues ) 
     {
+      DiffusionSystem* diffusionSystem = dynamic_cast<DiffusionSystem*>(
+          this->_system );
 
       if ( parameterValues.size() 
           == 
-          static_cast<DiffusionSystem*>(this->_system)->_xik.size() )
+          diffusionSystem->_xik.size() )
       {
         for (unsigned int i=0;
-            i< static_cast<DiffusionSystem*>(this->_system)->_xik.size(); 
+            i< diffusionSystem->_xik.size(); 
             i++)
-          static_cast<DiffusionSystem*>(this->_system)->_xik[i] 
+          diffusionSystem->_xik[i] 
             = parameterValues(i) ;
         std::cout << "xi = " ;
         for(unsigned int i=0; i<parameterValues.size();i++)
@@ -455,7 +464,7 @@ namespace AGNOS
           << " this model requires a parameter dimension of 10. " 
           << " given size = " << parameterValues.size() 
           << " model size = " <<
-            static_cast<DiffusionSystem*>(this->_system)->_xik.size()        
+            diffusionSystem->_xik.size()        
           << std::endl;
         exit(1);
       }
