@@ -7,7 +7,7 @@ simultRefine = false
 [parameters]
 dimension = '7'
 nInitialHRefinements = '0'
-types ='UNIFORM UNIFORM UNIFORM UNIFORM UNIFORM UNIFORM UNIFORM'
+types ='CONSTANT CONSTANT CONSTANT CONSTANT CONSTANT CONSTANT CONSTANT'
 mins = '1.0 1.0 1.0 1.0 1.0 1.0 1.0'
 maxs = '1.0 1.0 1.0 1.0 1.0 1.0 1.0'
 []
@@ -17,7 +17,7 @@ maxs = '1.0 1.0 1.0 1.0 1.0 1.0 1.0'
 type = 'channelFlow'
 refine = false
 channel_input = 'flow.in'
-
+solutions = 'primal adjoint'
 []
 
 
@@ -31,16 +31,16 @@ anisotropic = false
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
   order = '0'
-  computeSolutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
+  computeSolutions='primal adjoint errorEstimate'
   [../]
 
   [./errorSurrogate]
   type = 'PseudoSpectralTensorProduct'
   primarySurrogate = 'primarySurrogate'
-  increaseOrder = '1'   
+  increaseOrder = '0'   
   multiplyOrder = '1'  
   evaluateSolutions = 'primal adjoint'
-  computeSolutions='errorEstimate qoi'
+  computeSolutions='errorEstimate'
   [../]
 
 []

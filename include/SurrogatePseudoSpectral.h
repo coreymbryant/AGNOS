@@ -736,7 +736,7 @@ namespace AGNOS
               " ERROR: requested evaluation for solution that isn't present  "
               << std::endl;
             std::cout << std::endl;
-            exit(1);
+            std::abort();
           }
 
           // reference for solution size
