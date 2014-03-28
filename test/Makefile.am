@@ -63,13 +63,13 @@ endif
 
 
 polynomialTest_LDADD = $(CPPUNIT_LIBS)
-polynomialTest_SOURCES 			= driver.C PolynomialTest.cpp
-catenaryTest_SOURCES 				= driver.C CatenaryTest.cpp
-evaluationTest_SOURCES 			= driver.C EvaluationTest.cpp
-parallelCatenary_SOURCES 		= driver.C ParallelCatenary.cpp
-catenaryLibmeshTest_SOURCES = driver.C LibmeshCatenaryTest.cpp
-viscousBurgersTest_SOURCES  = driver.C ViscousBurgersTest.cpp
-elementTest_SOURCES  				= driver.C ElementTest.cpp
+polynomialTest_SOURCES 			= testDriver.C PolynomialTest.cpp
+catenaryTest_SOURCES 				= testDriver.C CatenaryTest.cpp
+evaluationTest_SOURCES 			= testDriver.C EvaluationTest.cpp
+parallelCatenary_SOURCES 		= testDriver.C ParallelCatenary.cpp
+catenaryLibmeshTest_SOURCES = testDriver.C LibmeshCatenaryTest.cpp
+viscousBurgersTest_SOURCES  = testDriver.C ViscousBurgersTest.cpp
+elementTest_SOURCES  				= testDriver.C ElementTest.cpp
 
 
 TESTS += polynomialTest.sh
@@ -91,4 +91,5 @@ shellfiles_src = polynomialTest.sh \
 # Want these put with the distro so we can run make check
 EXTRA_DIST = $(shellfiles_src) input_files test_data 
 
+CLEANFILES = *.out*
 
