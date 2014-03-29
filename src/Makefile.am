@@ -41,10 +41,8 @@ libagnos_la_SOURCES = $(top_srcdir)/contrib/sandia_rules/sandia_rules.cpp \
 											physics/PhysicsLibmesh.C \
 											physics/PhysicsViscousBurgers.C \
 											physics/PhysicsCatenaryLibmesh.C \
-											physics/PhysicsChannelFlow.C \
-											physics/PhysicsDiffusion.C \
-											Element.C \
-											Driver.C 
+											physics/PhysicsDiffusion.C 
+
 											
 						 
 if ENABLE_CHANNELFLOW
@@ -52,6 +50,8 @@ AM_CPPFLAGS += -I$(CHANNELFLOW_DIR)/include
 LIBS += -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
 libagnos_la_SOURCES += physics/PhysicsChannelFlow.C 
 endif
+
+libagnos_la_SOURCES += Element.C Driver.C 
 
 #-------------------------------------
 # Standalone executable

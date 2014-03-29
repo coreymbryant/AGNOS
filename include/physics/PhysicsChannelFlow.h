@@ -2,7 +2,6 @@
 #ifndef PHYSICS_CHANNEL_FLOW_H
 #define PHYSICS_CHANNEL_FLOW_H
 
-#include "agnosDefines.h"
 #include "PhysicsLibmesh.h"
 
 /** channelflow includes */

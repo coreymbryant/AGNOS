@@ -2,8 +2,8 @@
 #include "PhysicsChannelFlow.h"
 
 /** channelflow includes */
-#include "channel_solver.h"
-#include "channel_system.h"
+/* #include "channel_solver.h" */
+/* #include "channel_system.h" */
 
 
 /** libMesh includes */
