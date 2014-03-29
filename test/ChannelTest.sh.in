@@ -5,4 +5,4 @@ INPUT=""
 
 CPP_UNIT_OPTIONS=""
 
-$PROG $INPUT $CPP_UNIT_OPTIONS  2>&1>> test.log
+$PROG $INPUT $CPP_UNIT_OPTIONS  >> test.log 2>&1
