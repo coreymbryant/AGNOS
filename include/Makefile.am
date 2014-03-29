@@ -18,10 +18,13 @@ libagnos_include_HEADERS = \
 											physics/DiffusionSystem.h \
 											physics/PhysicsViscousBurgers.h \
 											physics/PhysicsCatenaryLibmesh.h \
-											physics/PhysicsDiffusion.h \
-											physics/PhysicsChannelFlow.h \
-											Element.h \
-											Driver.h 
+											physics/PhysicsDiffusion.h 
+
+if ENABLE_CHANNELFLOW
+libagnos_include_HEADERS += physics/PhysicsChannelFlow.h
+endif
+
+libagnos_include_HEADERS += Element.h Driver.h 
 
 # Headers required from channel exec that are not in libchannelflow
 agnos_includedir = $(prefix)/include
