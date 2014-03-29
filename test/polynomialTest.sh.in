@@ -5,4 +5,4 @@ INPUT=""
 
 BOOST_TEST_OPTIONS="--log_level=test_suite"
 
-$PROG $INPUT $BOOST_TEST_OPTIONS 
+$PROG $INPUT $BOOST_TEST_OPTIONS  &>>test.log
