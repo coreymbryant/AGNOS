@@ -2,55 +2,59 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(agnos, 0.1.0, cbryant@ices.utexas.edu)
-AC_CONFIG_MACRO_DIR([m4])
+AC_INIT([agnos], [0.1.0], [cbryant@ices.utexas.edu])
+
+# AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_HEADER(agnos_config.h.tmp)
 AX_PREFIX_CONFIG_H(agnos_config.h,AGNOS,agnos_config.h.tmp)
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET()
-AM_INIT_AUTOMAKE([subdir-objects dist-xz dist-bzip2 tar-ustar color-tests 1.11])
+# AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([color-tests])
 # AM_INIT_AUTOMAKE([dist-xz dist-bzip2 tar-ustar color-tests 1.11])
 AM_SILENT_RULES(yes)  # use silent rules where available - automake 1.11
 
-LT_INIT
+# LT_INIT
 
 dnl Release versioning
 AX_SPLIT_VERSION
-GENERIC_MAJOR_VERSION=$AX_MAJOR_VERSION
-GENERIC_MINOR_VERSION=$AX_MINOR_VERSION
-GENERIC_MICRO_VERSION=$AX_POINT_VERSION
+GENERIC_MAJOR_VERSION=0
+GENERIC_MINOR_VERSION=1
+GENERIC_MICRO_VERSION=0
 GENERIC_LIBRARY_NAME=agnos
 
-dnl shared library versioning
 
-PACKAGE=$GENERIC_LIBRARY_NAME
-GENERIC_VERSION=$GENERIC_MAJOR_VERSION.$GENERIC_MINOR_VERSION.$GENERIC_MICRO_VERSION
+dnl shared library versioning
+# PACKAGE=$GENERIC_LIBRARY_NAME
+# GENERIC_VERSION=$GENERIC_MAJOR_VERSION.$GENERIC_MINOR_VERSION.$GENERIC_MICRO_VERSION
 GENERIC_RELEASE=$GENERIC_MAJOR_VERSION.$GENERIC_MINOR_VERSION
 
 dnl AC_SUBST(GENERIC_LIBRARY_VERSION)
 dnl AC_SUBST(GENERIC_LIBRARY_NAME)
 
-AC_SUBST(GENERIC_VERSION)
+# AC_SUBST(GENERIC_VERSION)
 AC_SUBST(GENERIC_RELEASE)
 AC_SUBST(GENERIC_MAJOR_VERSION)
 AC_SUBST(GENERIC_MINOR_VERSION)
 AC_SUBST(GENERIC_MICRO_VERSION)
 
-AC_DEFINE_UNQUOTED([MAJOR_VERSION],$GENERIC_MAJOR_VERSION,[Major version])
-AC_DEFINE_UNQUOTED([MINOR_VERSION],$GENERIC_MINOR_VERSION,[Minor version])
-AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
+# AC_DEFINE_UNQUOTED([MAJOR_VERSION],$GENERIC_MAJOR_VERSION,[Major version])
+# AC_DEFINE_UNQUOTED([MINOR_VERSION],$GENERIC_MINOR_VERSION,[Minor version])
+# AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
 
+# Required for some macros
+AX_AM_MACROS
 
 #------------------------------
 # Checks for compilers and MPI
 #------------------------------
 AC_PROG_CC
+AC_PROG_CXX
+
 AC_LANG([C])
 ACX_MPI([CC="$MPICC"], [AC_MSG_ERROR([Could not find MPI.])])
-
-AC_PROG_CXX
 AC_LANG([C++])
 ACX_MPI([CXX="$MPICXX"], [AC_MSG_ERROR([Could not find MPI.])])
 
@@ -61,14 +65,6 @@ AC_CHECK_LIB(mpich, MPI_Init, [USING_MPICH=1
 # Checks for library prerequisites for other libraries...
 #---------------------------------------------------------
 
-#----------------
-# Check for boost
-#----------------
-BOOST_REQUIRE([1.36])
-BOOST_MATH()
-BOOST_PROGRAM_OPTIONS()
-BOOST_TEST()
-AC_CACHE_SAVE
 
 dnl----------------
 dnl Libmesh Config
@@ -93,6 +89,34 @@ CXXFLAGS+=" -std=c++0x"
 dnl -Wall warnings, -Wall the time.
 dnl AX_CXXFLAGS_WARN_ALL
 
+# Check for available programs.
+AC_PROG_RANLIB
+AC_PROG_CXX
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+AC_LANG([C++])
+
+
+
+dnl --------------------------------------------------------------
+dnl Get the source tree directory
+dnl --------------------------------------------------------------
+PWD=`pwd`
+AC_SUBST(PWD)
+
+#-------------------------
+# External Library Checks
+#-------------------------
+
+#----------------
+# Check for boost
+#----------------
+AC_LANG([C++])
+BOOST_REQUIRE([1.36])
+BOOST_MATH()
+BOOST_PROGRAM_OPTIONS()
+BOOST_TEST()
+AC_CACHE_SAVE
 
 # -------------------------------------------------------------
 # cppunit C++ unit testing -- disabled by default
@@ -165,6 +189,8 @@ AC_CONFIG_FILES(test/catenaryLibmeshTest.sh,	[chmod +x test/catenaryLibmeshTest.
 AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh])
 AC_CONFIG_FILES(test/viscousBurgersTest.sh,	  [chmod +x test/viscousBurgersTest.sh])
 AC_CONFIG_FILES(test/elementTest.sh,	        [chmod +x test/elementTest.sh])
+AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
+AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
 
 dnl-----------------------------------------------
 dnl Generate run scripts for examples
@@ -180,10 +206,10 @@ dnl Generate Makefiles
 dnl-----------------------------------------------
 AC_CONFIG_FILES([
                  Makefile 
+                 include/Makefile 
                  src/Makefile 
                  test/Makefile 
                  examples/Makefile 
-                 examples/channelFlow/Makefile 
                  doxygen/Makefile])
 
 
