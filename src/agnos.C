@@ -1,6 +1,5 @@
 
 #include <mpi.h>
-#include "agnosDefines.h"
 #include "Driver.h"
 
 int main(int argc, char* argv[])
