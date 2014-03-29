@@ -3,6 +3,7 @@
 #ifndef PHYSICS_MODEL_H
 #define PHYSICS_MODEL_H
 
+#include "agnosDefines.h"
 
 namespace AGNOS
 {
