@@ -1,8 +1,5 @@
-#ifndef PHYSICS_LIBMESH_H
-#define PHYSICS_LIBMESH_H
 
-#include "agnosDefines.h"
-#include "PhysicsModel.h"
+#include "PhysicsLibmesh.h"
 
 // libmesh includes
 #include "libmesh/dof_map.h"
@@ -86,136 +83,6 @@ namespace AGNOS
     VTKIO(mesh).write_equation_systems
       (file_name.str(), es);
   }
-
-
-  /********************************************//**
-   * \brief Base libmesh physics model class. All libmesh physics, and maybe
-   * GRINS, PhysicsModel classes should be derived from here.
-   *
-   ***********************************************/
-  template<class T_S, class T_P>
-  class PhysicsLibmesh : public PhysicsModel<T_S,T_P>
-  {
-
-    public:
-
-      /** Constructor. Pass input file to provide setting to physics class */
-      PhysicsLibmesh( const Communicator& comm_in, const GetPot& input );
-
-      /** Destructor */
-      virtual ~PhysicsLibmesh( );
-
-      /** Function called by SurrogateModel to solve for requested solution
-       * vectors at each evaluation point in parameter space  */
-      virtual void compute( 
-          const T_S& paramVector, 
-          std::map<std::string, T_P >& solutionVectors 
-          ) ;
-
-      /** Refinement methods for the physics model */
-      void refine (  ) ;
-      void refine ( T_P& errorIndicators ) ;
-
-      /** Exact qoi */
-      virtual T_P exactQoi( ) 
-      {
-        T_P resultVector ;
-        return resultVector ;
-      }
-
-      /** Return libMesh system object */
-      const libMesh::System& getSystem( ) const { return *_system; }
-      /** Return libMesh es object */
-      const libMesh::EquationSystems& getEquationSystems( ) const { 
-        return *_equationSystems; }
-      /** Return libMesh mesh object */
-      const libMesh::MeshBase& getMesh( ) const { return *_mesh; }
-      /** Return libMesh mesh refinement object */
-      const libMesh::MeshRefinement& getMeshRefinement( ) const { 
-        return *_meshRefinement; }
-      /** Return libMesh estimator object */
-      const libMesh::AdjointRefinementEstimator& getEstimator( ) const { 
-        return *_errorEstimator; }
-      /** Return libMesh QoISet object */
-      const libMesh::QoISet& getQois( ) const { return *_qois; }
-
-    protected:
-      /** mesh and equation pointers */
-      libMesh::System*                      _system;
-      libMesh::EquationSystems*             _equationSystems;
-      libMesh::MeshBase*                    _mesh; 
-      libMesh::MeshRefinement*              _meshRefinement;
-      libMesh::AdjointRefinementEstimator*  _errorEstimator;
-      libMesh::QoISet*                      _qois;
-
-      /** refinement options */
-      bool         _useUniformRefinement;
-      bool         _resolveAdjoint;
-      unsigned int _numberHRefinements;
-      unsigned int _numberPRefinements;
-      unsigned int _maxRefineSteps;
-
-      /** control vizualization output */
-      bool         _writePrimalViz;
-      bool         _writeAdjointViz;
-
-      /** build mesh refinement object (can be overidden in derived class) */
-      virtual void _buildMeshRefinement();
-
-      /** build error estimator object. Defaults to adjoint_residual_estimator
-       * (can be overridden in derived class) */
-      virtual void _buildErrorEstimator();
-
-      /** Insert solution vector to map. Helper function used in compute(..)*/
-      void _insertSolVec( 
-          libMesh::NumericVector<Number>& vec,
-          std::string vecName,
-          std::map<std::string, T_P >& mapOfVecs 
-          ) ;
-      /** Insert solution vector to map. Helper function used in compute(..)*/
-      void _insertSolVec( 
-        T_P& vec, std::string vecName, std::map<std::string, T_P >& mapOfVecs ) 
-      {
-        mapOfVecs.insert( 
-            std::pair<std::string,T_P>( vecName, vec )
-              );
-        return;
-      }
-
-
-      /** Solve primal problem. Called in compute(..) if requested */
-      virtual void _solve( ) ;
-
-      /** Solve adjoint problem. Called in compute(..) if requested */
-      virtual void _adjointSolve( libMesh::QoISet& qois ) ;
-
-      /** Set primal solution to provided vector */
-      virtual void _setPrimalSolution( T_P& solutionVector );
-
-      /** Set adjoint solution 'j' to provided vector */
-      virtual void _setAdjointSolution( 
-          T_P& solutionVector, unsigned int j=0 );
-
-      /** derived PhysicsModel classes need to handle settig parameter values
-       * themselves */
-      virtual void _setParameterValues( const T_S& parameterValues ) 
-      {
-        std::cout << std::endl ;
-        std::cout 
-          << "WARNING: _setParameterValues should be implemented by derived\n"
-          << "         classes. Without this interface AGNOS can not change\n"
-          << "         system parameters and properly construct a surrogate\n"
-          << "         model.\n"
-          << std::endl ;
-        return;
-      }
-
-
-  };
-
-
-
-
 /********************************************//**
  * \brief 
  ***********************************************/
@@ -233,6 +100,9 @@ namespace AGNOS
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
+    // default to only primal solution
+    if(this->_availableSolutions.size() == 0)
+      this->_availableSolutions.insert("primal");
 
     if(AGNOS_DEBUG)
       std::cout << "DEBUG: libMesh initialized?:" << libMesh::initialized() 
@@ -396,6 +266,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::compute(
+        std::set<std::string>& computeSolutions,
         const T_S& paramVector,
         std::map<std::string, T_P >& solutionVectors 
         ) 
@@ -406,6 +277,9 @@ namespace AGNOS
         std::cout << "DEBUG:         rank: " << this->_communicator.rank() 
           << std::endl;
       }
+
+
+      //TODO check that every computSolution requested is present for this model
       
 
 
@@ -520,9 +394,9 @@ namespace AGNOS
       // copied from libmesh adjoint_error_refinement_estimator estimate_errors
       // routine
       /** if adjoint is requested, and not provided, or resolve flag is set */
-      if( this->_solutionNames.count("adjoint" ) 
-          || this->_solutionNames.count("errorEstimator") 
-          || this->_solutionNames.count("errorIndicators") 
+      if( computeSolutions.count("adjoint" ) 
+          || computeSolutions.count("errorEstimate") 
+          || computeSolutions.count("errorIndicators") 
           )
       {
         if(AGNOS_DEBUG)
@@ -626,7 +500,7 @@ namespace AGNOS
           _adjointSolve( *_qois ) ;
           
           // save adjoint solution if its in the set of requested vectors
-          if ( this->_solutionNames.count("adjoint") )
+          if ( computeSolutions.count("adjoint") )
           {
             // save adjoint in solutionVectors
             _insertSolVec( system.get_adjoint_solution(0), "adjoint", solutionVectors );
@@ -657,7 +531,7 @@ namespace AGNOS
         // ----------------------------------
         // ERROR ESTIMATE AND ERROR INDICATORS
         // Compute global error estimate if requested
-        if ( this->_solutionNames.count("errorEstimate") ) 
+        if ( computeSolutions.count("errorEstimate") ) 
         {
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: Computing errorEstimate" << std::endl;
@@ -684,7 +558,7 @@ namespace AGNOS
 
 
         // compute indicators if they were requested
-        if (  this->_solutionNames.count("errorIndicators") )
+        if (  computeSolutions.count("errorIndicators") )
         {
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: computing error indicators" << std::endl;
@@ -971,7 +845,7 @@ namespace AGNOS
       
 
       // QUANTITY OF INTEREST
-      if ( this->_solutionNames.count("qoi") )
+      if ( computeSolutions.count("qoi") )
       {
         if(AGNOS_DEBUG)
           std::cout << "DEBUG computing qoi value" << std::endl;
@@ -1001,7 +875,7 @@ namespace AGNOS
       /** exact solution is optional, but it also depends on if it has been
        * defined in the derived class
        */
-      if( this->_solutionNames.count("exactQoi" ) )
+      if( computeSolutions.count("exactQoi" ) )
       {
         // save solution in solutionVectors
         solutionVectors.insert( 
@@ -1079,7 +953,8 @@ namespace AGNOS
       return;
     }
 
+  template class
+    PhysicsLibmesh<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
 
 }
 
-#endif // PHYSICS_LIBMESH_H

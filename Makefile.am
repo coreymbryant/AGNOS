@@ -1,9 +1,9 @@
-include $(top_srcdir)/doxygen/aminclude.am
-
 AUTOMAKE_OPTIONS = foreign 
 ACLOCAL_AMFLAGS  = -I m4 -I m4/common
 
-SUBDIRS          = src examples doxygen 
+include $(top_srcdir)/doxygen/aminclude.am
+
+SUBDIRS          = include src examples doxygen 
 if ENABLE_CPPUNIT
 SUBDIRS += test
 endif
@@ -12,8 +12,8 @@ endif
 # EXTRA_DIST       = CHANGES LICENSE COPYING docs contrib
 EXTRA_DIST       = docs contrib
 
-includedir = $(prefix)/include/
-include_HEADERS = $(top_builddir)/agnos_config.h
+# includedir = $(prefix)/include/
+# include_HEADERS = $(top_builddir)/agnos_config.h
 #
 # Eliminate .git directories in dist tarball
 dist-hook:
@@ -23,10 +23,10 @@ dist-hook:
 
 AUX_DIST         = build-aux/install-sh
 AUX_DIST        += build-aux/missing
-AUX_DIST        += build-aux/config.guess
-AUX_DIST        += build-aux/config.sub
-AUX_DIST        += build-aux/depcomp
-AUX_DIST        += build-aux/ltmain.sh
+# AUX_DIST        += build-aux/config.guess
+# AUX_DIST        += build-aux/config.sub
+# AUX_DIST        += build-aux/depcomp
+# AUX_DIST        += build-aux/ltmain.sh
 
 
 # Additional files to be deleted by 'make distclean'
@@ -45,11 +45,12 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
                        agnos_config.h.tmp.in                    \
                        agnos_config.h.tmp.in~                   \
                        Makefile.in                              \
+                       include/Makefile.in                      \
                        src/Makefile.in                          \
 											 test/Makefile.in 												\
 											 examples/Makefile.in 										\
 											 examples/catenary/Makefile.in 						\
-											 examples/diffusion/Makefile.in\
+											 examples/diffusion/Makefile.in           \
 											 examples/catenaryLibmesh/Makefile.in 		\
 											 examples/viscousBurgers/Makefile.in 			\
 											 examples/channelFlow/Makefile.in 				\
