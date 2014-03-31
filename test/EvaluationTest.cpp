@@ -19,6 +19,7 @@ using namespace AGNOS;
 
   // mixed-order 5 dimensional exammple
   void myFunction (
+      std::set<std::string>& computeSolutions,
       const T_S& paramVec,
       std::map<std::string, T_P>& solutionVectors
       )
@@ -101,7 +102,9 @@ using namespace AGNOS;
 
         T_P surrogateValue = mySurrogate->evaluate( "primal", testValue);
 
-        myFunction(testValue,trueSolution);
+        std::set<std::string> sols;
+        sols.insert("primal");
+        myFunction(sols,testValue,trueSolution);
 
         CPPUNIT_ASSERT( std::abs( 
               surrogateValue(0) - trueSolution["primal"](0) ) <= 1e-9 );

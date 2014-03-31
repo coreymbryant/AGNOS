@@ -1,47 +1,9 @@
 
-#ifndef QUADRATURE_TENSOR_PRODUCT_H
-#define QUADRATURE_TENSOR_PRODUCT_H
-#include <assert.h>
-#include "QuadratureRule.h"
+#include "QuadratureTensorProduct.h"
 
 // TensorProduct namespace since we may eventually have sparse grid as well
 namespace AGNOS
 {
-  /********************************************//**
-   * \brief Tensor product QuadratureRule
-   *
-   * Constructs QuadratureRule for a tensor product of Parameters.
-   * Supports anisotropy
-   *
-   * 
-   ***********************************************/
-  class QuadratureTensorProduct : public QuadratureRule
-  {
-
-    public:
-
-      QuadratureTensorProduct( 
-          const std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters,
-          const std::vector<unsigned int>& order
-          );
-
-      QuadratureTensorProduct( );
-      ~QuadratureTensorProduct( );
-
-    protected:
-
-      void recurQuad(
-          const std::vector<std::shared_ptr<Parameter> >& parameters, 
-          const int dim, const std::vector<unsigned int>& order, 
-          double currentWeights[], double* currentPoints[] );
-
-      void oneDimQuadRule(
-        const Parameter& parameter, const unsigned int order, 
-        double oneDimQuadPoints[], double oneDimQuadWeights[] );
-
-  };
-
-
 /********************************************//**
  * \brief Rountine to populate quadPoints and quadWeights
  * 
@@ -139,7 +101,7 @@ namespace AGNOS
  * Currently only unifrom is supported
  ***********************************************/
     void QuadratureTensorProduct::oneDimQuadRule(
-        const Parameter& parameter, const unsigned int order, 
+        const Parameter& parameter, const unsigned int n, 
         double oneDimQuadPoints[], double oneDimQuadWeights[] )
     {
       int myType = parameter.type() ;
@@ -147,19 +109,27 @@ namespace AGNOS
       double max = parameter.max();
       double scale, midpoint, scaleWeight;
 
-      switch ( ParameterTypes(myType) )
+      switch ( myType )
       {
+        case CONSTANT:
+          agnos_assert( (std::abs(min - max) <= 1e-16) );
+          agnos_assert( (n == 1) );
+          oneDimQuadWeights[0] = 1.;
+          oneDimQuadPoints[0] = min;
+          break;
+
         case UNIFORM:
+          agnos_assert( (std::abs(min - max) > 1e-16) );
           // this class assumes uniform distribution
           webbur::legendre_compute( 
-              order, oneDimQuadPoints, oneDimQuadWeights);
+              n, oneDimQuadPoints, oneDimQuadWeights);
           
           // scale - scales to size of parameter domain
           scale = ( max - min)/2.0;
           // midpoint - shifts to midpoint of parameter domain
           midpoint = ( max + min )/2.0;
 
-          for(unsigned int i=0; i < order; i++)
+          for(unsigned int i=0; i < n; i++)
           {
             // 1/2 is to account for uniform weighting
             // scale * 1/(max-min) = 1/2
@@ -174,13 +144,11 @@ namespace AGNOS
 
         default:
           std::cout << "\n ERROR: Unrecognized parameter type\n\n" ;
-          assert(0);
+          agnos_assert(0);
       }
         
     }
 
 
 }
-
-#endif // QUADRATURE_TENSOR_PRODUCT_H
 

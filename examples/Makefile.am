@@ -1,6 +1,3 @@
-if ENABLE_CHANNELFLOW
-SUBDIRS = channelFlow
-endif
 
 EXTRA_DIST = 
 #--------------------------------------
@@ -55,12 +52,23 @@ viscousburgers_DATA = $(top_srcdir)/examples/viscousBurgers/viscousBurgers.in
 viscousburgers_SCRIPTS = $(top_builddir)/examples/viscousBurgers/run.sh
 EXTRA_DIST += $(viscousburgers_DATA)
 
-
+#-------------------------------------
+# channel flow
+#-------------------------------------
+if ENABLE_CHANNELFLOW
+channelFlowdir = $(prefix)/examples/channelFlow
+channelFlow_SCRIPTS = $(top_builddir)/examples/channelFlow/run.sh
+channelFlow_DATA = $(top_srcdir)/examples/channelFlow/channelFlow.in $(top_srcdir)/examples/channelFlow/flow.in $(top_srcdir)/examples/channelFlow/channel_Re944_grid.xda
+EXTRA_DIST += $(channelFlow_DATA)
+endif
 
 MAINTAINERCLEANFILES = Makefile.in \
 											 catenary/testFile.dat \
 											 diffusion/testFile.dat \
 											 catenaryLibmesh/testFile.dat \
 											 viscousBurgers/testFile.dat \
-											 channelFlow/*.dat 
+											 channelFlow/*.dat  \
+											 channelFlow/output/* \
+											 channelFlow/*.txt \
+											 channelFlow/*.out*
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-PROG="@top_builddir@/test/elementTest"
+PROG="@top_builddir@/test/ChannelTest"
 
 INPUT=""
 
