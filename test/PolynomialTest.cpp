@@ -24,6 +24,7 @@ using namespace AGNOS;
   typedef libMesh::DenseVector<double> T_S ;
   // linear test function
   void linearFunction (
+      std::set<std::string>& computeSolutions,
       const T_S& paramVec, 
       std::map<std::string,T_P>& solutionVectors
       )
@@ -40,6 +41,7 @@ using namespace AGNOS;
 
   // quadratic test function
   void quadFunction (
+      std::set<std::string>& computeSolutions,
       const T_S& paramVec, 
       std::map<std::string,T_P>& solutionVectors
       )
@@ -56,6 +58,7 @@ using namespace AGNOS;
 
   // mixed-order 5 dimensional exammple
   void mixedFunction (
+      std::set<std::string>& computeSolutions,
       const T_S& paramVec, 
       std::map<std::string,T_P>& solutionVectors
       )

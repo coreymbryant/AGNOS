@@ -1,23 +1,27 @@
 
-
-#ifndef PHYSICS_HIGHER_ORDER_DIFFUSION_H
-#define PHYSICS_HIGHER_ORDER_DIFFUSION_H
+#ifndef DIFFUSION_SYSTEM_H
+#define DIFFUSION_SYSTEM_H
 
 #include "agnosDefines.h"
-#include "PhysicsLibmesh.h"
 
 // libmesh includes
-#include "libmesh/mesh_generation.h"
-#include "libmesh/linear_implicit_system.h"
-#include "libmesh/steady_solver.h"
-#include "libmesh/newton_solver.h"
-        
-#define _USE_MATH_DEFINES
-
-
-
-namespace AGNOS
-{
+#include "libmesh/enum_fe_family.h"
+#include "libmesh/fem_system.h"
+#include "libmesh/qoi_set.h"
+#include "libmesh/system.h"
+#include "libmesh/fe_base.h"
+#include "libmesh/quadrature.h"
+#include "libmesh/string_to_enum.h"
+#include "libmesh/parallel.h"
+#include "libmesh/fem_context.h"
+#include "libmesh/libmesh_common.h"
+#include "libmesh/elem.h"
+#include "libmesh/point.h"
+#include "libmesh/gnuplot_io.h"
+#include "libmesh/zero_function.h"
+#include "libmesh/const_function.h"
+#include "libmesh/dirichlet_boundaries.h"
+#include "libmesh/dof_map.h"
 
   class DiffusionSystem : public FEMSystem
   {
@@ -102,24 +106,6 @@ namespace AGNOS
         DirichletBoundary(allBoundaries,variables,&zf) );
     if (AGNOS_DEBUG)
       std::cout << "post BC set up" << std::endl;
-    
-    // No transient time solver
-    this->time_solver =
-        AutoPtr<TimeSolver>(new SteadySolver(*this));
-    {
-      NewtonSolver *solver = new NewtonSolver(*this);
-      this->time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
-      
-      solver->quiet                       = true;
-      solver->verbose                     = false;
-      solver->max_nonlinear_iterations    = 1;
-      solver->continue_after_max_iterations = true;
-      solver->continue_after_backtrack_failure = true;
-      
-    }
-    if (AGNOS_DEBUG)
-      std::cout << "post solver set up" << std::endl;
-
 
     // Do the parent's initialization after variables are defined
     FEMSystem::init_data();
@@ -174,7 +160,7 @@ namespace AGNOS
     // calculated at each quadrature point by summing the
     // solution degree-of-freedom values by the appropriate
     // weight functions.
-    unsigned int n_qpoints = c.get_element_qrule().n_points();
+    unsigned int n_qpoints = c.get_element_qrule()->n_points();
 
 
 
@@ -243,7 +229,7 @@ namespace AGNOS
 
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(0).size();
-    unsigned int n_qpoints = c.get_element_qrule().n_points();
+    unsigned int n_qpoints = c.get_element_qrule()->n_points();
 
     // Fill the QoI RHS corresponding to this QoI. Since this is the 0th QoI
     // we fill in the [0][i] subderivatives, i corresponding to the variable index.
@@ -284,7 +270,7 @@ namespace AGNOS
 
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(0).size();
-    unsigned int n_qpoints = c.get_element_qrule().n_points();
+    unsigned int n_qpoints = c.get_element_qrule()->n_points();
 
     // Fill the QoI RHS corresponding to this QoI. Since this is the 0th QoI
     // we fill in the [0][i] subderivatives, i corresponding to the variable index.
@@ -305,172 +291,4 @@ namespace AGNOS
   }
 
 
-  /********************************************//**
-   * \brief Example PhysicsLibmesh class - higher order diffusion example from
-   * paper
-   ***********************************************/
-  template<class T_S, class T_P>
-  class PhysicsHigherOrderDiffusion : public PhysicsLibmesh<T_S,T_P>
-  {
-
-    public:
-      /** Constructor. Pass input file to provide setting to physics class */
-      PhysicsHigherOrderDiffusion( const Communicator& comm_in, const GetPot& input );
-
-      /** destructor */
-      virtual ~PhysicsHigherOrderDiffusion( );
-
-
-    protected:
-      /** Geometry and boundary data */
-      unsigned int    _nElem;
-      
-      /** set parameter values */
-      virtual void _setParameterValues( const T_S& parameterValues ) ;
-
-  };
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsHigherOrderDiffusion<T_S,T_P>::~PhysicsHigherOrderDiffusion( )
-  {
-    if( this->_mesh != NULL            ){ delete this->_mesh; }
-    if( this->_meshRefinement != NULL  ){ delete this->_meshRefinement; }
-    if( this->_errorEstimator != NULL  ){ delete this->_errorEstimator; }
-    if( this->_qois != NULL            ){ delete this->_qois; }
-    if( this->_equationSystems != NULL ){ delete this->_equationSystems; }
-  }
-
-
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P>
-  PhysicsHigherOrderDiffusion<T_S,T_P>::PhysicsHigherOrderDiffusion(
-        const Communicator& comm_in, 
-        const GetPot& input 
-      )
-  :
-    PhysicsLibmesh<T_S,T_P>(comm_in,input)
-  {
-    _nElem  = input("nElem",100);
-
-    
-
-    //----------------------------------------------
-    // initialize mesh object
-    // build temporary mesh 
-    libMesh::Mesh mesh(this->_communicator,2);
-    // MeshTools::Generation::build_square (
-    // nElem per side
-    libMesh::MeshTools::Generation::build_square(
-        mesh,
-        this->_nElem,
-        this->_nElem,
-        0.,1.,
-        0.,1.,
-        TRI6);
-    // deep copy to PhysicsLibmesh object pointer
-    this->_mesh = new libMesh::Mesh(mesh);
-    this->_mesh->print_info();
-    //----------------------------------------------
-
-
-    // build mesh refinement object 
-    if (AGNOS_DEBUG)
-      std::cout << "DEBUG: pre mesh_refinement " << std::endl;
-    this->_buildMeshRefinement();
-    //----------------------------------------------
-
-
-
-
-    // define equation system
-    this->_equationSystems 
-      = new libMesh::EquationSystems(*this->_mesh);
-    DiffusionSystem& diffusionSystem = this->_equationSystems->template
-        add_system<DiffusionSystem>("HigherOrderDiffusion") ;
-    this->_system = &( diffusionSystem ) ;
-    if (AGNOS_DEBUG)
-      std::cout << "DEBUG: post add system" << std::endl;
-    //----------------------------------------------
-    
-
-
-
-    //---------------------------------------------
-    /** initialize equation system */
-    this->_equationSystems->init ();
-    if (AGNOS_DEBUG)
-      std::cout << "post init system" << std::endl;
-    
-    //----------------------------------------------
-    // set up QoISet object 
-    this->_qois = new libMesh::QoISet;
-    std::vector<unsigned int> qoi_indices;
-    qoi_indices.push_back(0);
-    this->_qois->add_indices(qoi_indices);
-
-    // weight the qois (in case we have more than 1)
-    this->_qois->set_weight(0, 1.0);
-    //----------------------------------------------
-
-    // build error estimator object
-    this->_buildErrorEstimator();
-    if (AGNOS_DEBUG)
-      std::cout << "debug: post error estimator " << std::endl;
-    //----------------------------------------------
-
-    
-
-
-    // Print information about the mesh and system to the screen.
-    this->_equationSystems->print_info();
-    if (AGNOS_DEBUG)
-      std::cout << "debug: leaving model specific setup" << std::endl;
-  }
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-  template<class T_S, class T_P>
-    void PhysicsHigherOrderDiffusion<T_S,T_P>::_setParameterValues( 
-        const T_S& parameterValues ) 
-    {
-      DiffusionSystem* diffusionSystem = dynamic_cast<DiffusionSystem*>(
-          this->_system );
-
-      if ( parameterValues.size() 
-          == 
-          diffusionSystem->_xik.size() )
-      {
-        for (unsigned int i=0;
-            i< diffusionSystem->_xik.size(); 
-            i++)
-          diffusionSystem->_xik[i] 
-            = parameterValues(i) ;
-        std::cout << "xi = " ;
-        for(unsigned int i=0; i<parameterValues.size();i++)
-          std::cout << parameterValues(i) << "  " ;
-        std::cout << std::endl;
-      }
-      else
-      {
-        std::cerr << " ERROR: incorrect dimension for parameter space " 
-          << "\n"
-          << " this model requires a parameter dimension of 10. " 
-          << " given size = " << parameterValues.size() 
-          << " model size = " <<
-            diffusionSystem->_xik.size()        
-          << std::endl;
-        exit(1);
-      }
-
-    }
-
-
-}
-#endif // PHYSICS_HIGHER_ORDER_DIFFUSION_H
+#endif // DIFFUSION_SYSTEM_H

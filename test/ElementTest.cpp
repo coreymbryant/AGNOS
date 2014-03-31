@@ -29,6 +29,7 @@ using namespace AGNOS;
 
   // constant test function
   void constantFunction (
+      std::set<std::string>& computeSolutions,
       const T_S& paramVec, 
       std::map<std::string,T_P>& solutionVectors
       )

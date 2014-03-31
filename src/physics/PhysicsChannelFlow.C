@@ -1,52 +1,15 @@
 
-#ifndef PHYSICS_CHANNEL_FLOW_H
-#define PHYSICS_CHANNEL_FLOW_H
-
-#include "agnosDefines.h"
-#include "PhysicsLibmesh.h"
+#include "PhysicsChannelFlow.h"
 
 /** channelflow includes */
-#include "channel_solver.h"
-#include "channel_system.h"
+/* #include "channel_solver.h" */
+/* #include "channel_system.h" */
 
 
 /** libMesh includes */
 
 namespace AGNOS
 {
-
-
-  /********************************************//**
-   * \brief PhysicsModel class for running turbulence simulations using
-   * channelflow code.
-   *
-   * 
-   ***********************************************/
-
-  template<class T_S, class T_P>
-  class PhysicsChannelFlow : public PhysicsLibmesh<T_S,T_P>
-  {
-
-    public:
-      /** Constructor. Pass input file to provide setting to physics class */
-      PhysicsChannelFlow( const Communicator& comm_in, const GetPot& input );
-
-      /** Destructor */
-      virtual ~PhysicsChannelFlow( );
-    
-    protected:
-      /** set parameter values */
-      virtual void _setParameterValues( const T_S& parameterValues ) ;
-
-      /** Redefine _solve( ) routine to call rely on _flowSolver */
-      void _solve( );
-
-      /** ChannelSolver object */
-      std::shared_ptr<ChannelSolver> _flowSolver ;
-      
-
-
-  };
 
 /********************************************//**
  * \brief 
@@ -59,8 +22,15 @@ namespace AGNOS
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input)
   {
+    // define available solution names
+    this->_availableSolutions.insert("primal");
+    this->_availableSolutions.insert("adjoint");
+    this->_availableSolutions.insert("qoi");
+    this->_availableSolutions.insert("errorEstimate");
+    this->_availableSolutions.insert("errorIndicators");
+
     // read in parameters unique to this model
-    // -> this is handled by the ChannelSolver 
+    // - this is handled by the ChannelSolver 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre channel_input " << std::endl;
     const std::string channelInputFile 
@@ -135,13 +105,12 @@ namespace AGNOS
 
   /********************************************//**
    * All parameters bust be set. If only a subset of parameters are being
-   * treated as uncertain then set the deterministic parameters min AND max
-   * valeus to the deterministic value and the type to UNIFORM. This will cause
-   * them to be treated as deterministic even though they will still be seen by
-   * AGNOS. 
+   * treated as uncertain then set the deterministic parameters to CONSTANT.
+   * This will cause them to be treated as deterministic even though they will
+   * still be seen by AGNOS. 
    *
    * NOTE: This may cause issues in the future if we want try to do anisotropic
-   *       refinement. 
+   * refinement. 
    *
    ***********************************************/
   template<class T_S,class T_P>
@@ -158,6 +127,8 @@ namespace AGNOS
   }
 
 
+  template class
+    PhysicsChannelFlow<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
+
 }
 
-#endif // PHYSICS_CHANNEL_FLOW_H
