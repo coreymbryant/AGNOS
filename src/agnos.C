@@ -25,6 +25,8 @@ int main(int argc, char* argv[])
 
   MPI_Init(&argc,&argv);
   Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&argc, const_cast<char***>(&argv),NULL,NULL);
 
   int rank, size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

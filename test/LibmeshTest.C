@@ -14,6 +14,7 @@
 
 // local
 #include "PhysicsLibmesh.h"
+#include "CatenarySystem.h"
 
 // boost
 #define BOOST_TEST_MODULE LibmeshTest
@@ -22,11 +23,23 @@
 
 BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
 {
-  
+  // Set dummy inputs for libmesh initialization
+  int ac=1;
+  char** av = new char* [ac];
+  char* name = new char[27];
+  strcpy(name, "test");
+  av[0] = name;
+  MPI_Init(&ac,&av);
+  Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
+  LibMeshInit libmesh_init(ac, av, comm.get()) ;
+  delete av, name;
+
   GetPot inputfile;
   inputfile = GetPot( );
   AGNOS::PhysicsLibmesh<T_S,T_P> physics(
-      Communicator(MPI_COMM_NULL),inputfile
+      comm,inputfile
       );
 
   // check for initial parameters set to NULL values
@@ -36,7 +49,7 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
   BOOST_REQUIRE( &physics.getMeshRefinement() == NULL );
   BOOST_REQUIRE( &physics.getEstimator() == NULL );
   BOOST_REQUIRE( &physics.getQois() == NULL );
-  BOOST_REQUIRE( physics.comm().get() == MPI_COMM_NULL );
+  BOOST_REQUIRE( physics.comm().get() == MPI_COMM_WORLD );
   BOOST_REQUIRE( physics.getAvailableSolutions().count("primal") == 1 );
 
   // check default values set in constructor
@@ -48,15 +61,34 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
   BOOST_REQUIRE( !physics._writeAdjointViz );
   BOOST_REQUIRE( !physics._resolveAdjoint );
 
+    if( physics._mesh != NULL            ){ delete physics._mesh; }
+    if( physics._meshRefinement != NULL  ){ delete physics._meshRefinement; }
+    if( physics._errorEstimator != NULL  ){ delete physics._errorEstimator; }
+    if( physics._qois != NULL            ){ delete physics._qois; }
+    if( physics._equationSystems != NULL ){ delete physics._equationSystems; }
+
 }
 
 BOOST_AUTO_TEST_CASE( PhysicsLibmesh_initRoutines )
 {
   
+  // Set dummy inputs for libmesh initialization
+  int ac=1;
+  char** av = new char* [ac];
+  char* name = new char[27];
+  strcpy(name, "test");
+  av[0] = name;
+  MPI_Init(&ac,&av);
+  Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
+  LibMeshInit libmesh_init(ac, av, comm.get()) ;
+  delete av, name;
+
   GetPot inputfile;
   inputfile = GetPot( );
   AGNOS::PhysicsLibmesh<T_S,T_P> physics(
-      Communicator(MPI_COMM_NULL),inputfile
+      comm,inputfile
       );
   
   // test buildMeshRefinement 
@@ -91,6 +123,11 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_initRoutines )
     physics._errorEstimator->number_p_refinements == physics._numberPRefinements
     );
 
+    if( physics._mesh != NULL            ){ delete physics._mesh; }
+    if( physics._meshRefinement != NULL  ){ delete physics._meshRefinement; }
+    if( physics._errorEstimator != NULL  ){ delete physics._errorEstimator; }
+    if( physics._qois != NULL            ){ delete physics._qois; }
+    if( physics._equationSystems != NULL ){ delete physics._equationSystems; }
 }
 
 BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
@@ -99,14 +136,15 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
   int ac=1;
   char** av = new char* [ac];
   char* name = new char[27];
-  strcpy(name, "dummy");
+  strcpy(name, "test");
   av[0] = name;
   MPI_Init(&ac,&av);
   Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
   LibMeshInit libmesh_init(ac, av, comm.get()) ;
   delete av, name;
 
-  {
   GetPot inputfile;
   inputfile = GetPot( );
   AGNOS::PhysicsLibmesh<T_S,T_P> physics(
@@ -121,8 +159,8 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
   // and we need a real system to reference
   physics._equationSystems 
     = new libMesh::EquationSystems(*physics._mesh);
-  physics._system = 
-    &( physics._equationSystems->add_system("Basic","test") );
+  System& system = physics._equationSystems->add_system("Basic","test") ;
+  physics._system = &( system );
   physics._system->add_variable ("u", FIRST);
   physics._equationSystems->init();
 
@@ -152,11 +190,10 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_utils )
   BOOST_REQUIRE_CLOSE( 
       solutionVectors["adjoint"](0), 10., 1e-16 );
 
-    if( physics._mesh != NULL            ){ delete physics._mesh; }
-    if( physics._meshRefinement != NULL  ){ delete physics._meshRefinement; }
-    if( physics._errorEstimator != NULL  ){ delete physics._errorEstimator; }
-    if( physics._qois != NULL            ){ delete physics._qois; }
-    if( physics._equationSystems != NULL ){ delete physics._equationSystems; }
-  }
+  if( physics._mesh != NULL            ){ delete physics._mesh; }
+  if( physics._meshRefinement != NULL  ){ delete physics._meshRefinement; }
+  if( physics._errorEstimator != NULL  ){ delete physics._errorEstimator; }
+  if( physics._qois != NULL            ){ delete physics._qois; }
+  if( physics._equationSystems != NULL ){ delete physics._equationSystems; }
 
 }

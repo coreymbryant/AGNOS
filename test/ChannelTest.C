@@ -44,6 +44,8 @@ BOOST_AUTO_TEST_CASE( channel_constructor )
   // Initialize libmesh
   MPI_Init(&ac,&av);
   Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
   LibMeshInit init (ac, av);
 
   GetPot inputfile;
@@ -81,6 +83,8 @@ BOOST_AUTO_TEST_CASE( channel_solve )
   // Initialize libmesh
   MPI_Init(&ac,&av);
   Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
   LibMeshInit init (ac, av);
 
   GetPot inputfile;
@@ -127,6 +131,8 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
   // Initialize libmesh
   MPI_Init(&ac,&av);
   Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
   LibMeshInit init (ac, av);
 
   // istantiate phyiscs model
