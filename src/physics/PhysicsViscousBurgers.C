@@ -82,8 +82,8 @@ namespace AGNOS
     burgersSystem.time_solver =
         AutoPtr<TimeSolver>(new SteadySolver(burgersSystem) );
     {
-      /* NewtonSolver *solver = new NewtonSolver(burgersSystem); */
-      PetscDiffSolver *solver = new PetscDiffSolver(burgersSystem);
+      NewtonSolver *solver = new NewtonSolver(burgersSystem);
+      /* PetscDiffSolver *solver = new PetscDiffSolver(burgersSystem); */
       burgersSystem.time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
       
       //TODO read in these setting?
