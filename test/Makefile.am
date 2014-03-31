@@ -31,11 +31,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
              $(BOOST_PROGRAM_OPTIONS_LIBS) \
              $(LIBMESH_LIBS) \
              $(LIBMESH_LDFLAGS) \
-						 $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
-						 $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 						 $(CPPUNIT_LIBS) \
-						 $(BOOST_LDFLAGS) \
-						 $(BOOST_LIBS) \
 						 -L$(top_srcdir)/src/ -lagnos
 
 TESTS =
