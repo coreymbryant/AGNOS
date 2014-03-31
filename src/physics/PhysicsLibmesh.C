@@ -395,7 +395,7 @@ namespace AGNOS
       // routine
       /** if adjoint is requested, and not provided, or resolve flag is set */
       if( computeSolutions.count("adjoint" ) 
-          || computeSolutions.count("errorEstimator") 
+          || computeSolutions.count("errorEstimate") 
           || computeSolutions.count("errorIndicators") 
           )
       {
