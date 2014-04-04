@@ -85,10 +85,7 @@ namespace AGNOS
 
       /** Refine the surrogate model.  */
       virtual void refine( );
-      virtual void refine( 
-          const std::vector<unsigned int>& increase 
-            = std::vector<unsigned int>() 
-          ) ;
+      virtual void refine( const std::vector<unsigned int>& increase ) ;
 
       /** calculate mean */
       std::map< std::string, T_P > mean( ) ;

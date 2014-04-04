@@ -157,9 +157,12 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
 
   // build the constantSurrogate model
   std::vector<unsigned int> order(dimension,0);
+  order[0] = 4;
+  order[4] = 4;
   std::set<std::string> computeSolutions ;
   computeSolutions.insert("primal");
   computeSolutions.insert("adjoint");
+  /* computeSolutions.insert("errorEstimate"); */
   PseudoSpectralTensorProduct<T_S,T_P> constantSurrogate(
         comm,
         flowSolver,
@@ -180,47 +183,84 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
   // update parameters to small range around nominal values 
   parameters.clear();
   parameters.reserve(dimension);
-  for(unsigned int i =0; i<dimension; i++)
+  parameters.push_back( 
+      std::shared_ptr<AGNOS::Parameter>(
+        new AGNOS::Parameter("UNIFORM",0.90, 1.05) ) 
+      );
+  for(unsigned int i =1; i<dimension; i++)
     parameters.push_back( 
         std::shared_ptr<AGNOS::Parameter>(
-          new AGNOS::Parameter("UNIFORM",0.90, 1.05) )
+          new AGNOS::Parameter("CONSTANT",1.00, 1.00) )
       ); 
+  parameters[4] = std::shared_ptr<AGNOS::Parameter>( new AGNOS::Parameter("UNIFORM",0.90, 1.05) )  ;
   
   // build the uniformSurrogate model
   /* std::vector<unsigned int> higherOrder(dimension,1); */
-  PseudoSpectralTensorProduct<T_S,T_P> uniformSurrogate(
+  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >
+    uniformSurrogate( new PseudoSpectralTensorProduct<T_S,T_P>(
         comm,
         flowSolver,
         parameters, 
-        order  
-        );
+        order  )
+  );
+
+  // build a secondary surrogate just to test errorEstimate
+  std::vector<unsigned int> increaseOrder(dimension,0);
+  unsigned int multiplyOrder(2);
+  std::set<std::string> secondarySolutions ;
+  secondarySolutions.insert("errorEstimate");
+  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >
+  secondarySurrogate( new PseudoSpectralTensorProduct<T_S,T_P>(
+      uniformSurrogate,
+      increaseOrder,
+      multiplyOrder,
+      computeSolutions,
+      secondarySolutions )
+      );
 
   T_P primalPred, adjointPred;
-
-  int iter=0, maxIter=2;
+  double surrogateError = 0.;
+  int iter=0, maxIter=4;
   double tol = 1e-3, primalDiff,adjointDiff;
+  bool condition = true ;
   do 
   {
     iter++;
-    uniformSurrogate.refine();
-    uniformSurrogate.build( );
-    primalPred = uniformSurrogate.evaluate( "primal", paramValue );
+
+    uniformSurrogate->refine( );
+    secondarySurrogate->refine();
+    uniformSurrogate->build( );
+    secondarySurrogate->build( );
+
+    primalPred = uniformSurrogate->evaluate( "primal", paramValue );
     primalPred -= primalSol ;
     primalDiff = primalPred.linfty_norm() ;
     std::cout << "primalDiff = " << primalDiff << std::endl;
-    adjointPred = uniformSurrogate.evaluate( "adjoint", paramValue );
+
+    adjointPred = uniformSurrogate->evaluate( "adjoint", paramValue );
     adjointPred -= adjointSol ;
     adjointDiff = adjointPred.linfty_norm() ;
     std::cout << "adjointDiff = " << adjointDiff << std::endl;
-  } while ( 
-       (iter<maxIter) && 
-       (primalDiff > tol) &&
-       (adjointDiff > tol) 
-       ) ;
+
+    surrogateError = secondarySurrogate->l2Norm("errorEstimate")(0);
+    std::cout << "surrogateError = " << surrogateError << std::endl;
+
+    std::cout << " iter<maxIter: " << (iter<maxIter) << std::endl;
+    std::cout << " primalDiff > tol: " << (primalDiff>tol) << std::endl;
+    std::cout << " adjointDiff > tol: " << (adjointDiff>tol) << std::endl;
+    std::cout << " surrogateError > tol: " << (surrogateError>tol) << std::endl;
+    condition = 
+       (iter<maxIter) && (
+       (primalDiff > tol) || (adjointDiff > tol) || (surrogateError > tol) 
+       );
+    std::cout << "condition: " << condition << std::endl;
+
+  } while ( condition ) ;
 
   // for 2 iterations diff should be within 1e-3
   // for 3 its within 1e-6 (this takes a very long time to run though)
   BOOST_REQUIRE_SMALL( primalDiff, tol  );
   BOOST_REQUIRE_SMALL( adjointDiff, tol  );
+  BOOST_REQUIRE_SMALL( surrogateError, tol  );
 
 }
