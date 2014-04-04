@@ -34,6 +34,9 @@ namespace AGNOS
       virtual ~PhysicsChannelFlow( );
     
     protected:
+      /** Set primal solution to provided vector */
+      virtual void _setPrimalSolution( T_P& solutionVector );
+
       /** set parameter values */
       virtual void _setParameterValues( const T_S& parameterValues ) ;
 
