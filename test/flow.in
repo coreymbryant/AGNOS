@@ -28,38 +28,13 @@ Model = 'Spalart-Allmaras'
 
 []
 
-# Algorithmic parameters
-[Algorithm]
-
-  [./Transient]
-    dt        = 1e-2
-    t_order   = 1
-    dt_max    = 1.e3
-    max_steps = 100
-    rate      = 2.0 
-    max_growth_factor = 10.0 # 5.0
-    tolerance = 1e-14
-            
-  [../Linear]
-    tolerance = 1.e-12
-    max_steps = 5000 # This overrides -ksp_max_it on the command line
-    
-  [../Nonlinear]
-    tolerance = 1.e-20
-    max_steps = 2
-    matrix_free = 0
-    jacobian = 'true' # 'false' # false = finite difference residual to get jac
-
-[]
 
 #
 # Mesh details
 [Mesh]
-  type      = 'line'
-  n_el_x    = 10
-  xmin      = 0
-  xmax      = 1
-  elem_type = 'EDGE2'
+  #file = 'channel_from_dns.xda'
+  file = '../examples/channelFlow/channel_Re944_grid.xda'
+  refine = 0
 []
 
 #
