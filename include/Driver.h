@@ -88,6 +88,7 @@ namespace AGNOS
       bool _refineSurrogate;
       bool _hRefine;
       bool _pRefine;
+      std::vector<unsigned int> _pIncrement;
       bool _anisotropic;
       // ---------------------
 

@@ -85,6 +85,14 @@ namespace AGNOS
     _refineSurrogate = input("refine",false);
     _hRefine = input("hRefine",false);
     _pRefine = input("pRefine",true);
+    // pIncrement vector (default to 1 in all directions)
+    int pIncrementDim = input.vector_variable_size("pIncrement");
+    if (pIncrementDim == 1)
+      for (unsigned int i=0; i < _paramDim; i++)
+        _pIncrement.push_back( input("pIncrement", 1) ) ;
+    else
+      for (unsigned int i=0; i < _paramDim; i++)
+        _pIncrement.push_back( input("pIncrement", 1, i) ) ;
     _anisotropic = input("anisotropic",false);
 
     /* initialize surrogate model container */
@@ -628,7 +636,7 @@ namespace AGNOS
                 std::cout << "DEBUG: uniform p refineing element rank-" 
                   << globalRank << std::endl;
                 for (unsigned int i=0; i< increase.size(); i++)
-                  increase[i]++;
+                  increase[i] += _pIncrement[i];
               }
               // if anisotropic refinement is being used we need to determine
               // which direction to refine in
@@ -716,7 +724,7 @@ namespace AGNOS
                   for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
                     if ( sortedM[maxIndex][j] >
                         elit->surrogates()[0]->getExpansionOrder()[j] )
-                      increase[j]++;
+                      increase[j] += _pIncrement[j];
 
                   /* if(AGNOS_DEBUG) */
                   {
