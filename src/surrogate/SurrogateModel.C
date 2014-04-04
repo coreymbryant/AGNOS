@@ -484,19 +484,47 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::refine( )
+    {
+      std::vector<unsigned int> increase(this->_dimension, 1);
+      refine( increase );
+    }
+
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
     void SurrogateModel<T_S,T_P>::refine( 
         const std::vector<unsigned int>& increase 
         )
     {
+
+      // verify correct dimension of increase is given
+      agnos_assert( (increase.size() == _parameters.size()) );
+
       // if this is a primary surrogate incease order
       if ( _evalSurrogate == NULL )
       {
-        if ( increase.empty() )
-          for(unsigned int i=0; i<this->_dimension; i++)
-            this->_order[i]++;
-        else
-          for(unsigned int i=0; i<this->_dimension; i++)
-            this->_order[i] += increase[i] ;
+        for( unsigned int i=0; i<_parameters.size(); i++ )
+        {
+          // increase order
+          this->_order[i] += increase[i] ;
+
+          // if its a constant parameter and we raised the order reset it back
+          // to zero
+          if ( _parameters[i]->type() == CONSTANT )
+            if (this->_order[i] != 0)
+            {
+              std::cout 
+                << "WARNING: forcing CONSTANT parameter (" 
+                << i 
+                << ") order to 0th order \n" ;
+              this->_order[i] = 0;
+            } //end if increase != 0
+          //end if paramType = CONSTANT
+          
+        } //end for each parameter
       }
       // otherwise refine based on primary surrogate
       else

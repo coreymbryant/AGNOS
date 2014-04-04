@@ -84,6 +84,7 @@ namespace AGNOS
           ) const ;
 
       /** Refine the surrogate model.  */
+      virtual void refine( );
       virtual void refine( 
           const std::vector<unsigned int>& increase 
             = std::vector<unsigned int>() 
