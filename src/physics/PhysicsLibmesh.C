@@ -480,6 +480,7 @@ namespace AGNOS
         NumericVector<Number> & projected_residual 
           = (dynamic_cast<ExplicitSystem&>(system)).get_vector("RHS Vector");
         projected_residual.close();
+        /* projected_residual.print_global(); */
 
         if ( solutionVectors.count("adjoint") && !_resolveAdjoint )
         {
