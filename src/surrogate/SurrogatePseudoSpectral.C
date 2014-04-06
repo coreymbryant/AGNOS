@@ -450,6 +450,14 @@ namespace AGNOS
       if (this->_groupRank==0)
         polyValues->close();
 
+          /* std::cout << "polyValues.m: " << polyValues->m() << std::endl; */
+          /* std::cout << "polyValues.n: " << polyValues->n() << std::endl; */
+          /* for (unsigned int i=polyValues->row_start(); i<polyValues->row_stop(); */
+          /*     i++) */
+          /*   for (unsigned int j=0; j<polyValues->n(); j++) */
+          /*     std::cout << "poly("<<i<<","<<j<<"): " << (*polyValues)(i,j) */ 
+          /*          << "rank: " << this->_comm.rank() << std::endl; */
+
 
       // --------------
       // compute my contribution to each coefficient
@@ -473,6 +481,13 @@ namespace AGNOS
 
           // close the matrix now, we are done adding to it
           solContrib[*id]->close();
+          /* std::cout << "solContrib[*id].m: " << solContrib[*id]->m() << std::endl; */
+          /* std::cout << "solContrib[*id].n: " << solContrib[*id]->n() << std::endl; */
+          /* for (unsigned int i=solContrib[*id]->row_start(); i<solContrib[*id]->row_stop(); */
+          /*     i++) */
+          /*   for (unsigned int j=0; j<solContrib[*id]->n(); j++) */
+          /*     std::cout << "sol("<<i<<","<<j<<"): " << (*solContrib[*id])(i,j) */ 
+          /*          << "rank: " << this->_comm.rank() << std::endl; */
 
           // Matrix product with plynomial values to compute coefficients
           Mat resultMat ;
@@ -935,7 +950,7 @@ namespace AGNOS
             paramValues(j) = quadPoints[i][j];
 
           std::map<std::string,T_P> pointValue 
-            = this->evaluate(solutionNames,paramValues);
+            = this->evaluate(solutionNames,paramValues,true);
           for (id=solutionNames.begin(); id != solutionNames.end(); id++)
           {
 

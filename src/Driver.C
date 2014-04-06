@@ -460,6 +460,7 @@ namespace AGNOS
             globalSurrogateError,
             maxElementError);
 
+
       } // end for active elements
 
     } // end if adaptiveDriver
@@ -468,7 +469,7 @@ namespace AGNOS
     _physicsComm.broadcast(globalTotalError);
     _physicsComm.broadcast(globalSurrogateError);
     _physicsComm.broadcast(globalPhysicsError);
-    
+
     std::cout << " NElEM:  "  << _activeElems.size() << std::endl;
     std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
     errorOut << globalPhysicsError << " " ;
@@ -717,7 +718,7 @@ namespace AGNOS
                   this->_comm.broadcast(maxIndex,0);
                   this->_physicsComm.broadcast(maxIndex,0);
 
-                  /* if(AGNOS_DEBUG) */
+                  if(AGNOS_DEBUG)
                     std::cout << "   maxIndex = " << maxIndex << std::endl;
                   
                   // increase only that dir
@@ -726,7 +727,7 @@ namespace AGNOS
                         elit->surrogates()[0]->getExpansionOrder()[j] )
                       increase[j] += _pIncrement[j];
 
-                  /* if(AGNOS_DEBUG) */
+                  if(AGNOS_DEBUG)
                   {
                     std::cout << "increase = " ;
                     for (unsigned int i=0; i<increase.size(); i++)
@@ -1225,16 +1226,18 @@ namespace AGNOS
       double& maxElementError
       ) 
   {
+    // square current sums so we can add additional elements as sum of squares
+    globalPhysics *= globalPhysics;
+    globalTotal *= globalTotal;
+    globalSurrogate *= globalSurrogate ;
+
+    // get physics error contrib
     double physicsError;
     physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
 
     /**Add to global tally  */
-    globalPhysics+= pow(physicsError,2.) ;
+    globalPhysics+= std::pow(physicsError,2.) ;
 
-    /**MPI all reduce to sum each procs contribution */
-    if (this->_comm.size() > 1)
-      MPI_Allreduce( MPI_IN_PLACE, &physicsError, 1, MPI_REAL, MPI_SUM, this->_comm.get());
-    elem._physicsError = physicsError ;
 
     // safe guard against there not being a secondary surrogate
     if (elem.surrogates().size() < 2)
@@ -1248,23 +1251,16 @@ namespace AGNOS
     }
     else
     {
+      // total error contribution
       double totalError     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
+      elem._totalError = totalError ;
+      globalTotal += std::pow(totalError,2.);
+
+      // surrogate error contribution
       double surrogateError = elem.surrogates()[0]->l2NormDifference( 
             *(elem.surrogates()[1]), "errorEstimate");
-
-      /**Add to global tally */
-      globalTotal += pow(totalError,2.);
-      globalSurrogate += pow(surrogateError,2.) ;
-
-      /**MPI reduce to all procs */
-      if (this->_comm.size() > 1)
-      {
-        MPI_Allreduce( MPI_IN_PLACE, &totalError, 1, MPI_REAL, MPI_SUM, _comm.get());
-        MPI_Allreduce( MPI_IN_PLACE, &surrogateError, 1, MPI_REAL, MPI_SUM, _comm.get());
-      }
-      elem._totalError = totalError ;
       elem._surrogateError = surrogateError ;
-
+      globalSurrogate += std::pow(surrogateError,2.) ;
 
 
       // keep track of max of error
@@ -1273,10 +1269,10 @@ namespace AGNOS
 
     } // end if errorSurrogate exists
 
-    /**Take square roots for l2norm */
-    std::sqrt( globalTotal );
-    std::sqrt( globalSurrogate );
-    std::sqrt( globalPhysics );
+    // take square root of current sums 
+    globalPhysics = std::sqrt( globalPhysics );
+    globalTotal  = std::sqrt( globalTotal );
+    globalSurrogate  = std::sqrt( globalSurrogate );
 
   }
 
