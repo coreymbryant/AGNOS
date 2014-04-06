@@ -59,6 +59,10 @@ namespace AGNOS
     // Build estimator object 
     this->_buildErrorEstimator();
     
+    // we need to run a solve routine on all procs to make sure residuals are
+    // set up correctly when we go back to compute residuals with surrogate
+    // evaluations
+    _flowSolver->solve();
 
 
     // TODO how are we going to take care of output 
@@ -102,6 +106,35 @@ namespace AGNOS
     }
 
   }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void PhysicsChannelFlow<T_S,T_P>::_setPrimalSolution(
+        T_P& solutionVector ) 
+    {
+      
+      // set primal solution with value from solutionVectors
+      NumericVector<Number>& solution = *(this->_system->solution) ;
+      NumericVector<Number>& oldSolution 
+        = this->_system->get_vector("_old_nonlinear_solution") ;
+      /* solution.close(); */
+
+      // make sure sizes agree
+      agnos_assert( (solution.size() == solutionVector.size())) ;
+      agnos_assert( (oldSolution.size() == solutionVector.size())) ;
+
+      for (unsigned int i=0; i<solutionVector.size(); i++)
+      {
+        solution.set(i, solutionVector(i) ) ;
+        oldSolution.set(i, solutionVector(i) ) ;
+      }
+      solution.close();
+      oldSolution.close();
+
+      return;
+    }
 
   /********************************************//**
    * All parameters bust be set. If only a subset of parameters are being
