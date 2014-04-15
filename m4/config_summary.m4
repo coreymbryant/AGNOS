@@ -53,6 +53,11 @@ echo '  'channelflow...................... : $enablechannelflow
   if (test "x$enablechannelflow" = "xyes"); then
   echo '     'CHANNELFLOW_DIR............... : $CHANNELFLOW_DIR
   fi
+echo '  'grins............................ : $enablegrins
+  #TODO
+  if (test "x$enablegrins" = "xyes"); then
+  echo '     'GRINS_DIR..................... : $GRINS_DIR
+  fi
 
 echo
 echo '-------------------------------------------------------------------------------'

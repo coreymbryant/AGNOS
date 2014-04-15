@@ -1,0 +1,107 @@
+# Mesh related options
+[mesh-options]
+#mesh_option = create_2D_mesh
+#domain_x1_min =-2.0
+#domain_x1_max = 6.0
+#
+#domain_x2_min =-2.0
+#domain_x2_max = 2.0
+#
+#element_type = QUAD9
+#mesh_nx1 = 20 
+#mesh_nx2 = 20
+#
+mesh_option = 'read_mesh_from_file'
+mesh_filename = 'fat_box_with_hole.e'
+element_type = TRI6
+
+
+# Options for tiem solvers
+[unsteady-solver]
+transient = false 
+theta = 1.0
+n_timesteps = 1000
+deltat = 0.001
+
+#Linear and nonlinear solver options
+[linear-nonlinear-solver]
+max_nonlinear_iterations = 100
+max_linear_iterations = 2500
+
+verify_analytic_jacobians = 0.0 
+
+initial_linear_tolerance = 1.0e-10
+
+use_numerical_jacobians_only = 'true'
+require_residual_reduction = 'true'
+absolute_residual_tolerance = 1.0e-13
+
+
+# Visualization options
+[vis-options]
+output_vis = true
+output_vis_time_series = true
+output_vis_flag = true
+
+vis_output_file_prefix = 'steady'
+
+output_residual = false
+output_unsteady_residual = true
+
+#output_format = 'ExodusII exo'
+
+# Options for print info to the screen
+[screen-options]
+print_equation_system_info = true
+print_mesh_info = true
+print_log_info = true
+solver_verbose = true
+solver_quiet = false
+
+print_element_jacobians = 'false'
+
+# Options related to all Physics
+[Physics]
+
+enabled_physics = 'IncompressibleNavierStokes' 
+
+# Boundary ids:
+# left    -> 1
+# top     -> 2
+# right   -> 3
+# bottom  -> 4
+# cylinder-> 5
+#
+# Options for Incompressible Navier-Stokes physics
+[./IncompressibleNavierStokes]
+
+
+FE_family = 'LAGRANGE'
+V_order = 'SECOND'
+P_order = 'FIRST'
+
+rho = '1.0'
+mu = '0.5'
+
+
+bc_ids = '1 2 4 5'
+bc_types = 'parabolic_profile no_slip no_slip no_slip '
+
+parabolic_profile_coeffs_1 = '0.0 0.0 -0.28125 0.0 0.0 1.125'
+parabolic_profile_var_1 = 'u'
+parabolic_profile_fix_1 = 'v'
+
+
+pin_pressure = false
+
+[]
+
+
+
+[VariableNames]
+
+u_velocity = 'u_var'
+v_velocity = 'v_var'
+pressure = 'p'
+
+[]
