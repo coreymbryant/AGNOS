@@ -87,6 +87,18 @@ TESTS += ChannelTest.sh
 shellfiles_src += ChannelTest.sh
 endif
 
+#------------------------------------
+# Grins test
+#------------------------------------
+if ENABLE_GRINS
+check_PROGRAMS       += GrinsTest
+GrinsTest_SOURCES   = GrinsTest.C
+GrinsTest_CXXFLAGS  = -I$(GRINS_DIR)/include
+GrinsTest_LDADD     = -L$(GRINS_DIR)/lib/ -lgrins
+TESTS += GrinsTest.sh
+shellfiles_src += GrinsTest.sh
+endif
+
 # Want these put with the distro so we can run make check
 EXTRA_DIST = $(shellfiles_src) input_files test_data 
 

@@ -157,6 +157,25 @@ if (test "$enablechannelflow" = yes) ; then
 fi
 AM_CONDITIONAL(ENABLE_CHANNELFLOW, test x$enablechannelflow = xyes)
 
+#--------------------------------
+# Check for grins library
+#--------------------------------
+AC_ARG_ENABLE(grins,
+             AC_HELP_STRING([--enable-grins],
+                            [Build with grins library for NS simulations]),
+		[case "${enableval}" in
+		  yes)  enablegrins=yes ;;
+		   no)  enablegrins=no ;;
+ 		    *)  AC_MSG_ERROR(bad value ${enableval} for --enable-grins) ;;
+		 esac],
+		 [enablegrins=no])
+if (test "$enablegrins" = yes) ; then
+  AC_DEFINE_UNQUOTED([GRINS_DIR],$GRINS_DIR,[grins dir location])
+  AC_SUBST(GRINS_DIR)
+  AC_DEFINE(ENABLE_GRINS,1,[Define if we are using grins])
+fi
+AM_CONDITIONAL(ENABLE_GRINS, test x$enablegrins = xyes)
+
 
 #--------------------------------
 # Query configuration environment
@@ -190,6 +209,7 @@ AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh
 AC_CONFIG_FILES(test/viscousBurgersTest.sh,	  [chmod +x test/viscousBurgersTest.sh])
 AC_CONFIG_FILES(test/elementTest.sh,	        [chmod +x test/elementTest.sh])
 AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
+AC_CONFIG_FILES(test/GrinsTtest.sh,	          [chmod +x test/GrinsTest.sh])
 AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
 
 dnl-----------------------------------------------
@@ -200,6 +220,7 @@ AC_CONFIG_FILES(examples/catenaryLibmesh/run.sh,[chmod +x examples/catenaryLibme
 AC_CONFIG_FILES(examples/diffusion/run.sh,[chmod +x examples/diffusion/run.sh])
 AC_CONFIG_FILES(examples/viscousBurgers/run.sh,	[chmod +x examples/viscousBurgers/run.sh])
 AC_CONFIG_FILES(examples/channelFlow/run.sh,	[chmod +x examples/channelFlow/run.sh])
+AC_CONFIG_FILES(examples/grins/run.sh,	[chmod +x examples/grins/run.sh])
 
 dnl-----------------------------------------------
 dnl Generate Makefiles
