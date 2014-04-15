@@ -7,9 +7,9 @@ simultRefine = false
 [parameters]
 dimension = '7'
 nInitialHRefinements = '0'
-types ='UNIFORM CONSTANT CONSTANT CONSTANT CONSTANT CONSTANT CONSTANT'
-mins = '0.9 1.0 1.0 1.0 1.0 1.0 1.0'
-maxs = '1.1 1.0 1.0 1.0 1.0 1.0 1.0'
+types ='UNIFORM CONSTANT CONSTANT CONSTANT UNIFORM CONSTANT CONSTANT'
+mins = '0.9 1.0 1.0 1.0 0.9 1.0 1.0'
+maxs = '1.1 1.0 1.0 1.0 1.1 1.0 1.0'
 []
 
 
@@ -31,7 +31,7 @@ anisotropic = false
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '0'
+  order = '4'
   computeSolutions='primal adjoint errorEstimate qoi'
   [../]
 
@@ -57,5 +57,5 @@ index_set           = 1
 
 generateSamples   = 1
 sampleFile        = './samples.dat'
-nSamples          = 1000
+nSamples          = 10000
 []
