@@ -209,7 +209,7 @@ AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh
 AC_CONFIG_FILES(test/viscousBurgersTest.sh,	  [chmod +x test/viscousBurgersTest.sh])
 AC_CONFIG_FILES(test/elementTest.sh,	        [chmod +x test/elementTest.sh])
 AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
-AC_CONFIG_FILES(test/GrinsTtest.sh,	          [chmod +x test/GrinsTest.sh])
+AC_CONFIG_FILES(test/GrinsTest.sh,	          [chmod +x test/GrinsTest.sh])
 AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
 
 dnl-----------------------------------------------
