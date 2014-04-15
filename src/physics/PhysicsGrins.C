@@ -41,29 +41,29 @@ namespace AGNOS
           grinsInputFile, *_simulationBuilder, this->_communicator ) 
         );
 
-    /* /1* if (AGNOS_DEBUG) *1/ */
-    /*   std::cout << "DEBUG: pre print Simulation info " << std::endl; */
-    /* _simulation->print_sim_info(); */
-    /* _simulation->get_equation_system()->print_info(); */
+    /* if (AGNOS_DEBUG) */
+      std::cout << "DEBUG: pre print Simulation info " << std::endl;
+    _simulation->print_sim_info();
+    _simulation->get_equation_system()->print_info();
 
-    /* //  Get pointers to members of ChannelSystem */ 
-    /* this->_equationSystems = (_simulation->get_equation_system()).get(); */
-    /* //TODO */ 
-    /* this->_system = &( */
-    /*     this->_equationSystems->template */
-    /*     get_system<GRINS::MultiphysicsSystem>("grins") */
-    /*     ) ; */
-    /* this->_mesh = &(this->_system->get_mesh()); */ 
-    /* //  Build mesh refinement object */ 
-    /* this->_buildMeshRefinement(); */
-    /* // Set up QoIs */ 
-    /* this->_qois = new libMesh::QoISet; */
-    /* std::vector<unsigned int> qoi_indices; */
-    /* qoi_indices.push_back(0); */
-    /* this->_qois->add_indices(qoi_indices); */
-    /* /1* this->_qois->set_weight(0, 1.0); *1/ */
-    /* // Build estimator object */ 
-    /* this->_buildErrorEstimator(); */
+    //  Get pointers to members of ChannelSystem 
+    this->_equationSystems = (_simulation->get_equation_system()).get();
+    //TODO 
+    this->_system = &(
+        this->_equationSystems->template
+        get_system<GRINS::MultiphysicsSystem>("GRINS")
+        ) ;
+    this->_mesh = &(this->_system->get_mesh()); 
+    //  Build mesh refinement object 
+    this->_buildMeshRefinement();
+    // Set up QoIs 
+    this->_qois = new libMesh::QoISet;
+    std::vector<unsigned int> qoi_indices;
+    qoi_indices.push_back(0);
+    this->_qois->add_indices(qoi_indices);
+    /* this->_qois->set_weight(0, 1.0); */
+    // Build estimator object 
+    this->_buildErrorEstimator();
     
     /* // we need to run a solve routine on all procs to make sure residuals are */
     /* // set up correctly when we go back to compute residuals with surrogate */
