@@ -28,10 +28,11 @@ namespace AGNOS
 
       void run( ) ;
 
-      void printSolutionData( std::ostream& out ) ;
-      void printSurrogateSettings( std::ostream& out ) ;
-      void printParameterSettings( std::ostream& out ) ;
-      void printDriverSettings( std::ostream& out  ) ;
+      void postProcess( ) ;
+      void printSolutionData( ) ;
+      void printSurrogateSettings(  ) ;
+      void printParameterSettings(  ) ;
+      void printDriverSettings(   ) ;
       void printSettings( ) ;
       void printSolution( unsigned int iteration=1 ) ;
 
@@ -102,6 +103,7 @@ namespace AGNOS
       // OUTPUT VARIABLES
       // TODO control on per surrogate basis
       std::string               _outputFilename; 
+      std::shared_ptr<std::ostream>   _os ;
       std::vector<std::string>  _solutionsToPrint ;
       bool                      _outputIterations  ;
       bool                      _outputCoefficients  ;
@@ -109,6 +111,10 @@ namespace AGNOS
       bool                      _outputWeights       ;
       bool                      _outputPoints        ;
       bool                      _outputIndexSet      ;
+
+      bool                      _generateSamples      ;
+      std::string               _sampleFile ;
+      unsigned int              _nSamples ;
   };
 
   
