@@ -136,6 +136,11 @@ namespace AGNOS
     // OUTPUT DATA SETTINGS
     input.set_prefix("output/") ;
     _outputFilename      = input("filename","cout");
+    if ( _outputFilename == "cout" )
+      _os.reset( &(std::cout) );
+    else
+      _os.reset( new std::ofstream( _outputFilename.c_str() ) );
+      
 
     _solutionsToPrint.clear(); ;
     for (unsigned int i=0; i < input.vector_variable_size("solutions"); i++)
@@ -146,6 +151,10 @@ namespace AGNOS
     _outputWeights       = input("weights",true);
     _outputPoints        = input("points",true);
     _outputIndexSet      = input("index_set",true);
+
+    _generateSamples     = input("generateSamples",false);
+    _sampleFile          = input("sampleFile","./sampleFile");
+    _nSamples            = input("nSamples",10000);
 
   }
 
@@ -858,173 +867,71 @@ namespace AGNOS
 
     } // end for nIter
 
-
-
-
     // close error file
     errorOut.close();
+
+
+    postProcess();
     
-    // print out settings
-    printSettings();
-    /* printSolution(1); */
-    
-    /* // print out first iteration if requested */
-    /* if (this->_outputIterations && (_comm.rank() == 0) ) */
-    /* { */
-    /*   std::cout << "\n writing results to: " << this->_outputFilename */
-    /*     << " (iter = " << 1 << " )" */
-    /*    << std::endl; */
-    /*   std::cout << std::endl; */
-    /*   printSolution(1); */
-    /* } */
-    /*   // evaluate QoI */
-    /*   T_S evalPoint(2); */
-    /*   evalPoint(0) = 0.5; */
-    /*   evalPoint(1) = 0.5; */
-    /*   /1* T_S evalPoint(1); *1/ */
-    /*   /1* evalPoint(0) = 1.5; *1/ */
-    /*   T_P solutionVec = _surrogate->evaluate("primal", evalPoint ); */
-    /*   T_P qoiValue = _physics[0]->evaluateQoi( evalPoint, solutionVec ) ; */
-
-    /*   T_P l2normofphyerror = _surrogate->l2Norm("error"); */
-    /*   T_P l2normoftotalerror = _errorSurrogate->l2Norm("error"); */
-    /*   double normDiff = _surrogate->l2NormDifference( *_errorSurrogate, "error"); */
-
-    /* if (_comm.rank() == 0) */
-    /* { */
-
-    /*   std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl; */
-    /*   std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl; */
-    /*   std::cout << "| phyErrorNorm-totalErrorNorm | = " << */
-    /*     std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; */
-    /*   std::cout << "normDiff = " << normDiff << std::endl; */
-
-    /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
-    /* } */
-
-    /* // refine approximation */
-    /* for (unsigned int iter=2; iter <= this->_maxIter; iter++) */
-    /* { */
-    /*   if (_comm.rank() == 0) */ 
-    /*     std::cout << "\n-------------  ITER " << iter << "  -------------\n " ; */
-      
-
-    /*   // if physical error dominates and we are allowed to refine physical */
-    /*   // solution */
-    /*   if ( */ 
-    /*       ( _refinePhysics && (l2normofphyerror(0) >= normDiff) ) */ 
-    /*       || */
-    /*       ( _refinePhysics && !m_refineSurrogate ) */
-    /*       ) */
-    /*   { */
-    /*     if (_comm.rank() == 0) */ 
-    /*       std::cout << "    refining physical solution " << std::endl; */
-        
-    /*     // if using uniform refinement we won't have error indicators in the */
-    /*     // surrogate model (by design) */
-    /*     if ( _physicsFunctions.count("indicators") == 0 ) */
-    /*       _physics[0]->refine( ); */
-    /*     else */
-    /*     { */
-    /*       // retrieve first coefficient (i.e. the mean) of error inidcators */
-    /*       T_P errorIndicators = (_surrogate->mean())["indicators"]; */
-          
-    /*       _physics[0]->refine( errorIndicators ); */
-    /*     } */
-    /*     if (_comm.rank() == 0) */ 
-    /*       std::cout << "-------------------------------------\n " ; */
-
-    /*     _surrogate->build(); */
-
-
-    /*     _errorSurrogate->build(); */
-    /*   } */
-
-
-    /*   // if surrogate error dominates and we are allowed to refine surrogate */
-    /*   // model */
-    /*   if ( */ 
-    /*       ( _refineSurrogate && (l2normofphyerror(0) < normDiff) ) */ 
-    /*       || */
-    /*       ( _refineSurrogate && !m_refinePhysical ) */ 
-    /*       ) */
-    /*   { */
-    /*     if (_comm.rank() == 0) */ 
-    /*     { */
-    /*       std::cout << "    refining surrogate model " << std::endl; */
-    /*       std::cout << "-------------------------------------\n " ; */
-    /*     } */
-    /*     _surrogate->refine( ); */
-    /*     _errorSurrogate->refine( ); */
-    /*   } */
-
-
-
-
-
-    /*   if (this->_outputIterations && (_comm.rank() == 0) ) */
-    /*   { */
-    /*     std::cout << "\n writing results to: " << this->_outputFilename */
-    /*       << " (iter = " << iter << " )" */
-    /*       << std::endl; */
-    /*     std::cout << std::endl; */
-    /*     printSolution(iter); */
-    /*   } */
-
-    /*   solutionVec = _surrogate->evaluate("primal", evalPoint ); */
-    /*   qoiValue = _physics[0]->evaluateQoi( evalPoint, solutionVec ) ; */
-
-    /*   l2normofphyerror = _surrogate->l2Norm("error"); */
-    /*   l2normoftotalerror = _errorSurrogate->l2Norm("error"); */
-    /*   normDiff = _surrogate->l2NormDifference( *_errorSurrogate, "error"); */
-
-    /*   if (_comm.rank() == 0) */
-    /*   { */
-
-    /*     std::cout << "phyErrorNorm = " << l2normofphyerror << std::endl; */
-    /*     std::cout << "totalErrorNorm = " << l2normoftotalerror << std::endl; */
-    /*     /1* std::cout << "| phyErrorNorm-totalErrorNorm | = " << *1/ */
-    /*     /1* std::abs(l2normofphyerror(0)-l2normoftotalerror(0)) << std::endl; *1/ */
-    /*     std::cout << "normDiff = " << normDiff << std::endl; */
-
-    /*     std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
-    /*   } */
-
-      
-      /* // evaluate QoI */
-      /* T_S evalPoint(1); */
-      /* evalPoint(0) = 1.5; */
-      /* T_P solutionVec = _surrogate->evaluate("primal", evalPoint ); */
-      /* T_P qoiValue = _physics->evaluateQoi( evalPoint, solutionVec ) ; */
-      /* if (_comm.rank() == 0) */
-      /* { */
-      /*   std::cout << "\n Qoi = " << qoiValue(0) << std::endl; */
-      /* } */
-    /* } */
-    
-    /* // output whatever user asks for */
-    /* if (_comm.rank() == 0) */
-    /* { */
-    /*   std::cout << "\n writing final results to: " << this->_outputFilename */
-    /*     << std::endl; */
-    /*   std::cout << std::endl; */
-    /* } */
-    /*   printSolution(_maxIter); */
-
-
-
-
 
 
     return;
   }
+  
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::postProcess(   ) 
+  {
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout 
+      << "----------------- POST PROCESSING ---------------------" ;
+    std::cout << std::endl;
+
+    // print out settings
+    std::cout << "    printing settings " << std::endl;
+    printSettings();
+    std::cout << "    printing final solution data " << std::endl;
+    printSolution(_maxIter);
     
+    // TODO generate samples and estimate stats 
+    // sample surrogate
+    std::vector<T_P> sampleVec;
+    if(_generateSamples)
+    {
+      std::cout << "    generating samples from final surrogate " << std::endl;
+      // open output file
+      std::ofstream sampleOut;
+      sampleOut.open(_sampleFile, std::ios::trunc);
+      sampleOut << std::setprecision(5) << std::scientific ;
+
+      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
+        _activeElems.begin();
+      for (; elit!=_activeElems.end(); elit++)
+      {
+        // at this point only sample from primary surrogate
+        elit->surrogates()[0]->sample( "qoi", _nSamples, sampleVec  );
+
+        for(unsigned int s=0; s<_nSamples; s++)
+          sampleOut << sampleVec[s](0) << std::endl;
+      }
+
+      sampleOut.close();
+    }
+
+    return;
+  }
+
+
 
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printDriverSettings( std::ostream& out  ) 
+  void Driver::printDriverSettings(   ) 
   {
+    std::ostream& out = *(this->_os) ;
+
     out << std::endl;
     out << "#====================================================" <<
       std::endl;
@@ -1038,8 +945,9 @@ namespace AGNOS
 /********************************************//**
  * \brief 
  ***********************************************/
-  void Driver::printParameterSettings( std::ostream& out ) 
+  void Driver::printParameterSettings(  ) 
   {
+    std::ostream& out = *(this->_os) ;
     out << std::endl;
     out << "#====================================================" <<
       std::endl;
@@ -1049,92 +957,66 @@ namespace AGNOS
     out << "#     nElems = " <<
       std::distance(_activeElems.begin(),_activeElems.end()) << std::endl;
 
+
+    return;
+  }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printSurrogateSettings(  ) 
+  {
+    return;
+  }
+
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  void Driver::printSolutionData(  ) 
+  {
+    std::ostream& out = *(this->_os) ;
+
+    // Per surrogate options
     std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
     for (; elit!=_activeElems.end(); elit++)
     {
-
-      out << std::endl;
-      out << "#--------- ELEM ------------------\n";
-      out << "#     mins = " ;
-      for (unsigned int i=0; i < _paramDim; i++)
-        out << elit->parameters()[i]->min() << " " ;
-      out << std::endl;
-
-      out << "#     maxs = " ;
-      for (unsigned int i=0; i < _paramDim; i++)
-        out << elit->parameters()[i]->max() << " " ;
-      out << std::endl;
-
-      out << std::endl;
-    }
-
-    return;
-  }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  void Driver::printSurrogateSettings( std::ostream& out ) 
-  {
-
-    out << std::endl;
-    out << "#====================================================" <<
-      std::endl;
-    out << "# Surrogate settings: " << std::endl;
-
-    std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
-    for(; sid !=_surrogateNames.end(); sid++)
-    {
-      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
-        _activeElems.begin();
-      for (; elit!=_activeElems.end(); elit++)
-      {
-          out << "#----------------------------------------------------" <<
-          std::endl;
-        out << "#     " << sid->first << ": " << std::endl;
-        out << "#     order = " ;
-        std::vector<unsigned int> order = elit->surrogates()[sid->second]->getExpansionOrder();
-        for(unsigned int i=0; i < _paramDim; i++)
-          out << order[i] << " " ;
-        out << std::endl;
-        out << "#----------------------------------------------------" <<
-          std::endl;
-      }
-    }
-    out << std::endl;
-    return;
-  }
-
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  void Driver::printSolutionData( std::ostream& out ) 
-  {
-    // Per surrogate options
-    if (this->_comm.rank() == 0)
-    {
-      out << std::endl;
-      out << "#====================================================" <<
-        std::endl;
-      out << "# Surrogate Coefficients: " << std::endl;
-    }
-
-    std::map<std::string,unsigned int>::iterator sid = _surrogateNames.begin();
-    for(; sid !=_surrogateNames.end(); ++sid)
-    {
       if (this->_comm.rank() == 0)
       {
-        out << "#----------------------------------------------------" <<
-          std::endl;
-        out << "#     " << sid->first << ": " << std::endl;
+        out << std::endl;
+        out << "#====================================================" 
+          << std::endl;
+        out << "#--------- ELEM ------------------\n";
+        out << "#     mins = " ;
+        for (unsigned int i=0; i < _paramDim; i++)
+          out << elit->parameters()[i]->min() << " " ;
+        out << std::endl;
+
+        out << "#     maxs = " ;
+        for (unsigned int i=0; i < _paramDim; i++)
+          out << elit->parameters()[i]->max() << " " ;
+        out << std::endl;
+        out << std::endl;
       }
 
-      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
-        _activeElems.begin();
-      for (; elit!=_activeElems.end(); elit++)
+      std::map<std::string,unsigned int>::iterator sid =
+        _surrogateNames.begin();
+      for(; sid !=_surrogateNames.end(); ++sid)
       {
+        if (this->_comm.rank() == 0)
+        {
+          out << "#----------------------------------------------------" <<
+            std::endl;
+          out << "#     " << sid->first << ": " << std::endl;
+          out << "#     order = " ;
+          std::vector<unsigned int> order = elit->surrogates()[sid->second]->getExpansionOrder();
+          for(unsigned int i=0; i < _paramDim; i++)
+            out << order[i] << " " ;
+          out << std::endl;
+          out << "#     coefficients: " << std::endl;
+        }
+
         if (_outputCoefficients)
           elit->surrogates()[sid->second]->printCoefficients( _solutionsToPrint, out );
         if (_outputWeights)
@@ -1144,7 +1026,6 @@ namespace AGNOS
         if (_outputIndexSet)
           elit->surrogates()[sid->second]->printIndexSet( out );
       }
-
 
       if (this->_comm.rank() == 0)
       {
@@ -1164,24 +1045,8 @@ namespace AGNOS
   void Driver::printSettings( ) 
   {
 
-    // set output steam
-    if (_outputFilename == "cout" )
-    {
-      printDriverSettings( std::cout  ) ;
-      printParameterSettings( std::cout ) ;
-      printSurrogateSettings( std::cout ) ;
-    }
-    else
-    {
-      std::ofstream out;
-      out.open( _outputFilename.c_str() );
-
-      printDriverSettings( out  ) ;
-      printParameterSettings( out ) ;
-      printSurrogateSettings( out ) ;
-
-      out.close( );
-    }
+      printDriverSettings( ) ;
+      printParameterSettings(  ) ;
 
     return;
   }
@@ -1191,26 +1056,12 @@ namespace AGNOS
  ***********************************************/
   void Driver::printSolution( unsigned int iteration ) 
   {
-    // set output steam
-    if (_outputFilename == "cout" )
-    {
-      std::cout << std::endl;
-      std::cout << "#====================================================\n" 
-         << "#      Solution data for ITER " << iteration << std::endl;
-      printSolutionData( std::cout ) ;
-    }
-    else
-    {
-      std::ofstream out;
-      out.open( _outputFilename.c_str(), std::ofstream::out | std::ofstream::app );
-
+      std::ostream& out = *(this->_os) ;
       out << std::endl;
       out << "#====================================================\n" 
-         << "#       Solution data for ITER " << iteration << std::endl;
-      printSolutionData( out ) ;
+         << "#      Solution data for ITER " << iteration << std::endl;
+      printSolutionData( ) ;
 
-      out.close( );
-    }
     return;
   }
 

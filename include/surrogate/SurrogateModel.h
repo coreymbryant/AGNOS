@@ -143,6 +143,11 @@ namespace AGNOS
       /** print integration weights in table format*/
       virtual void prettyPrintIndexSet( ) const = 0;
 
+      /** Sample the surrogate model N times and place results in sampleVec  */
+      virtual void sample( 
+          std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
+          );
+
       /** Return index set for this surrogate */
       virtual const std::vector< std::vector<unsigned int> > indexSet() const = 0 ;
 

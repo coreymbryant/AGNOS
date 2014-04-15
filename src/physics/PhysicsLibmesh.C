@@ -868,7 +868,7 @@ namespace AGNOS
             std::pair<std::string,T_P >(
               "qoi", qoiValue)
               );
-        if(AGNOS_DEBUG)
+        /* if(AGNOS_DEBUG) */
           std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
       }
 
