@@ -22,6 +22,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
@@ -29,6 +30,7 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
              $(BOOST_PROGRAM_OPTIONS_LIBS) \
+						 $(GSL_LIBS) \
              $(LIBMESH_LIBS) \
              $(LIBMESH_LDFLAGS) \
 						 $(CPPUNIT_LIBS) \
