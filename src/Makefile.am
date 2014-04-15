@@ -50,6 +50,11 @@ AM_CPPFLAGS += -I$(CHANNELFLOW_DIR)/include
 LIBS += -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
 libagnos_la_SOURCES += physics/PhysicsChannelFlow.C 
 endif
+if ENABLE_GRINS
+AM_CPPFLAGS += -I$(GRINS_DIR)/include
+LIBS += -L$(GRINS_DIR)/lib/ -lgrins
+libagnos_la_SOURCES += physics/PhysicsGrins.C 
+endif
 
 libagnos_la_SOURCES += Element.C Driver.C 
 
