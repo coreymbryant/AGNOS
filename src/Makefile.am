@@ -13,6 +13,7 @@ AM_CPPFLAGS = -I$(top_srcdir) \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
 # AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
 
@@ -23,7 +24,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #              $(BOOST_PROGRAM_OPTIONS_LIBS) \
 #              $(LIBMESH_LIBS) \
 #              $(LIBMESH_LDFLAGS)
-LIBS = $(LIBMESH_LIBS)
+LIBS = $(LIBMESH_LIBS) \
+			 $(GSL_LIBS)
 
 #----------------------------------------
 # Programs and libraries we want to build
