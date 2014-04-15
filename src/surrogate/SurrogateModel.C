@@ -1,5 +1,6 @@
 
 #include "SurrogateModel.h"
+#include <gsl/gsl_rng.h>
 
 namespace AGNOS
 {
@@ -333,7 +334,6 @@ namespace AGNOS
 
         if ( this->_physicsGroup == 0)
         {
-          out << "#" << std::string(75,'=') << std::endl;
 
           for (unsigned int i=0; i < solutionNames.size(); i++)
           {
@@ -478,6 +478,73 @@ namespace AGNOS
       std::set< std::string > solutionsToGet = _solutionNames;
       
       return evaluate( solutionsToGet, parameterValues, saveLocal ) ;    
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P>
+    void SurrogateModel<T_S,T_P>::sample(  
+          std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
+        )
+    {
+      //clear out any old samples
+      sampleVec.clear();
+
+      // make sure solutionName is available
+      agnos_assert( (_solutionNames.count( solutionName )) ) ;
+
+      // variables needed for gsl randum number generator
+      std::vector<const gsl_rng_type *> T;
+      std::vector<gsl_rng *> r;
+      gsl_rng_env_setup();
+
+      // loop through parameters and set up rng
+      for(unsigned int p=0; p<_parameters.size(); p++)
+      {
+        // initialize rng for this parameter type
+        T.push_back( gsl_rng_default );
+        r.push_back( gsl_rng_alloc(T.back()) );
+      } // end 
+
+      // sample generation loop
+      for(unsigned int i=0; i<N; i++)
+      {
+        std::vector<double> s;
+        for(unsigned int p=0; p<_parameters.size(); p++)
+        {
+          double scaledSample;
+          // check type 
+          // UNIFROM
+          switch( ParameterType(_parameters[p]->type()) )
+          {
+            case UNIFORM:
+              scaledSample = _parameters[p]->min() 
+                + (_parameters[p]->max() - _parameters[p]->min() ) 
+                * gsl_rng_uniform(r[p]) ;
+              s.push_back( scaledSample  );
+              break;
+            case CONSTANT:
+              s.push_back( _parameters[p]->min() ) ;
+              break;
+          }
+        }
+
+        // store as template vector type
+        T_S paramValues(s);
+
+        // evaluate model
+        sampleVec.push_back( 
+            this->evaluate( solutionName, paramValues, true) 
+            ) ;
+
+
+      } // end loop over samples
+
+      // free up memory
+      for(unsigned int p=0; p<_parameters.size(); p++)
+        gsl_rng_free(r[p]);
+
     }
 
 /********************************************//**

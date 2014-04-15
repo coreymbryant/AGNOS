@@ -67,4 +67,9 @@ coefficients        = 1
 points              = 1
 weights             = 1
 index_set           = 1
+mean                = 1
+
+generateSamples   = 1
+sampleFile        = './samples.dat'
+nSamples          = 1000
 []
