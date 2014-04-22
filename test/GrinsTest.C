@@ -19,6 +19,7 @@
 #include "Parameter.h"
 #include "PseudoSpectralTensorProduct.h"
 #include "PhysicsGrins.h"
+#include "grins/inc_navier_stokes.h"
 
 // boost
 #define BOOST_TEST_MODULE channelTest
@@ -50,68 +51,64 @@ BOOST_AUTO_TEST_CASE( grins_constructor )
   inputfile = GetPot( );
   PhysicsGrins<T_S,T_P> grinsSolver( comm, inputfile );
 
-/*   BOOST_REQUIRE( grinsSolver._availableSolutions.count("primal") ); */
-/*   BOOST_REQUIRE( grinsSolver._availableSolutions.count("adjoint") ); */
-/*   BOOST_REQUIRE( grinsSolver._availableSolutions.count("qoi") ); */
-/*   BOOST_REQUIRE( grinsSolver._availableSolutions.count("errorEstimate") ); */
-/*   BOOST_REQUIRE( grinsSolver._availableSolutions.count("errorIndicators") ); */
+  BOOST_REQUIRE( grinsSolver._availableSolutions.count("primal") );
+  BOOST_REQUIRE( grinsSolver._availableSolutions.count("adjoint") );
+  BOOST_REQUIRE( grinsSolver._availableSolutions.count("qoi") );
+  BOOST_REQUIRE( grinsSolver._availableSolutions.count("errorEstimate") );
+  BOOST_REQUIRE( grinsSolver._availableSolutions.count("errorIndicators") );
   
-/*   // check for initial parameters set to NULL values */
-/*   BOOST_REQUIRE( &grinsSolver.getSystem() != NULL ); */
-/*   BOOST_REQUIRE( &grinsSolver.getEquationSystems() != NULL ); */
-/*   BOOST_REQUIRE( &grinsSolver.getMesh() != NULL ); */
-/*   BOOST_REQUIRE( &grinsSolver.getMeshRefinement() != NULL ); */
-/*   BOOST_REQUIRE( &grinsSolver.getEstimator() != NULL ); */
-/*   BOOST_REQUIRE( &grinsSolver.getQois() != NULL ); */
+  // check for initial parameters set to NULL values
+  BOOST_REQUIRE( &grinsSolver.getSystem() != NULL );
+  BOOST_REQUIRE( &grinsSolver.getEquationSystems() != NULL );
+  BOOST_REQUIRE( &grinsSolver.getMesh() != NULL );
+  BOOST_REQUIRE( &grinsSolver.getMeshRefinement() != NULL );
+  BOOST_REQUIRE( &grinsSolver.getEstimator() != NULL );
+  BOOST_REQUIRE( &grinsSolver.getQois() != NULL );
 }
 
-/* BOOST_AUTO_TEST_CASE( grins_solve ) */
-/* { */
-/*   // Set dummy inputs for libmesh initialization */
-/*   int ac=1; */
-/*   char** av = new char* [ac]; */
+BOOST_AUTO_TEST_CASE( grins_solve )
+{
+  // Set dummy inputs for libmesh initialization
+  int ac=1;
+  char** av = new char* [ac];
 
-/*   char* name = new char[27]; */
-/*   strcpy(name, "dummy"); */
+  char* name = new char[27];
+  strcpy(name, "dummy");
   
-/*   av[0] = name; */
+  av[0] = name;
   
-/*   // Initialize libmesh */
-/*   MPI_Init(&ac,&av); */
-/*   Communicator comm(MPI_COMM_WORLD); */
-/*   PETSC_COMM_WORLD = MPI_COMM_WORLD ; */
-/*   int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL); */
-/*   LibMeshInit init (ac, av); */
+  // Initialize libmesh
+  MPI_Init(&ac,&av);
+  Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
+  LibMeshInit init (ac, av);
 
-/*   GetPot inputfile; */
-/*   inputfile = GetPot( ); */
-/*   inputfile.set("channel_input","flow.in") ; */
-/*   PhysicsGrins<T_S,T_P> grinsSolver( */
-/*       comm,inputfile */
-/*       ); */
+  GetPot inputfile;
+  inputfile = GetPot( );
+  inputfile.set("grins_input","./grins.in") ;
+  inputfile.set("IncompressibleNavierStokes/parameterNames","rho mu") ;
+  PhysicsGrins<T_S,T_P> grinsSolver(
+      comm,inputfile
+      );
 
-/*   // test setting parameter values */
-/*   std::vector<double> params(7,1.); */
-/*   T_S parameterValues(params) ; */
-/*   grinsSolver._setParameterValues(parameterValues); */
-/*   ChannelSystem* system = static_cast<ChannelSystem*>( */
-/*       grinsSolver._system ) ; */
-/*   spalartAllmarasTurbulenceModel* turb = */
-/*     static_cast<spalartAllmarasTurbulenceModel*>( */
-/*         system->_turbModel.get() ); */
+  // test setting parameter values
+  std::vector<double> params(2,1.);
+  T_S parameterValues(params) ;
+  grinsSolver._setParameterValues(parameterValues);
+  GRINS::IncompressibleNavierStokes* physics = (
+      static_cast<GRINS::IncompressibleNavierStokes*>(
+        grinsSolver._multiphysicsSystem
+        ->get_physics("IncompressibleNavierStokes").get() )
+      ) ;
 
-/*   BOOST_REQUIRE_CLOSE( turb->_kap, params[0]*0.41 ,1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_cb1 , params[1]*0.1355, 1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_sig  , params[2]*2.0/3.0, 1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_cb2    , params[3]*0.622, 1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_cv1 , params[4]*7.1, 1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_cw2 , params[5]*0.3, 1e-9); */
-/*   BOOST_REQUIRE_CLOSE( turb->_cw3 , params[6]*2.0, 1e-9); */
+  BOOST_REQUIRE_CLOSE( physics->_rho, 1.0 ,1e-9);
+  BOOST_REQUIRE_CLOSE( physics->_mu , 1.0, 1e-9);
 
-/*   // make sure nothing catastrophic happens if we try to solve */
-/*   grinsSolver._solve() ; */
+  // make sure nothing catastrophic happens if we try to solve
+  grinsSolver._solve() ;
 
-/* } */
+}
 
 /* BOOST_AUTO_TEST_CASE( channel_convergence ) */
 /* { */
