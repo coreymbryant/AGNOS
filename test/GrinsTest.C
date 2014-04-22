@@ -102,6 +102,8 @@ BOOST_AUTO_TEST_CASE( grins_solve )
         ->get_physics("IncompressibleNavierStokes").get() )
       ) ;
 
+  std::cout <<" rho: " << physics->_rho << std::endl;
+  std::cout <<" mu: " << physics->_mu << std::endl;
   BOOST_REQUIRE_CLOSE( physics->_rho, 1.0 ,1e-9);
   BOOST_REQUIRE_CLOSE( physics->_mu , 1.0, 1e-9);
 

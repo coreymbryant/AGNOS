@@ -7,9 +7,9 @@ simultRefine = false
 [parameters]
 dimension = '1'
 nInitialHRefinements = '0'
-types ='CONSTANT'
-mins = '1.0' 
-maxs = '1.0'
+types ='UNIFORM'
+mins = '1.5' 
+maxs = '2.0'
 []
 
 

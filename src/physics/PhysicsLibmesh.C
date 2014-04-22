@@ -189,8 +189,6 @@ namespace AGNOS
       solution.close();
 
       // make sure sizes agree
-      std::cout << "solution: " << solution.size() << std::endl;
-      std::cout << "vector: " << solutionVector.size() << std::endl;
       agnos_assert( (solution.size() == solutionVector.size())) ;
 
       for (unsigned int i=0; i<solution.size(); i++)
