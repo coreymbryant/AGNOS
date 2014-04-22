@@ -80,7 +80,7 @@ FE_family = 'LAGRANGE'
 V_order = 'SECOND'
 P_order = 'FIRST'
 
-rho = '1.0'
+rho = '0.6'
 mu = '0.5'
 
 

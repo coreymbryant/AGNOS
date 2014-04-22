@@ -30,29 +30,17 @@ namespace AGNOS
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre GRINS::SimulationBuilder init " << std::endl;
     _simulationBuilder.reset( new GRINS::SimulationBuilder );
-    GRINS::PhysicsList physics_list = 
+
+    // build physics list: use simulation builder
+    _physicsList = 
       _simulationBuilder->build_physics( this->_grinsInput ) ;
-
-    // initialize simulation 
-    if (AGNOS_DEBUG)
-      std::cout << "DEBUG: pre GRINS::Simulation init " << std::endl;
-    _simulation.reset( 
-        new GRINS::Simulation( 
-          this->_grinsInput, *_simulationBuilder, this->_communicator ) 
-        );
-
-    // print out some simulation info
-    if (AGNOS_DEBUG)
-      std::cout << "DEBUG: pre print Simulation info " << std::endl;
-    _simulation->print_sim_info();
-    _simulation->get_equation_system()->print_info();
     
     // read in parameters unique to this model
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre GRINS specific input " << std::endl;
     _parameterNames.clear();
-    for( GRINS::PhysicsListIter it = physics_list.begin(); 
-        it != physics_list.end(); 
+    for( GRINS::PhysicsListIter it = _physicsList.begin(); 
+        it != _physicsList.end(); 
         it++)
     {
       std::string varName = it->first+"/parameterNames" ;
@@ -71,19 +59,33 @@ namespace AGNOS
 
     }
 
+    // build mesh: use simulation builder
+    this->_mesh = 
+        ( _simulationBuilder->build_mesh( 
+          this->_grinsInput, this->_communicator ) 
+        ).get() ;
+
+
+    //  Build mesh refinement object 
+    this->_buildMeshRefinement();
+
+
+    // initialize simulation 
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: pre GRINS::Simulation init " << std::endl;
+    _simulation.reset( 
+        new GRINS::Simulation( 
+          this->_grinsInput, *_simulationBuilder, this->_communicator ) 
+        );
 
     //  Get pointers to members of GrinsSystem 
     this->_equationSystems = (_simulation->get_equation_system()).get();
-    this->_system = &(
+    this->_multiphysicsSystem = &( 
         this->_equationSystems->template
         get_system<GRINS::MultiphysicsSystem>("GRINS")
-        ) ;
-    this->_multiphysicsSystem = ( 
-      static_cast<GRINS::MultiphysicsSystem*>(this->_system)
         );
-    this->_mesh = &(this->_system->get_mesh()); 
-    //  Build mesh refinement object 
-    this->_buildMeshRefinement();
+    this->_system = this->_multiphysicsSystem ;
+    
     // Set up QoIs 
     std::shared_ptr<GRINS::CompositeQoI> qoi( new GRINS::CompositeQoI ) ;
     std::string name = "mine" ;
@@ -100,10 +102,14 @@ namespace AGNOS
     // Build estimator object 
     this->_buildErrorEstimator();
     
-    /* // we need to run a solve routine on all procs to make sure residuals are */
-    /* // set up correctly when we go back to compute residuals with surrogate */
-    /* // evaluations */
-    this->_system->solve( );
+    // we need to run a solve routine on all procs to make sure residuals are
+    // set up correctly when we go back to compute residuals with surrogate
+    // evaluations
+    // TODO: do we need to do this for this class?
+    /* this->_system->solve( ); */
+
+    // print out some simulation info
+    _simulation->print_sim_info();
 
   }
 
@@ -128,6 +134,7 @@ namespace AGNOS
     try
     {
       this->_system->solve( );
+      std::cout << "solution: " << this->_system->solution->size() << std::endl;
     }
     catch(int err)
     {
@@ -162,14 +169,16 @@ namespace AGNOS
     //  - this way any type of physics can be handled from this class
     unsigned int nParams = 0;
     std::map<std::string,std::vector<std::string> >::iterator it;
-    for( it = _parameterNames.begin(); 
-        it != _parameterNames.end(); 
-        it++)
+    for( it = _parameterNames.begin(); it != _parameterNames.end(); it++)
       for(unsigned int p=0; p<it->second.size(); p++,nParams++)
+      {
+        std::cout << it->first << " " << it->second[p] << " " <<
+          parameterValues(p) << std::endl;
         this->_grinsInput.set( 
             "Physics/"+it->first+"/"+it->second[p], 
             parameterValues(p)
             ) ;
+      }
     
     // make sure provided parameterValue size matches physics variables size
     // i.e. that number of AGNOS::Paramaters is the same as
@@ -177,15 +186,23 @@ namespace AGNOS
     agnos_assert( ( parameterValues.size() == nParams ) );
 
     // construct new physics list based on these parameter values
-    //    - this is necessary to set the value of parameters that are private in
+    //    this is necessary to set the value of parameters that are private in
     //    GRINS::Physics classes
-    GRINS::PhysicsList physics_list = 
+    _physicsList = 
       this->_simulationBuilder->build_physics( this->_grinsInput ) ;
-    this->_multiphysicsSystem->attach_physics_list( physics_list );
-    this->_multiphysicsSystem->read_input_options( this->_grinsInput );
-    // have to call init again because newly attached physics_list creates a new
-    // uninitialied system ??
-    this->_equationSystems->init() ;
+
+    // init variables for new physics
+    GRINS::PhysicsListIter git ;
+    for(  git = _physicsList.begin(); git != _physicsList.end(); git++)
+      git->second->init_variables( _multiphysicsSystem );
+    
+    // attach new physics list to system
+    _multiphysicsSystem->attach_physics_list( _physicsList );
+
+
+    // reinit the equation system just to make sure all routines will use new
+    // values
+    this->_equationSystems->reinit() ;
 
   }
 
