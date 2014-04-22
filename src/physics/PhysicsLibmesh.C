@@ -189,6 +189,8 @@ namespace AGNOS
       solution.close();
 
       // make sure sizes agree
+      std::cout << "solution: " << solution.size() << std::endl;
+      std::cout << "vector: " << solutionVector.size() << std::endl;
       agnos_assert( (solution.size() == solutionVector.size())) ;
 
       for (unsigned int i=0; i<solution.size(); i++)
@@ -868,7 +870,7 @@ namespace AGNOS
             std::pair<std::string,T_P >(
               "qoi", qoiValue)
               );
-        /* if(AGNOS_DEBUG) */
+        if(AGNOS_DEBUG)
           std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
       }
 

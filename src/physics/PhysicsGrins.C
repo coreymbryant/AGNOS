@@ -85,6 +85,13 @@ namespace AGNOS
     //  Build mesh refinement object 
     this->_buildMeshRefinement();
     // Set up QoIs 
+    std::shared_ptr<GRINS::CompositeQoI> qoi( new GRINS::CompositeQoI ) ;
+    std::string name = "mine" ;
+    GRINS::MyQoI myqoi( name );
+    qoi->add_qoi( myqoi ) ;
+    qoi->init( _grinsInput, *this->_multiphysicsSystem ) ;
+    this->_multiphysicsSystem->attach_qoi( qoi.get() );
+
     this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
     qoi_indices.push_back(0);
@@ -96,7 +103,7 @@ namespace AGNOS
     /* // we need to run a solve routine on all procs to make sure residuals are */
     /* // set up correctly when we go back to compute residuals with surrogate */
     /* // evaluations */
-    /* this->_system->solve( ); */
+    this->_system->solve( );
 
   }
 
@@ -186,7 +193,6 @@ namespace AGNOS
   // Define template types
   template class
     PhysicsGrins<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
-
-
 }
+
 
