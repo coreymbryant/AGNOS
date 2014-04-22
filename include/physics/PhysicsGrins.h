@@ -8,6 +8,7 @@
 #include "grins/simulation_builder.h"
 #include "grins/simulation.h"
 #include "grins/multiphysics_sys.h"
+#include "grins/inc_navier_stokes_base.h"
 
 
 /** libMesh includes */
@@ -44,6 +45,14 @@ namespace AGNOS
       /** Redefine _solve( ) routine to call rely on _flowSolver */
       void _solve( );
 
+      /** grins input file  */
+      GetPot _grinsInput ;
+
+      /** Parameter names  */
+      std::map<std::string, std::vector<std::string> > _parameterNames;
+
+      /** reference to GRINS multiphysics system */
+      GRINS::MultiphysicsSystem* _multiphysicsSystem;
 
       /** Simulation builder */
       std::shared_ptr<GRINS::SimulationBuilder> _simulationBuilder ;

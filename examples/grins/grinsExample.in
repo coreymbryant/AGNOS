@@ -16,8 +16,13 @@ maxs = '1.0'
 [physics]
 type = 'grins'
 refine = false
-channel_input = 'grins.in'
+grins_input = 'grins.in'
 solutions = 'primal adjoint'
+
+[./IncompressibleNavierStokes]
+  parameterNames = 'mu'
+[../]
+
 []
 
 
