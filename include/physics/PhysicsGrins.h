@@ -49,6 +49,9 @@ namespace AGNOS
       /** grins input file  */
       GetPot _grinsInput ;
 
+      /** reference for a physicsList */
+      GRINS::PhysicsList _physicsList ;
+
       /** Parameter names  */
       std::map<std::string, std::vector<std::string> > _parameterNames;
 
