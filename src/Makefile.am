@@ -13,6 +13,7 @@ AM_CPPFLAGS = -I$(top_srcdir) \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
 # AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
 
@@ -23,7 +24,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #              $(BOOST_PROGRAM_OPTIONS_LIBS) \
 #              $(LIBMESH_LIBS) \
 #              $(LIBMESH_LDFLAGS)
-LIBS = $(LIBMESH_LIBS)
+LIBS = $(LIBMESH_LIBS) \
+			 $(GSL_LIBS)
 
 #----------------------------------------
 # Programs and libraries we want to build
@@ -49,6 +51,11 @@ if ENABLE_CHANNELFLOW
 AM_CPPFLAGS += -I$(CHANNELFLOW_DIR)/include
 LIBS += -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
 libagnos_la_SOURCES += physics/PhysicsChannelFlow.C 
+endif
+if ENABLE_GRINS
+AM_CPPFLAGS += -I$(GRINS_DIR)/include
+LIBS += -L$(GRINS_DIR)/lib/ -lgrins
+libagnos_la_SOURCES += physics/PhysicsGrins.C 
 endif
 
 libagnos_la_SOURCES += Element.C Driver.C 

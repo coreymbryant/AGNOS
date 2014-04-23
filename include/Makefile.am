@@ -23,6 +23,9 @@ libagnos_include_HEADERS = \
 if ENABLE_CHANNELFLOW
 libagnos_include_HEADERS += physics/PhysicsChannelFlow.h
 endif
+if ENABLE_GRINS
+libagnos_include_HEADERS += physics/PhysicsGrins.h
+endif
 
 libagnos_include_HEADERS += Element.h Driver.h 
 
