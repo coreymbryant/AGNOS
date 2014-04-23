@@ -11,6 +11,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
@@ -18,6 +19,7 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(BOOST_PROGRAM_OPTIONS_LIBS) \
+						 $(GSL_LIBS) \
 						 $(LIBMESH_LDFLAGS)
 
 #-------------------------------------
@@ -62,6 +64,16 @@ channelFlow_DATA = $(top_srcdir)/examples/channelFlow/channelFlow.in $(top_srcdi
 EXTRA_DIST += $(channelFlow_DATA)
 endif
 
+#-------------------------------------
+# grins
+#-------------------------------------
+if ENABLE_GRINS
+grinsdir = $(prefix)/examples/grins
+grins_SCRIPTS = $(top_builddir)/examples/grins/run.sh
+grins_DATA = $(top_srcdir)/examples/grins/grinsExample.in $(top_srcdir)/examples/grins/grins.in $(top_srcdir)/examples/grins/fat_box_with_hole.e
+EXTRA_DIST += $(grins_DATA)
+endif
+
 MAINTAINERCLEANFILES = Makefile.in \
 											 catenary/testFile.dat \
 											 diffusion/testFile.dat \
@@ -70,5 +82,9 @@ MAINTAINERCLEANFILES = Makefile.in \
 											 channelFlow/*.dat  \
 											 channelFlow/output/* \
 											 channelFlow/*.txt \
-											 channelFlow/*.out*
+											 channelFlow/*.out* \
+											 grins/*.dat  \
+											 grins/output/* \
+											 grins/*.txt \
+											 grins/*.out*
 

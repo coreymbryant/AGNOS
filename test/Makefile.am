@@ -22,6 +22,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 # External library include directories
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
+							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
@@ -29,6 +30,7 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #------------------------------------
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
              $(BOOST_PROGRAM_OPTIONS_LIBS) \
+						 $(GSL_LIBS) \
              $(LIBMESH_LIBS) \
              $(LIBMESH_LDFLAGS) \
 						 $(CPPUNIT_LIBS) \
@@ -85,6 +87,18 @@ ChannelTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
 ChannelTest_LDADD     = -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
 TESTS += ChannelTest.sh
 shellfiles_src += ChannelTest.sh
+endif
+
+#------------------------------------
+# Grins test
+#------------------------------------
+if ENABLE_GRINS
+check_PROGRAMS       += GrinsTest
+GrinsTest_SOURCES   = GrinsTest.C
+GrinsTest_CXXFLAGS  = -I$(GRINS_DIR)/include
+GrinsTest_LDADD     = -L$(GRINS_DIR)/lib/ -lgrins
+TESTS += GrinsTest.sh
+shellfiles_src += GrinsTest.sh
 endif
 
 # Want these put with the distro so we can run make check

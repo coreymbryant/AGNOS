@@ -1,0 +1,67 @@
+[driver]
+maxIter = '1'
+adaptive = true
+simultRefine = false
+[]
+
+[parameters]
+dimension = '2'
+nInitialHRefinements = '0'
+types ='UNIFORM UNIFORM'
+mins = '0.01  3.0'
+maxs = '0.1   9.0'
+[]
+
+
+[physics]
+type = 'grins'
+refine = false
+grins_input = 'grins.in'
+solutions = 'primal adjoint'
+
+[./IncompressibleNavierStokes]
+mu = '$(0)'
+parabolic_profile_coeffs_1 = '0.0 0.0 -$(1)/32.0 0.0 0.0 $(1)/8.0'
+[../]
+
+[]
+
+
+[surrogateModels]
+modelNames = 'primarySurrogate errorSurrogate'
+refine = true
+hRefine = false
+pRefine = true
+pIncrement = 1
+anisotropic = false
+
+  [./primarySurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  order = '4'
+  computeSolutions='primal adjoint errorEstimate qoi'
+  [../]
+
+  [./errorSurrogate]
+  type = 'PseudoSpectralTensorProduct'
+  primarySurrogate = 'primarySurrogate'
+  increaseOrder = '1'   
+  multiplyOrder = '1'  
+  evaluateSolutions = 'primal adjoint'
+  computeSolutions='errorEstimate'
+  [../]
+
+[]
+
+
+[output]
+filename = './testFile.dat'
+solutions = 'errorEstimate qoi'
+coefficients        = 1
+points              = 1
+weights             = 1
+index_set           = 1
+
+generateSamples   = 1
+sampleFile        = './samples.dat'
+nSamples          = 10000
+[]
