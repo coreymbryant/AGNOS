@@ -38,26 +38,35 @@ namespace AGNOS
     // read in parameters unique to this model
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre GRINS specific input " << std::endl;
-    _parameterNames.clear();
+    _grinsParameters.clear();
+    // need a non const GetPot object to search
+    GetPot modInput( this->_input );
     for( GRINS::PhysicsListIter it = _physicsList.begin(); 
         it != _physicsList.end(); 
         it++)
     {
-      std::string varName = it->first+"/parameterNames" ;
+      std::map<std::string, std::string> physicsParams; 
 
-      int nParamNames = this->_input.vector_variable_size(varName);
-      std::vector<std::string> paramNames; 
-      paramNames.reserve(nParamNames);
+      std::string prefixName = "physics/"+it->first+"/" ;
+      modInput.set_prefix(prefixName.data()) ;
 
-      for(unsigned int p=0; p<nParamNames; p++)
-        paramNames.push_back( this->_input(varName,"",p) ) ;
+      std::vector<std::string> paramNames = modInput.get_variable_names() ;
+      for(unsigned int p=0; p<paramNames.size();p++)
+      {
+        std::string value = modInput( paramNames[p], "") ;
+        physicsParams.insert( 
+              std::pair<std::string,std::string>( paramNames[p], value )
+              );
 
-      _parameterNames.insert( 
-          std::pair<std::string, std::vector<std::string> >(
-            it->first, paramNames )
+        std::cout << "Init: "<< paramNames[p] << ": " << value << std::endl;
+      }
+      _grinsParameters.insert( 
+          std::pair<std::string, std::map<std::string,std::string> >(
+            it->first, physicsParams )
           );
 
-    }
+    } // end iterate through physics list
+
 
     // build mesh: use simulation builder
     this->_mesh = 
@@ -134,7 +143,6 @@ namespace AGNOS
     try
     {
       this->_system->solve( );
-      std::cout << "solution: " << this->_system->solution->size() << std::endl;
     }
     catch(int err)
     {
@@ -163,31 +171,81 @@ namespace AGNOS
   void PhysicsGrins<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
-
+    
     // change input file values 
     //  - only set parameters that the user sets in in grins_input
     //  - this way any type of physics can be handled from this class
     unsigned int nParams = 0;
-    std::map<std::string,std::vector<std::string> >::iterator it;
-    for( it = _parameterNames.begin(); it != _parameterNames.end(); it++)
-      for(unsigned int p=0; p<it->second.size(); p++,nParams++)
+    std::map<std::string,std::map<std::string,std::string> >::iterator it;
+    for( it = _grinsParameters.begin(); it != _grinsParameters.end();
+        it++)
+    {
+      std::map<std::string, std::string>::iterator pit
+        = _grinsParameters[it->first].begin(); 
+      for( ; pit != _grinsParameters[it->first].end(); pit++)
       {
-        std::cout << it->first << " " << it->second[p] << " " <<
-          parameterValues(p) << std::endl;
+        if (AGNOS_DEBUG)
+          std::cout << "pre -- " << pit->first << ": " << pit->second 
+            << std::endl;
+
+        // create copies of input strings to maniuplate
+        std::string values( pit->second );
+        std::size_t foundBegin=0, foundEnd=0; 
+        foundBegin = values.find("$(",foundEnd) ;
+        foundEnd = values.find(")",foundBegin+1) ;
+        // while they still exist in the line replace them
+        while( foundBegin < std::string::npos )
+        {
+          // extract parameter component
+          std::string var =
+            values.substr(foundBegin,foundEnd-foundBegin+1) ;
+          unsigned int varNum = std::stoi( var.substr(2,var.length()-3) );
+
+          // make sure given index is less than total num of params
+          agnos_assert( ( varNum < parameterValues.size() ) );
+
+          // replace with parameter values
+          values.replace( 
+              foundBegin,
+              var.length(),
+              std::to_string( parameterValues(varNum) ) 
+              ) ;
+
+          /* if (AGNOS_DEBUG) */
+          {
+            std::cout << " found begin: " << foundBegin << std::endl;
+            std::cout << " found end: " << foundEnd << std::endl;
+            std::cout << " var: " << var<< std::endl;
+            std::cout << " varNum: " << varNum << std::endl;
+          }
+          
+          // find parameters in variable string
+          foundBegin = values.find("$(",foundEnd) ;
+          foundEnd = values.find(")",foundBegin+1) ;
+
+        } 
+
+        /* if (AGNOS_DEBUG) */
+        {
+          std::cout << " post -- " 
+            << pit->first << ": " << pit->second << std::endl;
+          std::cout << " values -- " 
+            << pit->first << ": " << values << std::endl;
+        }
+
+        // set grins input to new values
         this->_grinsInput.set( 
-            "Physics/"+it->first+"/"+it->second[p], 
-            parameterValues(p)
+            "Physics/"+it->first+"/"+pit->first, 
+            values
             ) ;
       }
-    
-    // make sure provided parameterValue size matches physics variables size
-    // i.e. that number of AGNOS::Paramaters is the same as
-    // parameterNames.size()
-    agnos_assert( ( parameterValues.size() == nParams ) );
 
-    // construct new physics list based on these parameter values
-    //    this is necessary to set the value of parameters that are private in
-    //    GRINS::Physics classes
+    }
+    
+
+    // construct new physics list based on new parameter values
+    //    we have to construct a new list in order to set the value of
+    //    parameters that are private in GRINS::Physics classes
     _physicsList = 
       this->_simulationBuilder->build_physics( this->_grinsInput ) ;
 

@@ -86,8 +86,9 @@ BOOST_AUTO_TEST_CASE( grins_solve )
 
   GetPot inputfile;
   inputfile = GetPot( );
-  inputfile.set("grins_input","./grins.in") ;
-  inputfile.set("IncompressibleNavierStokes/parameterNames","rho mu") ;
+  inputfile.set("physics/grins_input","./grins.in") ;
+  inputfile.set("physics/IncompressibleNavierStokes/rho","$(0)") ;
+  inputfile.set("physics/IncompressibleNavierStokes/mu","$(1)") ;
   PhysicsGrins<T_S,T_P> grinsSolver(
       comm,inputfile
       );
