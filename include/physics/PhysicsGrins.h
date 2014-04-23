@@ -52,8 +52,9 @@ namespace AGNOS
       /** reference for a physicsList */
       GRINS::PhysicsList _physicsList ;
 
-      /** Parameter names  */
-      std::map<std::string, std::vector<std::string> > _parameterNames;
+      /** Parameter names and sizes */
+      std::map<std::string, std::map<std::string,std::string> > 
+        _grinsParameters;
 
       /** reference to GRINS multiphysics system */
       GRINS::MultiphysicsSystem* _multiphysicsSystem;

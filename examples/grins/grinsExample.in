@@ -5,11 +5,11 @@ simultRefine = false
 []
 
 [parameters]
-dimension = '1'
+dimension = '2'
 nInitialHRefinements = '0'
-types ='UNIFORM'
-mins = '1.5' 
-maxs = '2.0'
+types ='UNIFORM UNIFORM'
+mins = '0.01  3.0'
+maxs = '0.1   9.0'
 []
 
 
@@ -20,7 +20,8 @@ grins_input = 'grins.in'
 solutions = 'primal adjoint'
 
 [./IncompressibleNavierStokes]
-  parameterNames = 'mu'
+mu = '$(0)'
+parabolic_profile_coeffs_1 = '0.0 0.0 -$(1)/32.0 0.0 0.0 $(1)/8.0'
 [../]
 
 []
