@@ -66,11 +66,9 @@ print_element_jacobians = 'false'
 enabled_physics = 'IncompressibleNavierStokes' 
 
 # Boundary ids:
-# left    -> 1
-# top     -> 2
-# right   -> 3
-# bottom  -> 4
-# cylinder-> 5
+# left                    -> 1
+# top,bottom,cylinder     -> 2
+# right                   -> 3
 #
 # Options for Incompressible Navier-Stokes physics
 [./IncompressibleNavierStokes]
@@ -80,14 +78,15 @@ FE_family = 'LAGRANGE'
 V_order = 'SECOND'
 P_order = 'FIRST'
 
-rho = '0.6'
-mu = '0.5'
+rho = '1.0'
+mu = '0.10'
 
 
-bc_ids = '1 2 4 5'
-bc_types = 'parabolic_profile no_slip no_slip no_slip '
+bc_ids = '1 2'
+bc_types = 'parabolic_profile no_slip'
 
-parabolic_profile_coeffs_1 = '0.0 0.0 -0.28125 0.0 0.0 1.125'
+parabolic_profile_coeffs_1 = '0.0 0.0 -0.09375 0.0 0.0 0.375'
+# parabolic_profile_coeffs_1 = '0.0 0.0 -0.28125 0.0 0.0 1.125'
 parabolic_profile_var_1 = 'u'
 parabolic_profile_fix_1 = 'v'
 
