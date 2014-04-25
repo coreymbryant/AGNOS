@@ -19,7 +19,6 @@
 
 namespace AGNOS
 {
-
   /********************************************//**
    * \brief Save libmesh solution as gnuplot format
    *
@@ -83,6 +82,7 @@ namespace AGNOS
     VTKIO(mesh).write_equation_systems
       (file_name.str(), es);
   }
+
 /********************************************//**
  * \brief 
  ***********************************************/
@@ -365,12 +365,7 @@ namespace AGNOS
 
         //save the vizualizaton if requested
         if (_writePrimalViz)
-        {
-          if ( this->_mesh->mesh_dimension() == 1)
-            write_gnuplot(es,paramVector,"primal");
-          else
-            write_vtk(es,paramVector,"primal");
-        }
+          _outputPrimalViz( paramVector ) ;
         
         // save solution in solutionVectors
         _insertSolVec( *(system.solution), "primal", solutionVectors );
@@ -508,19 +503,10 @@ namespace AGNOS
           }
         }
         
-        NumericVector<Number> &primal_solution = *system.solution;
-        NumericVector<Number> &dual_solution = system.get_adjoint_solution(0);
-        primal_solution.swap(dual_solution);
         
         //save the vizualizaton if requested
         if (_writeAdjointViz)
-        {
-          if ( this->_mesh->mesh_dimension() == 1)
-            write_gnuplot(es,paramVector,"adjoint");
-          else
-              write_vtk(es,paramVector,"adjoint");
-          primal_solution.swap(dual_solution);
-        }
+          _outputAdjointViz( paramVector );
 
         if(AGNOS_DEBUG)
         {
@@ -863,12 +849,12 @@ namespace AGNOS
 
         // save QoI value to solutionVectors
         T_P qoiValue(1);
-        qoiValue(0) = system.qoi[0] ;
+        qoiValue(0) = _getQoIValue( );
         solutionVectors.insert( 
             std::pair<std::string,T_P >(
               "qoi", qoiValue)
               );
-        if(AGNOS_DEBUG)
+        /* if(AGNOS_DEBUG) */
           std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
       }
 
@@ -900,7 +886,8 @@ namespace AGNOS
   template<class T_S, class T_P>
     void PhysicsLibmesh<T_S,T_P>::refine() 
     {
-      if ( this->_communicator.rank() == 0 )
+        std::cout << "physics refining" << std::endl;
+      /* if ( this->_communicator.rank() == 0 ) */
         std::cout << "  previous n_active_elem(): " 
           << _mesh->n_active_elem() << std::endl;
 
@@ -908,7 +895,7 @@ namespace AGNOS
 
       _equationSystems->reinit();
 
-      if ( this->_communicator.rank() == 0 )
+      /* if ( this->_communicator.rank() == 0 ) */
         std::cout << "   refined n_active_elem(): " 
           << _mesh->n_active_elem() << std::endl;
 
@@ -952,6 +939,39 @@ namespace AGNOS
           << _mesh->n_active_elem() << std::endl;
 
       return;
+    }
+
+  /********************************************//**
+   * \brief Output visulization of primal sol
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_outputPrimalViz( const T_S& paramVector )
+    {
+      if ( this->_mesh->mesh_dimension() == 1)
+        write_gnuplot(*this->_equationSystems,paramVector,"primal");
+      else
+        write_vtk(*this->_equationSystems,paramVector,"primal");
+      return;
+    }
+
+  /********************************************//**
+   * \brief Output visulization of adjoint sol
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_outputAdjointViz( const T_S& paramVector )
+    {
+      NumericVector<Number> &primal_solution = *this->_system->solution;
+      NumericVector<Number> &dual_solution 
+        = this->_system->get_adjoint_solution(0);
+      primal_solution.swap(dual_solution);
+
+      if ( this->_mesh->mesh_dimension() == 1)
+        write_gnuplot(*this->_equationSystems,paramVector,"adjoint");
+      else
+          write_vtk(*this->_equationSystems,paramVector,"adjoint");
+
+      primal_solution.swap(dual_solution);
+      return ;
     }
 
   template class

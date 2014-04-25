@@ -4,6 +4,8 @@
 
 #include "PhysicsLibmesh.h"
 #include "libmesh/quadrature.h"
+#include "libmesh/exodusII_io.h"
+#include "libmesh/gmv_io.h"
 
 /** grins includes */
 #include "grins/simulation_builder.h"
@@ -46,6 +48,11 @@ namespace AGNOS
       /** Redefine _solve( ) routine to call rely on _flowSolver */
       void _solve( );
 
+      /** Reference to qoi value */
+      std::shared_ptr<libMesh::DifferentiableQoI> _differentiableQoI ;
+      virtual libMesh::Number _getQoIValue( ) 
+      { return this->_system->qoi[0]; }
+
       /** grins input file  */
       GetPot _grinsInput ;
 
@@ -65,19 +72,88 @@ namespace AGNOS
       /** Simulation  */
       std::shared_ptr<GRINS::Simulation> _simulation;
 
+      /** Redefine how primal solution is output */
+      void _outputPrimalViz( const T_S& paramVector )
+      {
+        MeshBase &mesh = *this->_mesh;
+        std::ostringstream file_name;
+        file_name << "primal" ;
+        for (unsigned int i=0; i<paramVector.size(); i++)
+        {
+          file_name
+            << "_"
+            << std::setiosflags(std::ios::scientific) 
+            << std::setprecision(1) 
+            << std::setw(3) 
+            << paramVector(i) ;
+        }
+        std::string fileName;
+
+        fileName = file_name.str()+".exo" ;
+        ExodusII_IO(mesh).write_timestep(
+            fileName,
+            *this->_equationSystems,
+            1, 0.0);
+        /* fileName = file_name.str()+".pvtu" ; */
+        /* VTKIO(mesh).write_equation_systems( */
+        /*     fileName, */
+        /*     *this->_equationSystems */
+        /*     ); */
+
+        return;
+      }
+
+      /** Redefine how adjoint solution is output */
+      void _outputAdjointViz( const T_S& paramVector )
+      {
+        MeshBase &mesh = *this->_mesh;
+        std::ostringstream file_name;
+        file_name << "adjoint" ;
+        for (unsigned int i=0; i<paramVector.size(); i++)
+        {
+          file_name
+            << "_"
+            << std::setiosflags(std::ios::scientific) 
+            << std::setprecision(1) 
+            << std::setw(3) 
+            << paramVector(i) ;
+        }
+
+        std::string fileName;
+
+        NumericVector<Number> &primal_solution = *this->_system->solution;
+        NumericVector<Number> &dual_solution 
+          = this->_system->get_adjoint_solution(0);
+        primal_solution.swap(dual_solution);
+
+        fileName = file_name.str()+".exo" ;
+        ExodusII_IO(mesh).write_timestep(
+            fileName,
+            *this->_equationSystems,
+            1, 0.0);
+        /* fileName = file_name.str()+".pvtu" ; */
+        /* VTKIO(mesh).write_equation_systems( */
+        /*     fileName, */
+        /*     *this->_equationSystems */
+        /*     ); */
+
+        primal_solution.swap(dual_solution);
+      }
+
   };
 
 }
 
 namespace GRINS 
 {
-  class MyQoI : public QoIBase
+  class MyQoI : public libMesh::DifferentiableQoI
   {
     public:
-    MyQoI( std::string& qoi_name ) : QoIBase(qoi_name){ return; } 
-    bool assemble_on_interior() const { return true; }
-    bool assemble_on_sides() const { return false; }
-    QoIBase* clone() const { return new MyQoI( *this ); }
+    /* MyQoI( std::string& qoi_name ) : QoIBase(qoi_name){ return; } */ 
+    /* bool assemble_on_interior() const { return true; } */
+    /* bool assemble_on_sides() const { return false; } */
+      libMesh::AutoPtr<libMesh::DifferentiableQoI> clone() 
+      { return libMesh::AutoPtr<libMesh::DifferentiableQoI>(new MyQoI( *this ) ); }
     //! Compute the qoi value for element interiors.
     virtual void element_qoi( libMesh::DiffContext& context,
                               const libMesh::QoISet& qoi_indices )
@@ -93,7 +169,7 @@ namespace GRINS
       const std::vector<Real> &JxW = elem_fe->get_JxW();
 
       // The element quadrature points
-      const std::vector<Point > &q_point = elem_fe->get_xyz();
+      const std::vector<Point > &xyz = elem_fe->get_xyz();
 
       // The number of local degrees of freedom in each variable
       const unsigned int n_u_dofs = c.get_dof_indices(0).size();
@@ -107,8 +183,15 @@ namespace GRINS
       // Loop over the qps
       for (unsigned int qp=0; qp != n_qpoints; qp++)
       {
+        Point x = xyz[qp] ;
         Number u = c.interior_value(0, qp);
-        Q[0] += JxW[qp] * u  ;
+        // 10/pi*exp(-10*(x-1).^2 - 10*(y-0).^2) 
+        Q[0] += JxW[qp] * (
+            u * 10./libMesh::pi * 
+            std::exp( -10. * std::pow(x(0)-1.,2.) - 10.*std::pow(x(1)-0.,2.) )
+            );
+        // u
+        /* Q[0] += JxW[qp] * u  ; */
       } // end of the quadrature point qp-loop
     }
 
@@ -130,7 +213,7 @@ namespace GRINS
       const std::vector<std::vector<Real> > &phi = elem_fe->get_phi();
 
       // The element quadrature points
-      const std::vector<Point > &q_point = elem_fe->get_xyz();
+      const std::vector<Point > &xyz = elem_fe->get_xyz();
 
       // The number of local degrees of freedom in each variable
       const unsigned int n_u_dofs = c.get_dof_indices(0).size();
@@ -143,8 +226,16 @@ namespace GRINS
 
       // Loop over the qps
       for (unsigned int qp=0; qp != n_qpoints; qp++)
+      {
+        Point x = xyz[qp] ;
         for (unsigned int i=0; i != n_u_dofs; i++)
-          Q(i) += JxW[qp] * phi[i][qp] ;
+          Q(i) += JxW[qp] * (
+              phi[i][qp] * 10./libMesh::pi * 
+              std::exp( -10. * std::pow(x(0)-1.,2.) - 10.*std::pow(x(1)-0.,2.) )
+              );
+            
+          /* Q(i) += JxW[qp] * phi[i][qp] ; */
+      }
 
     }
   };

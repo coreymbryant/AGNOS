@@ -806,7 +806,7 @@ namespace AGNOS
       } // loop over active elements
       std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
 
-      if(AGNOS_DEBUG)
+      /* if(AGNOS_DEBUG) */
         std::cout << "DEBUG: pre update elements rank-" << globalRank << std::endl;
 
       // refine all physics that were marked

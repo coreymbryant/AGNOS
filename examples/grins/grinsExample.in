@@ -15,9 +15,12 @@ maxs = '0.1   9.0'
 
 [physics]
 type = 'grins'
-refine = false
+refine = true
 grins_input = 'grins.in'
 solutions = 'primal adjoint'
+
+writePrimalViz = true
+writeAdjointViz = true
 
 [./IncompressibleNavierStokes]
 mu = '$(0)'
@@ -37,7 +40,7 @@ anisotropic = false
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '4'
+  order = '0'
   computeSolutions='primal adjoint errorEstimate qoi'
   [../]
 
