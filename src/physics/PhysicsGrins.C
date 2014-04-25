@@ -68,17 +68,6 @@ namespace AGNOS
     } // end iterate through physics list
 
 
-    // build mesh: use simulation builder
-    this->_mesh = 
-        ( _simulationBuilder->build_mesh( 
-          this->_grinsInput, this->_communicator ) 
-        ).get() ;
-
-
-    //  Build mesh refinement object 
-    this->_buildMeshRefinement();
-
-
     // initialize simulation 
     if (AGNOS_DEBUG)
       std::cout << "DEBUG: pre GRINS::Simulation init " << std::endl;
@@ -94,20 +83,31 @@ namespace AGNOS
         get_system<GRINS::MultiphysicsSystem>("GRINS")
         );
     this->_system = this->_multiphysicsSystem ;
+
+    // build mesh: use simulation builder
+    this->_mesh = &(this->_equationSystems->get_mesh() ) ;
+
+
+    //  Build mesh refinement object 
+    this->_buildMeshRefinement();
+
+    this->_equationSystems->reinit();
     
     // Set up QoIs 
-    std::shared_ptr<GRINS::CompositeQoI> qoi( new GRINS::CompositeQoI ) ;
-    std::string name = "mine" ;
-    GRINS::MyQoI myqoi( name );
-    qoi->add_qoi( myqoi ) ;
-    qoi->init( _grinsInput, *this->_multiphysicsSystem ) ;
-    this->_multiphysicsSystem->attach_qoi( qoi.get() );
-
     this->_qois = new libMesh::QoISet;
     std::vector<unsigned int> qoi_indices;
     qoi_indices.push_back(0);
     this->_qois->add_indices(qoi_indices);
     /* this->_qois->set_weight(0, 1.0); */
+    _differentiableQoI.reset( new GRINS::MyQoI ) ;
+    /* std::string name = "mine" ; */
+    /* GRINS::MyQoI myqoi( name ); */
+    /* _differentiableQoI->add_qoi( myqoi ) ; */
+    /* _differentiableQoI->init( _grinsInput, *this->_multiphysicsSystem ) ; */
+    this->_multiphysicsSystem->qoi.resize(1);
+    this->_multiphysicsSystem->attach_qoi( _differentiableQoI.get() );
+    std::cout << "qoi: " << this->_multiphysicsSystem->qoi.size() << std::endl;
+
     // Build estimator object 
     this->_buildErrorEstimator();
     
@@ -211,7 +211,7 @@ namespace AGNOS
               std::to_string( parameterValues(varNum) ) 
               ) ;
 
-          /* if (AGNOS_DEBUG) */
+          if (AGNOS_DEBUG)
           {
             std::cout << " found begin: " << foundBegin << std::endl;
             std::cout << " found end: " << foundEnd << std::endl;

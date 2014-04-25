@@ -95,6 +95,8 @@ namespace AGNOS
       /** control vizualization output */
       bool         _writePrimalViz;
       bool         _writeAdjointViz;
+      virtual void _outputPrimalViz( const T_S& paramVector );
+      virtual void _outputAdjointViz( const T_S& paramVector );
 
       /** build mesh refinement object (can be overidden in derived class) */
       virtual void _buildMeshRefinement();
@@ -132,6 +134,10 @@ namespace AGNOS
       /** Set adjoint solution 'j' to provided vector */
       virtual void _setAdjointSolution( 
           T_P& solutionVector, unsigned int j=0 );
+
+      /** Reference to qoi value */
+      virtual libMesh::Number _getQoIValue( ) { return _system->qoi[0]; }
+
 
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */
