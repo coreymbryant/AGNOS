@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
   std::set<std::string> computeSolutions ;
   computeSolutions.insert("primal");
   computeSolutions.insert("adjoint");
-  /* computeSolutions.insert("errorEstimate"); */
+  computeSolutions.insert("errorEstimate");
   PseudoSpectralTensorProduct<T_S,T_P> constantSurrogate(
         comm,
         flowSolver,
@@ -188,9 +188,11 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
         new AGNOS::Parameter("UNIFORM",0.90, 1.05) ) 
       );
   for(unsigned int i =1; i<dimension; i++)
+  /* for(unsigned int i =0; i<dimension; i++) */
     parameters.push_back( 
         std::shared_ptr<AGNOS::Parameter>(
           new AGNOS::Parameter("CONSTANT",1.00, 1.00) )
+          /* new AGNOS::Parameter("UNIFORM",0.90, 1.05) ) */
       ); 
   parameters[4] = std::shared_ptr<AGNOS::Parameter>( new AGNOS::Parameter("UNIFORM",0.90, 1.05) )  ;
   
@@ -205,8 +207,8 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
   );
 
   // build a secondary surrogate just to test errorEstimate
-  std::vector<unsigned int> increaseOrder(dimension,0);
-  unsigned int multiplyOrder(2);
+  std::vector<unsigned int> increaseOrder(dimension,1);
+  unsigned int multiplyOrder(1);
   std::set<std::string> secondarySolutions ;
   secondarySolutions.insert("errorEstimate");
   std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >
@@ -220,7 +222,7 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
 
   T_P primalPred, adjointPred;
   double surrogateError = 0.;
-  int iter=0, maxIter=4;
+  int iter=0, maxIter=2;
   double tol = 1e-3, primalDiff,adjointDiff;
   bool condition = true ;
   do 
@@ -242,8 +244,14 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
     adjointDiff = adjointPred.linfty_norm() ;
     std::cout << "adjointDiff = " << adjointDiff << std::endl;
 
-    surrogateError = secondarySurrogate->l2Norm("errorEstimate")(0);
+    surrogateError = uniformSurrogate->l2NormDifference(
+        *secondarySurrogate,
+        "errorEstimate");
+    std::cout << "physicalError = " <<
+      uniformSurrogate->l2Norm("errorEstimate")(0) << std::endl;
     std::cout << "surrogateError = " << surrogateError << std::endl;
+    std::cout << "totalError = " <<
+      secondarySurrogate->l2Norm("errorEstimate")(0) << std::endl;
 
     std::cout << " iter<maxIter: " << (iter<maxIter) << std::endl;
     std::cout << " primalDiff > tol: " << (primalDiff>tol) << std::endl;
