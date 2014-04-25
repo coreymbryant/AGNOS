@@ -1,5 +1,5 @@
 [driver]
-maxIter = '1'
+maxIter = '4'
 adaptive = true
 simultRefine = false
 []

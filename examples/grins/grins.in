@@ -66,11 +66,9 @@ print_element_jacobians = 'false'
 enabled_physics = 'IncompressibleNavierStokes' 
 
 # Boundary ids:
-# left    -> 1
-# top     -> 2
-# right   -> 3
-# bottom  -> 4
-# cylinder-> 5
+# left                    -> 1
+# top,bottom,cylinder     -> 2
+# right                   -> 3
 #
 # Options for Incompressible Navier-Stokes physics
 [./IncompressibleNavierStokes]
