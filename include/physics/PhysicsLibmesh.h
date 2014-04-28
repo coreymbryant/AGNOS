@@ -138,6 +138,8 @@ namespace AGNOS
       /** Reference to qoi value */
       virtual libMesh::Number _getQoIValue( ) { return _system->qoi[0]; }
 
+      /** dummy timestep for printing visualizations based on parameter values */
+      unsigned int _timeStep;
 
       /** derived PhysicsModel classes need to handle settig parameter values
        * themselves */

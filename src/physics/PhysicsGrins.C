@@ -16,7 +16,7 @@ namespace AGNOS
         ) 
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input),
-    _grinsInput(std::string( input("grins_input","./grins.in")) ) 
+    _grinsInput(std::string( input("grins_input","./grins.in")) )
   {
     // define available solution names
     this->_availableSolutions.insert("primal");
@@ -119,6 +119,8 @@ namespace AGNOS
 
     // print out some simulation info
     _simulation->print_sim_info();
+
+    _initOutput() ;
 
   }
 
