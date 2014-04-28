@@ -97,6 +97,7 @@ namespace AGNOS
     _meshRefinement(NULL),
     _errorEstimator(NULL),
     _qois(NULL),
+    _timeStep(1),
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
@@ -495,6 +496,10 @@ namespace AGNOS
             std::cout << "Solving adjoint solution" << std::endl;
           _adjointSolve( *_qois ) ;
           
+          //save the vizualizaton if requested
+          if (_writeAdjointViz)
+            _outputAdjointViz( paramVector );
+          
           // save adjoint solution if its in the set of requested vectors
           if ( computeSolutions.count("adjoint") )
           {
@@ -504,9 +509,6 @@ namespace AGNOS
         }
         
         
-        //save the vizualizaton if requested
-        if (_writeAdjointViz)
-          _outputAdjointViz( paramVector );
 
         if(AGNOS_DEBUG)
         {
@@ -873,6 +875,9 @@ namespace AGNOS
       
 
       
+      // incremenent dummy timestep
+      _timeStep++;
+
 
       return;
     }
