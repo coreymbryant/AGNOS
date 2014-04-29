@@ -187,6 +187,61 @@ namespace AGNOS
     return ;
   }
 
+  /********************************************//**
+   * \brief utility function to compute norms over a selection of elements
+   ***********************************************/
+  void computeNorms( 
+      std::vector<std::string>&  solutionNames,
+      std::list<AGNOS::Element<T_S,T_P> >& activeElems,
+      std::map<std::string,T_P>& globalNorms 
+      )
+  {
+
+    globalNorms.clear();
+
+    // loop through elements
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      activeElems.begin();
+    for (; elit!=activeElems.end(); elit++)
+    {
+      // retrieve element mean coefficients
+      std::map<std::string,T_P> elementNorms
+        = elit->surrogates()[0]->l2Norm( );
+
+      // add contributions from this element to global means
+      for(unsigned int i=0 ; i<solutionNames.size();i++)
+      {
+        agnos_assert( (elementNorms.count(solutionNames[i]) > 0) ) ;
+
+        // square components
+        for(unsigned int j=0;j<elementNorms[solutionNames[i]].size(); j++)
+          elementNorms[solutionNames[i]](j) *=
+            elementNorms[solutionNames[i]](j);
+        //scale by elem weight
+        elementNorms[solutionNames[i]].scale( elit->weight() );
+        
+        if(globalNorms.count(solutionNames[i])==0)
+          globalNorms.insert( 
+              std::pair<std::string,T_P>(
+                solutionNames[i],elementNorms[solutionNames[i]] )
+              );
+        else
+          globalNorms[solutionNames[i]] += elementNorms[solutionNames[i]] ;
+
+
+      }
+      
+      // take square roots
+      for(unsigned int i=0 ; i<solutionNames.size();i++)
+        for(unsigned int j=0;j<elementNorms[solutionNames[i]].size(); j++)
+        globalNorms[solutionNames[i]](j) = 
+          std::sqrt( globalNorms[solutionNames[i]](j) );
+        
+    }
+
+    return ;
+  }
+
   template class
     Element<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
 

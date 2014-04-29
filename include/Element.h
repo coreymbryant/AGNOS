@@ -102,6 +102,11 @@ namespace AGNOS
       std::list<AGNOS::Element<T_S,T_P> >& activeElems,
       std::map<std::string,T_P>& globalMeans 
       );
+  void computeNorms( 
+      std::vector<std::string>&  solutions,
+      std::list<AGNOS::Element<T_S,T_P> >& activeElems,
+      std::map<std::string,T_P>& globalNorms 
+      );
 
 
 }
