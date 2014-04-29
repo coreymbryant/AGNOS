@@ -150,6 +150,7 @@ namespace AGNOS
       _solutionsToPrint.push_back(input("solutions", "",i) );
 
     _computeMeans        = input("computeMeans",true);
+    _computeNorms        = input("computeNorms",true);
     _outputIterations    = input("iterations",false);
     _outputCoefficients  = input("coefficients",true);
     _outputWeights       = input("weights",true);
@@ -182,6 +183,7 @@ namespace AGNOS
     std::shared_ptr< PhysicsModel<T_S,T_P> > physics ;
     std::string physicsName = input("physics/type","");
     _refinePhysics = input("physics/refine",false);
+    _uniformRefine = input("physics/uniformRefine",true);
 
     if(AGNOS_DEBUG)
       std::cout << "_initPhysics() rank: " << _physicsComm.rank() << std::endl;
@@ -814,8 +816,20 @@ namespace AGNOS
       std::set< std::shared_ptr<PhysicsModel<T_S,T_P> > >::iterator physIt =
         markedPhysics.begin();
       for(; physIt != markedPhysics.end(); physIt++)
-        (*physIt)->refine()  ;
-        // TODO if use indicators 
+      {
+        if(_uniformRefine)
+          (*physIt)->refine()  ;
+        else
+        {
+          // compute means of errorIndicators
+          // if they aren't present in the surrogate model, assertion will be
+          // throwin inside computeMeans
+          std::map<std::string,T_P> indicatorMeans;
+          std::vector<std::string> indName(1,"errorIndicators");
+          computeMeans( indName, _activeElems, indicatorMeans );
+          (*physIt)->refine( indicatorMeans["errorIndicators"] );
+        }
+      }
 
 
 
@@ -927,6 +941,26 @@ namespace AGNOS
       {
         out << "solution: " << _solutionsToPrint[i] << std::endl;
         globalMeans[_solutionsToPrint[i]].print(out) ; 
+      }
+    }
+
+    // compute norms of final surrogate
+    if(_computeNorms)
+    {
+      std::cout << "    computing means for final surrogate " << std::endl;
+      std::ostream& out = *(this->_os) ;
+      out << std::endl;
+      out << "#====================================================" 
+        << std::endl;
+      out << "#--------- NORMS ------------------\n";
+
+      std::map<std::string,T_P> globalNorms;
+      computeNorms( _solutionsToPrint, _activeElems, globalNorms );
+
+      for(unsigned int i=0; i<_solutionsToPrint.size();i++)
+      {
+        out << "solution: " << _solutionsToPrint[i] << std::endl;
+        globalNorms[_solutionsToPrint[i]].print(out) ; 
       }
     }
     
