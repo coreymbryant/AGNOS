@@ -101,5 +101,33 @@ namespace AGNOS
     }
     return polyValue;
   }
-}
+
+/********************************************//**
+ * \brief returns measure of [min,max] according to distribution 
+ ***********************************************/
+  double Parameter::measure( double min, double max )
+  {
+    double measure;
+
+    // calculate measure based on distribution
+    switch ( ParameterType(m_type) )
+    {
+      case CONSTANT:
+        measure = 1.0 ;
+        break;
+
+      case UNIFORM:
+        measure = (max-min)/(m_max-m_min);
+        break;
+
+      default:
+        std::cout << "\n ERROR: Unrecognized parameter type\n\n" ;
+        agnos_assert(0);
+
+    }
+
+    return measure;
+  }
+
+} // end namespace AGNOS
 
