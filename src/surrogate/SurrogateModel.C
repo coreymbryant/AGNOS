@@ -667,7 +667,7 @@ namespace AGNOS
         {
           // set value of mean coefficient
           for(unsigned int comp=0; comp<solSize; comp++)
-            solutionCoeff[comp]= (*_coefficients[*id])(comp,0) ; 
+            solutionCoeff[comp]= (*_coefficients[*id])(0,comp) ; 
         }
 
         // if I don't have coeff 0 receive it if I do send it
