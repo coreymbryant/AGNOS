@@ -4,19 +4,25 @@
 namespace AGNOS
 {
 
+
   /********************************************//**
-   * \brief 
+   * \brief Default constructor 
+   *
+   * Note that this method assumes provided parameters represent global
+   * parameter space, i.e. the element weight is the 1. 
    ***********************************************/
   template<class T_S, class T_P>
     Element<T_S,T_P>::Element(
         std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
         std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
-        std::shared_ptr< PhysicsModel<T_S,T_P> >&                 physics
+        std::shared_ptr< PhysicsModel<T_S,T_P> >&                 physics,
+        double weight
         ) 
     :
       _parameters(parameters),
       _surrogates(surrogates),
-      _physics(physics)
+      _physics(physics),
+      _weight(weight)
     {
     }
   
@@ -42,6 +48,7 @@ namespace AGNOS
     {
       unsigned int dim = _parameters.size();
       unsigned int nChildren = std::pow(2,dim) ;
+      double weight = _weight;
 
       // TODO 
       //  Chnage to vector of smart ptrs instead?
@@ -62,6 +69,10 @@ namespace AGNOS
         double max = _parameters[0]->max() ;
         double midpoint = (min + max)/ 2.0;
 
+        // adjust child weight: divide by parent size
+        /* weight /= _parameters[0]->measure(min,max) ; */
+        // multiply by child size
+        weight *= _parameters[0]->measure(min,midpoint);
 
         allParams.push_back( 
             std::vector< std::shared_ptr<AGNOS::Parameter> >(
@@ -84,6 +95,11 @@ namespace AGNOS
         double min = _parameters[i]->min() ;
         double max = _parameters[i]->max() ;
         double midpoint = (min + max)/ 2.0;
+        
+        // adjust child weight: divide by parent size
+        /* weight /= _parameters[i]->measure(min,max) ; */
+        // multiply by child size
+        weight *= _parameters[i]->measure(min,midpoint);
 
         const unsigned int oldSize = allParams.size();
         for (unsigned int j=0; j<oldSize; j++)
@@ -106,14 +122,17 @@ namespace AGNOS
         }
       }
 
+
       // create new elements from new parameters
       for (unsigned int c=0; c<nChildren; c++)
       {
+
         newElements.push_back( 
             Element<T_S,T_P>(
               allParams[c],
               _surrogates,
-              _physics
+              _physics,
+              weight
               )
             );
         
@@ -122,6 +141,51 @@ namespace AGNOS
 
       return newElements;
     }
+
+  /********************************************//**
+   * \brief utility function to compute means over a selection of elements
+   ***********************************************/
+  void computeMeans( 
+      std::vector<std::string>&  solutionNames,
+      std::list<AGNOS::Element<T_S,T_P> >& activeElems,
+      std::map<std::string,T_P>& globalMeans 
+      )
+  {
+
+    globalMeans.clear();
+
+    // loop through elements
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
+      activeElems.begin();
+    for (; elit!=activeElems.end(); elit++)
+    {
+      // retrieve element mean coefficients
+      std::map<std::string,T_P> elementMeans
+        = elit->surrogates()[0]->mean( );
+
+      // add contributions from this element to global means
+      for(unsigned int i=0 ; i<solutionNames.size();i++)
+      {
+        agnos_assert( (elementMeans.count(solutionNames[i]) > 0) ) ;
+
+        // scale by elem weight
+        elementMeans[solutionNames[i]].scale( elit->weight() );
+        
+        if(globalMeans.count(solutionNames[i])==0)
+          globalMeans.insert( 
+              std::pair<std::string,T_P>(
+                solutionNames[i],elementMeans[solutionNames[i]] )
+              );
+        else
+          globalMeans[solutionNames[i]] += elementMeans[solutionNames[i]] ;
+
+
+      }
+        
+    }
+
+    return ;
+  }
 
   template class
     Element<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
