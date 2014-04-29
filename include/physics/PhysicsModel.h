@@ -70,6 +70,7 @@ namespace AGNOS
 
       /** Refinement methods for the physics model */
       virtual void refine( ) {};
+      virtual void refine( T_P errorIndicators ) {};
 
       /** return requested solution names */
       std::set<std::string> getAvailableSolutions( ) const
