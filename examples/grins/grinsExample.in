@@ -1,5 +1,5 @@
 [driver]
-maxIter = '2'
+maxIter = '1'
 adaptive = true
 simultRefine = false
 []
@@ -16,6 +16,7 @@ maxs = '0.1   9.0'
 [physics]
 type = 'grins'
 refine = true
+uniformRefine = false
 grins_input = 'grins.in'
 solutions = 'primal adjoint'
 
@@ -24,7 +25,7 @@ writeAdjointViz = true
 
 [./IncompressibleNavierStokes]
 mu = '$(0)'
-parabolic_profile_coeffs_1 = '0.0 0.0 -$(1)/32.0 0.0 0.0 $(1)/8.0'
+U = '$(1)'
 [../]
 
 []
@@ -40,7 +41,7 @@ anisotropic = false
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '0'
+  order = '8'
   computeSolutions='primal adjoint errorEstimate qoi'
   [../]
 
@@ -59,6 +60,7 @@ anisotropic = false
 [output]
 filename = './testFile.dat'
 solutions = 'errorEstimate qoi'
+computeMeans        = 1
 coefficients        = 1
 points              = 1
 weights             = 1

@@ -160,42 +160,62 @@ namespace AGNOS
 
 
   /********************************************//**
-   * All parameters bust be set. If only a subset of parameters are being
-   * treated as uncertain then set the deterministic parameters to CONSTANT.
-   * This will cause them to be treated as deterministic even though they will
-   * still be seen by AGNOS. 
+   * \brief set Parameter values for GRINS models
    *
-   * NOTE: This may cause issues in the future if we want try to do anisotropic
-   * refinement. 
+   * We assume that the variables are represented in the standard grins_input
+   * file as scalars. Use GetPot bracket expressions if they are not. Also
+   * parameters should be listed in the AGNOS input file as 
    *
+   * variable_name = '$(variable_number)'
+   *
+   * This will ensure they are properly replaced when setting parameter values
+   * for AGNOS.
+   *
+   * Will also work if one needs to define a vector variable based on one
+   * parameter, e.g. 
+   *
+   * parabolic_profile_coeffs_1 = '0.0 0.0 $(0) 0.0 0.0 $(1)'
+   *
+   * but user needs to be careful if evaluations such as $(0)/2.0 are needed
+   * since GetPot won't evaluate them for you without bracket expression, but it
+   * will try to evaluate bracket expressions on initilization of the GetPot
+   * object, before parameter values are inserted. . 
    ***********************************************/
   template<class T_S,class T_P>
   void PhysicsGrins<T_S,T_P>::_setParameterValues(
     const T_S& parameterValues )
   {
     
-    // change input file values 
-    //  - only set parameters that the user sets in in grins_input
-    //  - this way any type of physics can be handled from this class
+    // counter for the total number of parameters
     unsigned int nParams = 0;
+
+    // loop through physics in physics list
     std::map<std::string,std::map<std::string,std::string> >::iterator it;
     for( it = _grinsParameters.begin(); it != _grinsParameters.end();
         it++)
     {
+
+      // loop through variable definitions
       std::map<std::string, std::string>::iterator pit
         = _grinsParameters[it->first].begin(); 
       for( ; pit != _grinsParameters[it->first].end(); pit++)
       {
+        // output info
         if (AGNOS_DEBUG)
           std::cout << "pre -- " << pit->first << ": " << pit->second 
             << std::endl;
 
         // create copies of input strings to maniuplate
         std::string values( pit->second );
+
+        // initialize positions to 0
         std::size_t foundBegin=0, foundEnd=0; 
+
+        // find begining and end of parameter insertion
         foundBegin = values.find("$(",foundEnd) ;
         foundEnd = values.find(")",foundBegin+1) ;
-        // while they still exist in the line replace them
+
+        // if and while params still exist in the line replace them
         while( foundBegin < std::string::npos )
         {
           // extract parameter component
@@ -240,9 +260,9 @@ namespace AGNOS
             "Physics/"+it->first+"/"+pit->first, 
             values
             ) ;
-      }
+      } // end loop over variable names
 
-    }
+    } // end loop over physics in physics list
     
 
     // construct new physics list based on new parameter values
