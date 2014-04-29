@@ -34,6 +34,8 @@ namespace AGNOS
       double min() const;
       double max() const;
       double evalBasisPoly( int l, double x);
+      /** returns measure of [min,max] according to distribution */
+      double measure( double min, double max );
 
 
     private:
