@@ -96,6 +96,7 @@ namespace AGNOS
       // ---------------------
       // PHYSICS VARIABLES
       bool _refinePhysics;
+      bool _uniformRefine;
       // ---------------------
       
 
@@ -106,6 +107,7 @@ namespace AGNOS
       std::shared_ptr<std::ostream>   _os ;
       std::vector<std::string>  _solutionsToPrint ;
       bool                      _computeMeans;
+      bool                      _computeNorms;
       bool                      _outputIterations  ;
       bool                      _outputCoefficients  ;
       bool                      _outputErrorCoefficients  ;
