@@ -105,6 +105,7 @@ namespace AGNOS
       std::string               _outputFilename; 
       std::shared_ptr<std::ostream>   _os ;
       std::vector<std::string>  _solutionsToPrint ;
+      bool                      _computeMeans;
       bool                      _outputIterations  ;
       bool                      _outputCoefficients  ;
       bool                      _outputErrorCoefficients  ;

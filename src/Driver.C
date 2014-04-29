@@ -149,6 +149,7 @@ namespace AGNOS
     for (unsigned int i=0; i < input.vector_variable_size("solutions"); i++)
       _solutionsToPrint.push_back(input("solutions", "",i) );
 
+    _computeMeans        = input("computeMeans",true);
     _outputIterations    = input("iterations",false);
     _outputCoefficients  = input("coefficients",true);
     _outputWeights       = input("weights",true);
@@ -908,6 +909,26 @@ namespace AGNOS
     printSettings();
     std::cout << "    printing final solution data " << std::endl;
     printSolution(_maxIter);
+
+    // compute means of final surrogate
+    if(_computeMeans)
+    {
+      std::cout << "    computing means for final surrogate " << std::endl;
+      std::ostream& out = *(this->_os) ;
+      out << std::endl;
+      out << "#====================================================" 
+        << std::endl;
+      out << "#--------- MEANS ------------------\n";
+
+      std::map<std::string,T_P> globalMeans;
+      computeMeans( _solutionsToPrint, _activeElems, globalMeans );
+
+      for(unsigned int i=0; i<_solutionsToPrint.size();i++)
+      {
+        out << "solution: " << _solutionsToPrint[i] << std::endl;
+        globalMeans[_solutionsToPrint[i]].print(out) ; 
+      }
+    }
     
     // TODO generate samples and estimate stats 
     // sample surrogate
@@ -1101,7 +1122,7 @@ namespace AGNOS
     physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
 
     /**Add to global tally  */
-    globalPhysics+= std::pow(physicsError,2.) ;
+    globalPhysics+= elem.weight() * std::pow(physicsError,2.) ;
 
 
     // safe guard against there not being a secondary surrogate
@@ -1119,13 +1140,13 @@ namespace AGNOS
       // total error contribution
       double totalError     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
       elem._totalError = totalError ;
-      globalTotal += std::pow(totalError,2.);
+      globalTotal += elem.weight() * std::pow(totalError,2.);
 
       // surrogate error contribution
       double surrogateError = elem.surrogates()[0]->l2NormDifference( 
             *(elem.surrogates()[1]), "errorEstimate");
       elem._surrogateError = surrogateError ;
-      globalSurrogate += std::pow(surrogateError,2.) ;
+      globalSurrogate += elem.weight() * std::pow(surrogateError,2.) ;
 
 
       // keep track of max of error
