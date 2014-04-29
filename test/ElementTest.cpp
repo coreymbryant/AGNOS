@@ -190,10 +190,19 @@ using namespace AGNOS;
 
         T_S paramValue(dimension);
         paramValue(0) = 1.5;
-        T_P testValue ;
+        T_P testValue, testMean ;
 
         T_P baseValue = baseElement.surrogates()[0]->evaluate( "primal", paramValue );
         std::cout << "base testValue = " << baseValue(0) << std::endl;
+
+        std::map<std::string,T_P> baseMeans =
+          baseElement.surrogates()[0]->mean( );
+        T_P baseMean( baseMeans["primal"] );
+        std::cout << "base meanValue = " << baseMean(0) << std::endl;
+
+        double baseWeight = baseElement.weight();
+        std::cout << "base weight = " << baseWeight << std::endl;
+        double testWeight = 0.;
 
         std::vector< Element<T_S,T_P> > children = baseElement.split() ;
         for (unsigned int c=0; c<children.size(); c++)
@@ -219,12 +228,29 @@ using namespace AGNOS;
           std::cout << "child: " << c << " testValue = " << testValue(0) << std::endl;
           std::cout << "child: " << c << " diff = " << 
               std::abs(testValue(0) - baseValue(0)) << std::endl;
+          std::map<std::string,T_P> childMeans =
+            children[c].surrogates()[0]->mean( );
+          testMean = childMeans["primal"] ;
+          std::cout << "child: " << c << " meanValue = " << testMean(0) <<
+            std::endl;
+
+          std::cout << "child: " << c << " weight = " << children[c].weight() <<
+            std::endl;
+          testWeight += children[c].weight();
 
           CPPUNIT_ASSERT( 
               std::abs(testValue(0) - baseValue(0)) <= 1e-12
               );
+          CPPUNIT_ASSERT( 
+              std::abs(testMean(0) - baseMean(0)) <= 1e-12
+              );
 
         }
+
+        std::cout << " sum of child weights = " << testWeight << std::endl;
+        CPPUNIT_ASSERT( 
+            std::abs(testWeight - baseWeight) <= 1e-12
+            );
 
 
 
