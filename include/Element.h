@@ -30,7 +30,8 @@ namespace AGNOS
       Element( 
           std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
           std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
-          std::shared_ptr< PhysicsModel<T_S,T_P> >&               physics
+          std::shared_ptr< PhysicsModel<T_S,T_P> >&               physics,
+          double weight = 1.0
           ) ;
 
       /** Default destructor */
@@ -75,6 +76,9 @@ namespace AGNOS
       double _surrogateError ;
       double _totalError ;
 
+      /** get weight of this element */
+      double weight(){ return _weight;}
+
     protected:
       /** reference for parameters */
       std::vector< std::shared_ptr<AGNOS::Parameter> >  _parameters;
@@ -85,7 +89,19 @@ namespace AGNOS
       /** pointer to PhysicsModel */
       std::shared_ptr< PhysicsModel<T_S,T_P> > _physics;
 
+      /** weight of this element. Needed in multielement computations */
+      double _weight;
+
   }; // Element class
+
+  /********************************************//**
+   * \brief utility function to compute means over a selection of elements
+   ***********************************************/
+  void computeMeans( 
+      std::vector<std::string>&  solutions,
+      std::list<AGNOS::Element<T_S,T_P> >& activeElems,
+      std::map<std::string,T_P>& globalMeans 
+      );
 
 
 }
