@@ -161,6 +161,8 @@ namespace AGNOS
     _sampleFile          = input("sampleFile","./sampleFile");
     _nSamples            = input("nSamples",10000);
 
+    // reset prefix to root
+    input.set_prefix("") ;
   }
 
 /********************************************//**
