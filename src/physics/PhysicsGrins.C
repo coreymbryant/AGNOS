@@ -1,5 +1,7 @@
 
 #include "PhysicsGrins.h"
+#include "libmesh/dirichlet_boundaries.h"
+#include "grins/composite_function.h"
 
 /** libMesh includes */
 
@@ -16,7 +18,7 @@ namespace AGNOS
         ) 
   :
     PhysicsLibmesh<T_S,T_P>(comm_in,input),
-    _grinsInput(std::string( input("grins_input","./grins.in")) )
+    _grinsInput(std::string( input("grins_input","")) )
   {
     // define available solution names
     this->_availableSolutions.insert("primal");
@@ -99,9 +101,9 @@ namespace AGNOS
     qoi_indices.push_back(0);
     this->_qois->add_indices(qoi_indices);
     /* this->_qois->set_weight(0, 1.0); */
-    _differentiableQoI.reset( new GRINS::MyQoI ) ;
+    _differentiableQoI.reset( new MyQoI ) ;
     /* std::string name = "mine" ; */
-    /* GRINS::MyQoI myqoi( name ); */
+    /* MyQoI myqoi( name ); */
     /* _differentiableQoI->add_qoi( myqoi ) ; */
     /* _differentiableQoI->init( _grinsInput, *this->_multiphysicsSystem ) ; */
     this->_multiphysicsSystem->qoi.resize(1);
@@ -111,12 +113,6 @@ namespace AGNOS
     // Build estimator object 
     this->_buildErrorEstimator();
     
-    // we need to run a solve routine on all procs to make sure residuals are
-    // set up correctly when we go back to compute residuals with surrogate
-    // evaluations
-    // TODO: do we need to do this for this class?
-    /* this->_system->solve( ); */
-
     // print out some simulation info
     _simulation->print_sim_info();
 
@@ -201,7 +197,7 @@ namespace AGNOS
       for( ; pit != _grinsParameters[it->first].end(); pit++)
       {
         // output info
-        if (AGNOS_DEBUG)
+        /* if (AGNOS_DEBUG) */
           std::cout << "pre -- " << pit->first << ": " << pit->second 
             << std::endl;
 
@@ -247,6 +243,9 @@ namespace AGNOS
 
         } 
 
+        // find and replace variable strings in grins_input before reparsing 
+        _substituteVariable(std::string(pit->first),values);
+
         /* if (AGNOS_DEBUG) */
         {
           std::cout << " post -- " 
@@ -255,35 +254,116 @@ namespace AGNOS
             << pit->first << ": " << values << std::endl;
         }
 
-        // set grins input to new values
-        this->_grinsInput.set( 
-            "Physics/"+it->first+"/"+pit->first, 
-            values
-            ) ;
       } // end loop over variable names
 
     } // end loop over physics in physics list
-    
 
+    
+    // reparse grins input file to set new values
+    this->_grinsInput = GetPot( this->_input("physics/grins_input","") );
+
+    
     // construct new physics list based on new parameter values
     //    we have to construct a new list in order to set the value of
     //    parameters that are private in GRINS::Physics classes
     _physicsList = 
       this->_simulationBuilder->build_physics( this->_grinsInput ) ;
 
-    // init variables for new physics
-    GRINS::PhysicsListIter git ;
-    for(  git = _physicsList.begin(); git != _physicsList.end(); git++)
-      git->second->init_variables( _multiphysicsSystem );
-    
+
+    // get a reference to dof_map and dirichlet boundaries
+    libMesh::DofMap* dof_map = &(_multiphysicsSystem->get_dof_map());
+    libMesh::DirichletBoundaries* dirichlet_boundaries 
+      = dof_map->get_dirichlet_boundaries();
+
+    // remove all old dirichlet boundaries
+    while( !(dof_map->get_dirichlet_boundaries()->empty()) )
+      dof_map->remove_dirichlet_boundary(*((*dirichlet_boundaries)[0]));
+
+    // TODO this wont work for periodic boundaries because DofMap doesn't have a
+    // remove_periodic_boundary method
+    /* libMesh::PeriodicBoundaries* periodic_boundaries */ 
+      /* = dof_map->get_periodic_boundaries(); */
+    /* while( !(dof_map->get_periodic_boundaries()->empty()) ) */
+    /*   dof_map->remove_periodic_boundary(*((*periodic_boundaries)[0])); */
+
+    // reinit the physics variables
+    {
+      GRINS::PhysicsListIter git = _physicsList.begin();
+      for(  ; git != _physicsList.end(); git++ )
+        git->second->init_variables( _multiphysicsSystem );
+
+      git = _physicsList.begin();
+      for(  ; git != _physicsList.end(); git++ )
+        git->second->set_time_evolving_vars( _multiphysicsSystem );
+
+      git = _physicsList.begin();
+      git->second->set_is_steady((_multiphysicsSystem->time_solver)->is_steady());
+
+      for(  ; git != _physicsList.end(); git++ )
+        git->second->init_bcs( _multiphysicsSystem );
+
+      GRINS::CompositeFunction<libMesh::Number> ic_function;
+      for(  ; git != _physicsList.end(); git++ )
+        git->second->init_ics( _multiphysicsSystem, ic_function );
+
+      if (ic_function.n_subfunctions())
+          _multiphysicsSystem->project_solution(&ic_function);
+    }
+
+
     // attach new physics list to system
     _multiphysicsSystem->attach_physics_list( _physicsList );
+    _multiphysicsSystem->read_input_options( this->_grinsInput );
 
 
-    // reinit the equation system just to make sure all routines will use new
-    // values
-    this->_equationSystems->reinit() ;
+  }
 
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+  void PhysicsGrins<T_S,T_P>::_substituteVariable(
+      std::string varName, std::string varValue )
+  {
+    // open grins input file
+    std::string inputFile = this->_input("physics/grins_input","");
+    std::ifstream in( inputFile  ) ;
+    std::ofstream out( inputFile+".tmp" , std::ofstream::trunc ) ;
+
+    // vector to hold all of the file
+    std::vector<std::string> lines;
+
+
+    // read in lines
+    std::string line;
+    while(std::getline(in,line))
+    {
+      lines.push_back(line);
+    }
+
+    //close file
+    in.close();
+
+    for(unsigned int l=0;l<lines.size();l++)
+    {
+
+      // find variable in input file
+      size_t found = lines[l].find(varName+" = ");
+      // if found replace value with new value
+      if ( found != std::string::npos )
+        lines[l].replace(found+varName.length(),std::string::npos,
+            " = '"+varValue+"'") ;
+
+    }
+
+    // reopen file and overwrite
+    for(unsigned int l=0;l<lines.size();l++)
+      out << lines[l] << "\n" ;
+    out.close();
+
+    std::rename((inputFile+".tmp").c_str(),inputFile.c_str());
+
+    return; 
   }
 
 

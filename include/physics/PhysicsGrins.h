@@ -2,6 +2,8 @@
 #ifndef PHYSICS_GRINS_FLOW_H
 #define PHYSICS_GRINS_FLOW_H
 
+#include <fstream>
+
 #include "PhysicsLibmesh.h"
 #include "libmesh/quadrature.h"
 #include "libmesh/exodusII_io.h"
@@ -12,7 +14,6 @@
 #include "grins/simulation.h"
 #include "grins/multiphysics_sys.h"
 #include "grins/inc_navier_stokes_base.h"
-
 
 /** libMesh includes */
 
@@ -62,6 +63,9 @@ namespace AGNOS
       /** Parameter names and sizes */
       std::map<std::string, std::map<std::string,std::string> > 
         _grinsParameters;
+
+      /** substitute variables with parameter values in input file */
+      void _substituteVariable( std::string varName, std::string varValue );
 
       /** reference to GRINS multiphysics system */
       GRINS::MultiphysicsSystem* _multiphysicsSystem;
@@ -158,10 +162,8 @@ namespace AGNOS
 
   };
 
-}
 
-namespace GRINS 
-{
+
   class MyQoI : public libMesh::DifferentiableQoI
   {
     public:
@@ -256,6 +258,6 @@ namespace GRINS
     }
   };
 
-}
+} // end of namespace AGNOS
 
 #endif // PHYSICS_GRINS_FLOW_H

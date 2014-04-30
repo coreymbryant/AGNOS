@@ -79,14 +79,13 @@ V_order = 'SECOND'
 P_order = 'FIRST'
 
 rho = '1.0'
-mu = '0.10'
-U = '8.0'
-
+mu = '0.016249'
+U = '7.019943'
 
 bc_ids = '1 2'
 bc_types = 'parabolic_profile no_slip'
 
-parabolic_profile_coeffs_1 = '0.0 0.0 ${/ ${U} -32.0} 0.0 0.0 ${/ ${U} 8.0}'
+parabolic_profile_coeffs_1 = '0.0 0.0 ${* -0.03125 ${U}} 0.0 0.0 ${* 0.125 ${U}}'
 parabolic_profile_var_1 = 'u'
 parabolic_profile_fix_1 = 'v'
 
