@@ -43,7 +43,7 @@ output_vis = true
 output_vis_time_series = true
 output_vis_flag = true
 
-vis_output_file_prefix = '../examples/grins/steady'
+vis_output_file_prefix = 'steady'
 
 output_residual = false
 output_unsteady_residual = true
@@ -78,15 +78,15 @@ FE_family = 'LAGRANGE'
 V_order = 'SECOND'
 P_order = 'FIRST'
 
-rho = '1.0'
-mu = '0.10'
+rho = '1.000000'
+mu = '0.020143'
+U = '3.676210'
 
 
 bc_ids = '1 2'
 bc_types = 'parabolic_profile no_slip'
 
-parabolic_profile_coeffs_1 = '0.0 0.0 -0.09375 0.0 0.0 0.375'
-# parabolic_profile_coeffs_1 = '0.0 0.0 -0.28125 0.0 0.0 1.125'
+parabolic_profile_coeffs_1 = '0.0 0.0 ${* -0.03125 ${U}} 0.0 0.0 ${* 0.125 ${U}}'
 parabolic_profile_var_1 = 'u'
 parabolic_profile_fix_1 = 'v'
 

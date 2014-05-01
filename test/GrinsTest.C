@@ -49,7 +49,10 @@ BOOST_AUTO_TEST_CASE( grins_constructor )
 
   GetPot inputfile;
   inputfile = GetPot( );
+  inputfile.set("physics/grins_input","grins.in") ;
+  inputfile.set_prefix("physics/");
   PhysicsGrins<T_S,T_P> grinsSolver( comm, inputfile );
+  inputfile.set_prefix("");
 
   BOOST_REQUIRE( grinsSolver._availableSolutions.count("primal") );
   BOOST_REQUIRE( grinsSolver._availableSolutions.count("adjoint") );
@@ -86,12 +89,16 @@ BOOST_AUTO_TEST_CASE( grins_solve )
 
   GetPot inputfile;
   inputfile = GetPot( );
-  inputfile.set("physics/grins_input","./grins.in") ;
-  inputfile.set("physics/IncompressibleNavierStokes/rho","$(0)") ;
-  inputfile.set("physics/IncompressibleNavierStokes/mu","$(1)") ;
+  inputfile.set("physics/grins_input","grins.in") ;
+  inputfile.set("physics/IncompressibleNavierStokes/mu","$(0)") ;
+  inputfile.set("physics/IncompressibleNavierStokes/rho","$(1)") ;
+  inputfile.set_prefix("physics/");
+
   PhysicsGrins<T_S,T_P> grinsSolver(
       comm,inputfile
       );
+
+  inputfile.set_prefix("");
 
   // test setting parameter values
   std::vector<double> params(2,1.);
@@ -134,31 +141,36 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
   // istantiate phyiscs model
   GetPot inputfile;
   inputfile = GetPot( );
-  inputfile.set("physics/grins_input","./grins.in") ;
-  /* inputfile.set("physics/IncompressibleNavierStokes/mu","$(0)") ; */
-  /* inputfile.set( */
-  /*     "physics/IncompressibleNavierStokes/parabolic_profile_coeffs_1", */
-  /*     "0.0 0.0 -$(1)/32.0 0.0 0.0 $(1)/8.0") ; */
+  inputfile.set("physics/grins_input","grins.in") ;
+  inputfile.set("physics/IncompressibleNavierStokes/mu","$(0)") ;
+  inputfile.set("physics/IncompressibleNavierStokes/U","$(1)") ;
+  inputfile.set_prefix("physics/");
 
   std::shared_ptr<PhysicsLibmesh<T_S,T_P> > grinsSolver ; 
   grinsSolver = std::shared_ptr<PhysicsGrins<T_S,T_P> >(
       new PhysicsGrins<T_S,T_P> ( comm,inputfile )
       );
 
+  inputfile.set_prefix("");
+
   // construct parameter object
   unsigned int dimension = 2;
   std::vector<std::shared_ptr<AGNOS::Parameter> > parameters;
+  std::vector<double> nominalParamValue(dimension,1.);
+  // neither of these is the mid point
+  nominalParamValue[0] = 0.05 ; 
+  nominalParamValue[1] = 5.00 ;
 
 
   // build the constantSurrogate model
-  std::vector<unsigned int> order(dimension,2);
+  std::vector<unsigned int> order(dimension,0);
   parameters.push_back( 
       std::shared_ptr<AGNOS::Parameter>(
-        new AGNOS::Parameter("CONSTANT",0.055, 0.055) )
+        new AGNOS::Parameter("CONSTANT",nominalParamValue[0],nominalParamValue[0]) )
     ); 
   parameters.push_back( 
       std::shared_ptr<AGNOS::Parameter>(
-        new AGNOS::Parameter("CONSTANT",6.0, 6.0) )
+        new AGNOS::Parameter("CONSTANT",nominalParamValue[1],nominalParamValue[1]) )
     ); 
 
   std::set<std::string> computeSolutions ;
@@ -176,10 +188,6 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
   constantSurrogate.build( );
 
   // get the nominal solution we will compare to
-  std::vector<double> nominalParamValue(dimension,1.);
-  // neither of these is the mid point
-  nominalParamValue[0] = 0.05 ; 
-  nominalParamValue[1] = 5.00 ;
   T_S paramValue(nominalParamValue);
   T_P primalSol = constantSurrogate.evaluate( "primal", paramValue );
   T_P adjointSol = constantSurrogate.evaluate( "adjoint", paramValue );
@@ -198,13 +206,13 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
     ); 
   
   // build the uniformSurrogate model
-  /* std::vector<unsigned int> higherOrder(dimension,1); */
+  std::vector<unsigned int> higherOrder(dimension,1);
   std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >
     uniformSurrogate( new PseudoSpectralTensorProduct<T_S,T_P>(
         comm,
         grinsSolver,
         parameters, 
-        order  )
+        higherOrder  )
   );
 
   // build a secondary surrogate just to test errorEstimate
@@ -223,8 +231,8 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
 
   T_P primalPred, adjointPred;
   double surrogateError = 0.;
-  int iter=0, maxIter=2;
-  double tol = 1e-3, primalDiff,adjointDiff;
+  int iter=0, maxIter=0;
+  double tol = 1e-1, primalDiff,adjointDiff;
   bool condition = true ;
   do 
   {
@@ -271,5 +279,116 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
   BOOST_REQUIRE_SMALL( primalDiff, tol  );
   BOOST_REQUIRE_SMALL( adjointDiff, tol  );
   BOOST_REQUIRE_SMALL( surrogateError, tol  );
+
+}
+
+BOOST_AUTO_TEST_CASE( grins_qoi )
+{
+  // Set dummy inputs for libmesh initialization
+  int ac=1;
+  char** av = new char* [ac];
+
+  char* name = new char[27];
+  strcpy(name, "dummy");
+  
+  av[0] = name;
+  
+  // Initialize libmesh
+  MPI_Init(&ac,&av);
+  Communicator comm(MPI_COMM_WORLD);
+  PETSC_COMM_WORLD = MPI_COMM_WORLD ;
+  int ierr = PetscInitialize(&ac, const_cast<char***>(&av),NULL,NULL);
+  LibMeshInit init (ac, av);
+
+  // istantiate phyiscs model
+  GetPot inputfile;
+  inputfile = GetPot( );
+  inputfile.set("physics/grins_input","grins.in") ;
+  inputfile.set("physics/IncompressibleNavierStokes/mu","$(0)") ;
+  inputfile.set("physics/IncompressibleNavierStokes/U","$(1)") ;
+  inputfile.set_prefix("physics/");
+
+  std::shared_ptr<PhysicsLibmesh<T_S,T_P> > grinsSolver ; 
+  grinsSolver = std::shared_ptr<PhysicsGrins<T_S,T_P> >(
+      new PhysicsGrins<T_S,T_P> ( comm,inputfile )
+      );
+
+  inputfile.set_prefix("");
+
+  // construct parameter object
+  unsigned int dimension = 2;
+  std::vector<std::shared_ptr<AGNOS::Parameter> > parameters;
+
+
+  // build the constantSurrogate model
+  std::vector<unsigned int> order(dimension,2);
+  parameters.clear();
+  parameters.reserve(dimension);
+  parameters.push_back( 
+      std::shared_ptr<AGNOS::Parameter>(
+        new AGNOS::Parameter("UNIFORM",0.01, 0.1) )
+    ); 
+  parameters.push_back( 
+      std::shared_ptr<AGNOS::Parameter>(
+        new AGNOS::Parameter("UNIFORM",3.0, 9.0) )
+    ); 
+
+  std::set<std::string> computeSolutions ;
+  computeSolutions.insert("qoi");
+  PseudoSpectralTensorProduct<T_S,T_P> uniformSurrogate(
+        comm,
+        grinsSolver,
+        parameters, 
+        order,
+        computeSolutions
+        );
+
+  uniformSurrogate.build( );
+
+  // get predicted value and l2 norm
+  std::vector<double> nominalParamValue(dimension,1.);
+  nominalParamValue[0] = 0.055 ; 
+  nominalParamValue[1] = 6.00 ;
+  T_S paramValue(nominalParamValue);
+  T_P qoiValuePred = uniformSurrogate.evaluate("qoi",paramValue);
+  T_P qoiPred = uniformSurrogate.l2Norm("qoi");
+
+  double qoiTest = 2.821882618133331e-01;
+  double qoiValueTest = 2.864241366988038e-01;
+
+  int iter=0, maxIter=0;
+  double tol = 1e-2, qoiDiff, qoiValueDiff;
+  bool condition = true ;
+  do 
+  {
+    iter++;
+
+    uniformSurrogate.refine( );
+    uniformSurrogate.build( );
+
+    qoiPred = uniformSurrogate.l2Norm( "qoi" );
+    std::cout << "qoiPred = " << qoiPred(0) << std::endl;
+    qoiDiff = std::abs(qoiPred(0) - qoiTest) ;
+    std::cout << "qoiDiff = " << qoiDiff << std::endl;
+
+    qoiValuePred = uniformSurrogate.evaluate("qoi", paramValue);
+    std::cout << "qoiValuePred = " << qoiValuePred(0) << std::endl;
+    qoiValueDiff = std::abs(qoiValuePred(0) - qoiValueTest) ;
+    std::cout << "qoiValueDiff = " << qoiValueDiff << std::endl;
+
+    std::cout << " iter<maxIter: " << (iter<maxIter) << std::endl;
+    std::cout << " qoiDiff > tol: " << (qoiDiff>tol) << std::endl;
+    std::cout << " qoiValueDiff > tol: " << (qoiValueDiff>tol) << std::endl;
+    condition = 
+       (iter<maxIter) && (
+       (qoiDiff > tol) ||
+       (qoiValueDiff > tol) 
+       );
+    std::cout << "condition: " << condition << std::endl;
+
+  } while ( condition ) ;
+
+  BOOST_REQUIRE_SMALL( qoiDiff, tol  );
+  BOOST_REQUIRE_SMALL( qoiValueDiff, tol  );
 
 }
