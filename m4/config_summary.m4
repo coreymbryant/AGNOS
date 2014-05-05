@@ -39,7 +39,7 @@ echo GSL........................... : $GSL_PREFIX
 #echo GRINS......................... : $GRINS_PREFIX
 #echo QUESO......................... : $QUESO_PREFIX
 #echo Trilinos...................... : $TRILINOS_PREFIX
-#echo HDF5.......................... : $HDF5_PREFIX
+echo HDF5.......................... : $HDF5_PREFIX
 #echo GLPK.......................... : $GLPK_PREFIX
 echo
 echo Optional Packages:

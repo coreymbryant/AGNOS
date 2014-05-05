@@ -27,7 +27,7 @@ if ENABLE_GRINS
 libagnos_include_HEADERS += physics/PhysicsGrins.h
 endif
 
-libagnos_include_HEADERS += Element.h Driver.h 
+libagnos_include_HEADERS += ioHandler.h Element.h Driver.h 
 
 # Headers required from channel exec that are not in libchannelflow
 agnos_includedir = $(prefix)/include

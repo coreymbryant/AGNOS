@@ -23,7 +23,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 							 $(GSL_CFLAGS) \
-							 $(LIBMESH_CPPFLAGS)
+							 $(LIBMESH_CPPFLAGS) \
+							 $(HDF5_CFLAGS)
 
 #------------------------------------
 # Flags we need to pass to the linker
@@ -33,6 +34,7 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 						 $(GSL_LIBS) \
              $(LIBMESH_LIBS) \
              $(LIBMESH_LDFLAGS) \
+						 ${HDF5_CXXLIBS} \
 						 $(CPPUNIT_LIBS) \
 						 -L$(top_srcdir)/src/ -lagnos
 
@@ -44,10 +46,16 @@ shellfiles_src =
 #------------------------------------
 check_PROGRAMS       += LibmeshTest
 LibmeshTest_SOURCES   = LibmeshTest.C
-# LibmeshTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
-# LibmeshTest_LDADD     = -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
 TESTS += LibmeshTest.sh
 shellfiles_src += LibmeshTest.sh
+
+#------------------------------------
+# HDF5 test
+#------------------------------------
+check_PROGRAMS       += hdf5Test
+hdf5Test_SOURCES   = hdf5Test.C
+TESTS += hdf5Test.sh
+shellfiles_src += hdf5Test.sh
 
 
 

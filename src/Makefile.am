@@ -14,7 +14,8 @@ AM_CPPFLAGS = -I$(top_srcdir) \
 #-------------------------------------
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 							 $(GSL_CFLAGS) \
-							 $(LIBMESH_CPPFLAGS)
+							 $(LIBMESH_CPPFLAGS) \
+							 $(HDF5_CFLAGS)
 # AM_CPPFLAGS += $(LIBMESH_CPPFLAGS)
 
 #------------------------------------
@@ -25,7 +26,8 @@ AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 #              $(LIBMESH_LIBS) \
 #              $(LIBMESH_LDFLAGS)
 LIBS = $(LIBMESH_LIBS) \
-			 $(GSL_LIBS)
+			 $(GSL_LIBS) \
+			 $(HDF5_CXXLIBS) 
 
 #----------------------------------------
 # Programs and libraries we want to build
@@ -58,7 +60,7 @@ LIBS += -L$(GRINS_DIR)/lib/ -lgrins
 libagnos_la_SOURCES += physics/PhysicsGrins.C 
 endif
 
-libagnos_la_SOURCES += Element.C Driver.C 
+libagnos_la_SOURCES += ioHandler.C Element.C Driver.C 
 
 #-------------------------------------
 # Standalone executable
