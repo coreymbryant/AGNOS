@@ -127,6 +127,11 @@ AM_PATH_GSL([1.15],
             )
 
 # -------------------------------------------------------------
+# Check for hdf5
+# -------------------------------------------------------------
+AX_PATH_HDF5_NEW([1.8.0],[yes])
+
+# -------------------------------------------------------------
 # cppunit C++ unit testing -- disabled by default
 # -------------------------------------------------------------
 AC_ARG_ENABLE(cppunit,
@@ -219,6 +224,7 @@ AC_CONFIG_FILES(test/elementTest.sh,	        [chmod +x test/elementTest.sh])
 AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
 AC_CONFIG_FILES(test/GrinsTest.sh,	          [chmod +x test/GrinsTest.sh])
 AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
+AC_CONFIG_FILES(test/hdf5Test.sh,	            [chmod +x test/hdf5Test.sh])
 
 dnl-----------------------------------------------
 dnl Generate run scripts for examples
