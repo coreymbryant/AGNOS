@@ -11,30 +11,16 @@
 
 using namespace AGNOS;
 
-BOOST_AUTO_TEST_CASE( hdf5_open_close )
+BOOST_AUTO_TEST_CASE( ioHandler_user_block )
 {
   std::string fileName = "test.h5";
-
-  try {
-    // create a new file using default properties
-    H5File h5_file(fileName, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
-
-    // close file
-    h5_file.close();
-  }
-
-  catch( FileIException error )
-  {
-    error.printError();
-    exit(1);
-  }
-
-
+  writeUserBlock( fileName );
 }
 
 BOOST_AUTO_TEST_CASE( ioHadnler_write_parameters )
 {
   std::string fileName = "test.h5";
+  writeUserBlock( fileName );
 
   // construct parameter object
   unsigned int dimension = 3;
@@ -45,8 +31,21 @@ BOOST_AUTO_TEST_CASE( ioHadnler_write_parameters )
           new AGNOS::Parameter("CONSTANT",1.0,1.0) )
         );
 
+
+  // write parameters to file
   writeParameters( fileName, parameters );
 
+  //read in parameters from file
+  std::vector<std::shared_ptr<AGNOS::Parameter> > newParameters;
+  readParameters( fileName, newParameters );
 
+
+  BOOST_REQUIRE( (parameters.size() == newParameters.size() ) );
+  for(unsigned int i = 0; i<parameters.size();i++)
+  {
+    BOOST_REQUIRE( (parameters[i]->type() == newParameters[i]->type()) );
+    BOOST_REQUIRE( (parameters[i]->min() == newParameters[i]->min()) );
+    BOOST_REQUIRE( (parameters[i]->max() == newParameters[i]->max()) );
+  }
 
 }
