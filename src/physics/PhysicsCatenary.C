@@ -17,6 +17,11 @@ namespace AGNOS
     _communicator(comm_in),_input(input)
   {
     m_forcing = input("forcing",-10.0) ;
+    this->_availableSolutions.insert("primal");
+    this->_availableSolutions.insert("adjoint");
+    this->_availableSolutions.insert("qoi");
+    this->_availableSolutions.insert("errorEstimate");
+    this->_availableSolutions.insert("errorIndicators");
   }
 
 /********************************************//**
