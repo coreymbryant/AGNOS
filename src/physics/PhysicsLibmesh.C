@@ -11,77 +11,12 @@
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/error_vector.h"
-#include "libmesh/gnuplot_io.h"
-#include "libmesh/vtk_io.h"
 
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
 
 namespace AGNOS
 {
-  /********************************************//**
-   * \brief Save libmesh solution as gnuplot format
-   *
-   * 
-   ***********************************************/
-  void write_gnuplot(EquationSystems &es,
-        const T_S& paramVector,       // The parameter vector
-        std::string solution_type = "primal") // primal or adjoint solve
-  {
-    MeshBase &mesh = es.get_mesh();
-
-    std::ostringstream file_name_gp;
-    /* file_name_gp << solution_type */
-    /*               << ".out.gp." */
-    /*               << std::setw(2) */
-    /*               << std::setfill('0') */
-    /*               << std::right */
-    /*               << index; */
-    file_name_gp << solution_type
-                  << ".out.gp" ;
-    for (unsigned int i=0; i<paramVector.size(); i++)
-    {
-      file_name_gp 
-        << "_"
-        << std::setiosflags(std::ios::scientific) 
-        << std::setprecision(1) 
-        << std::setw(3) 
-        << paramVector(i) ;
-    }
-
-    GnuPlotIO(mesh).write_equation_systems
-      (file_name_gp.str(), es);
-  }
-
-  /********************************************//**
-   * \brief Save libmesh solution as vtk format
-   *
-   * 
-   ***********************************************/
-  void write_vtk(EquationSystems &es,
-        const T_S& paramVector,       // The parameter vector
-        std::string solution_type = "primal") // primal or adjoint solve
-  {
-    MeshBase &mesh = es.get_mesh();
-
-    std::ostringstream file_name;
-    file_name<< solution_type ;
-    for (unsigned int i=0; i<paramVector.size(); i++)
-    {
-      file_name
-        << "_"
-        << std::setiosflags(std::ios::scientific) 
-        << std::setprecision(1) 
-        << std::setw(3) 
-        << paramVector(i) ;
-    }
-    file_name << ".vtu" ;
-
-    std::cout << file_name.str() << std::endl;
-
-    VTKIO(mesh).write_equation_systems
-      (file_name.str(), es);
-  }
 
 /********************************************//**
  * \brief 
@@ -98,6 +33,8 @@ namespace AGNOS
     _errorEstimator(NULL),
     _qois(NULL),
     _timeStep(1),
+    _primalExio(NULL),
+    _adjointExio(NULL),
     PhysicsModel<T_S,T_P>(comm_in,input)
   {
 
@@ -133,6 +70,8 @@ namespace AGNOS
     _resolveAdjoint       = input("resolveAdjoint",false);
     // -----------------------------------------------------------
 
+
+    _initOutput( );
 
   }
   
@@ -953,9 +892,10 @@ namespace AGNOS
   void PhysicsLibmesh<T_S,T_P>::_outputPrimalViz( const T_S& paramVector )
     {
       if ( this->_mesh->mesh_dimension() == 1)
-        write_gnuplot(*this->_equationSystems,paramVector,"primal");
+        _writeGnuplot(*this->_equationSystems,paramVector,"primal");
       else
-        write_vtk(*this->_equationSystems,paramVector,"primal");
+        _writeExodus(*this->_equationSystems, paramVector, _primalExio,
+            "primal.exo"); 
       return;
     }
 
@@ -971,13 +911,93 @@ namespace AGNOS
       primal_solution.swap(dual_solution);
 
       if ( this->_mesh->mesh_dimension() == 1)
-        write_gnuplot(*this->_equationSystems,paramVector,"adjoint");
+        _writeGnuplot(*this->_equationSystems,paramVector,"adjoint");
       else
-          write_vtk(*this->_equationSystems,paramVector,"adjoint");
+        _writeExodus( *this->_equationSystems, paramVector, _adjointExio,
+            "adjoint.exo");
 
       primal_solution.swap(dual_solution);
       return ;
     }
+
+  /********************************************//**
+   * \brief Save libmesh solution as gnuplot format
+   *
+   * 
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_writeGnuplot(
+      EquationSystems &es,
+      const T_S& paramVector,       // The parameter vector
+      std::string solution_type ) // primal or adjoint solve
+  {
+    MeshBase &mesh = es.get_mesh();
+
+    std::ostringstream file_name_gp;
+    /* file_name_gp << solution_type */
+    /*               << ".out.gp." */
+    /*               << std::setw(2) */
+    /*               << std::setfill('0') */
+    /*               << std::right */
+    /*               << index; */
+    file_name_gp << solution_type
+                  << ".out.gp" ;
+    for (unsigned int i=0; i<paramVector.size(); i++)
+    {
+      file_name_gp 
+        << "_"
+        << std::setiosflags(std::ios::scientific) 
+        << std::setprecision(1) 
+        << std::setw(3) 
+        << paramVector(i) ;
+    }
+
+    GnuPlotIO(mesh).write_equation_systems
+      (file_name_gp.str(), es);
+  }
+
+  /********************************************//**
+   * \brief Output data in exodus format
+   *
+   * 
+   ***********************************************/
+  template<class T_S, class T_P>
+  void PhysicsLibmesh<T_S,T_P>::_writeExodus(
+      EquationSystems &es,
+      const T_S& paramVector,       // The parameter vector
+      libMesh::ExodusII_IO* exio,   // primal or adjoint solve
+      std::string fileName) 
+  {
+    
+    // output timestep info
+    exio->write_timestep(
+        fileName,
+        *this->_equationSystems,
+        this->_timeStep, this->_timeStep );
+
+    // output solution vectors
+    std::vector<std::string> solNames;
+    std::vector<libMesh::Number> solVec;
+    this->_equationSystems->build_variable_names(solNames,NULL,NULL);
+    this->_equationSystems->build_solution_vector(solVec,NULL);
+    exio->write_nodal_data(
+        fileName,
+        solVec,
+        solNames
+        );
+
+    // output parameters as global vars
+    std::vector<std::string> paramNames;
+    for(unsigned int i=0; i<paramVector.size();i++)
+      paramNames.push_back("parameter"+std::to_string(i));
+
+    std::vector<Number> soln = paramVector.get_values();
+
+    exio->write_global_data( soln, paramNames );
+
+    return;
+  }
+
 
   template class
     PhysicsLibmesh<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;
