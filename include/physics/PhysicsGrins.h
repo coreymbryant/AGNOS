@@ -6,8 +6,6 @@
 
 #include "PhysicsLibmesh.h"
 #include "libmesh/quadrature.h"
-#include "libmesh/exodusII_io.h"
-#include "libmesh/gmv_io.h"
 
 /** grins includes */
 #include "grins/simulation_builder.h"
@@ -76,89 +74,6 @@ namespace AGNOS
       /** Simulation  */
       std::shared_ptr<GRINS::Simulation> _simulation;
 
-      /** Output file */
-      libMesh::ExodusII_IO* _adjointExio;
-      libMesh::ExodusII_IO* _primalExio;
-      void _initOutput( )
-      {
-        _adjointExio = new ExodusII_IO(*this->_mesh);
-        _primalExio = new ExodusII_IO(*this->_mesh);
-        return;
-      }
-
-      /** Redefine how primal solution is output */
-      void _outputPrimalViz( const T_S& paramVector )
-      {
-        std::string fileName = "primal.exo" ;
-        
-        // output timestep info
-        _primalExio->write_timestep(
-            fileName,
-            *this->_equationSystems,
-            this->_timeStep, this->_timeStep );
-
-        // output solution vectors
-        std::vector<std::string> solNames;
-        std::vector<libMesh::Number> solVec;
-        this->_equationSystems->build_variable_names(solNames,NULL,NULL);
-        this->_equationSystems->build_solution_vector(solVec,NULL);
-        _primalExio->write_nodal_data(
-            fileName,
-            solVec,
-            solNames
-            );
-
-        // output parameters as global vars
-        std::vector<std::string> paramNames;
-        for(unsigned int i=0; i<paramVector.size();i++)
-          paramNames.push_back("parameter"+std::to_string(i));
-
-        std::vector<Number> soln = paramVector.get_values();
-
-        _primalExio->write_global_data( soln, paramNames );
-
-        return;
-      }
-
-      /** Redefine how adjoint solution is output */
-      void _outputAdjointViz( const T_S& paramVector )
-      {
-        std::string fileName = "adjoint.exo";
-
-        NumericVector<Number> &primal_solution = *this->_system->solution;
-        NumericVector<Number> &dual_solution 
-          = this->_system->get_adjoint_solution(0);
-        primal_solution.swap(dual_solution);
-
-        
-        // output timestep info
-        _adjointExio->write_timestep(
-            fileName,
-            *this->_equationSystems ,
-            this->_timeStep, this->_timeStep );
-        
-        // output solution vectors
-        std::vector<std::string> solNames;
-        std::vector<libMesh::Number> solVec;
-        this->_equationSystems->build_variable_names(solNames,NULL,NULL);
-        this->_equationSystems->build_solution_vector(solVec,NULL);
-        _adjointExio->write_nodal_data(
-            fileName,
-            solVec,
-            solNames
-            );
-
-        // output parameters as global vars
-        std::vector<std::string> paramNames;
-        for(unsigned int i=0; i<paramVector.size();i++)
-          paramNames.push_back("parameter"+std::to_string(i));
-
-        std::vector<Number> soln = paramVector.get_values();
-
-        _adjointExio->write_global_data( soln, paramNames );
-
-        primal_solution.swap(dual_solution);
-      }
 
   };
 

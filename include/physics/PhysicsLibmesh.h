@@ -15,7 +15,7 @@
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/error_vector.h"
 #include "libmesh/gnuplot_io.h"
-#include "libmesh/vtk_io.h"
+#include "libmesh/exodusII_io.h"
 
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
@@ -154,6 +154,34 @@ namespace AGNOS
           << std::endl ;
         return;
       }
+
+      /** output file objects */
+      libMesh::ExodusII_IO* _adjointExio;
+      libMesh::ExodusII_IO* _primalExio;
+
+      /** initialize output objects */
+      void _initOutput( )
+      {
+        if ( _mesh != NULL)
+        {
+          _adjointExio = new libMesh::ExodusII_IO(*_mesh);
+          _primalExio = new libMesh::ExodusII_IO(*_mesh);
+        }
+        return;
+      }
+
+      /** output visualization in exodus format */
+      void _writeExodus(
+        EquationSystems &es,
+        const T_S& paramVector,       // The parameter vector
+        libMesh::ExodusII_IO* exio,  // primal or adjoint solve
+        std::string fileName);
+
+      /** output visualization in gnuplot format */
+      void _writeGnuplot(
+        EquationSystems &es,
+        const T_S& paramVector,       // The parameter vector
+        std::string solution_type = "primal"); // primal or adjoint solve
 
 
   };
