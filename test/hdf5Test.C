@@ -14,21 +14,41 @@
 
 using namespace AGNOS;
 
+BOOST_AUTO_TEST_CASE( ioHandler_constructor )
+{
+  std::string fileName = "test.h5";
+
+  {
+    H5IO h5io( fileName, H5F_ACC_TRUNC );
+    BOOST_REQUIRE( (h5io.fileName() == fileName) ) ;
+    BOOST_REQUIRE( (h5io.accessFlag() == H5F_ACC_TRUNC) ) ;
+  }
+  {
+    H5IO h5io( fileName, H5F_ACC_RDONLY );
+    BOOST_REQUIRE( (h5io.accessFlag() == H5F_ACC_RDONLY) ) ;
+  }
+
+}
+
 BOOST_AUTO_TEST_CASE( ioHandler_user_block )
 {
   std::string fileName = "test.h5";
 
-  H5File* h5_file = writeUserBlock( fileName );
-  H5File* read_h5_file = readUserBlock( fileName );
+  {
+    H5IO h5io( fileName, H5F_ACC_TRUNC );
+    h5io.writeUserBlock( );
+  }
+  {
+    H5IO h5io( fileName, H5F_ACC_RDONLY );
+    h5io.readUserBlock( );
+  }
 
-  delete h5_file;
-  delete read_h5_file;
+
 }
 
 BOOST_AUTO_TEST_CASE( ioHadnler_parameters )
 {
   std::string fileName = "test.h5";
-  H5File* h5_file = writeUserBlock( fileName );
 
   // construct parameter object
   unsigned int dimension = 3;
@@ -41,14 +61,18 @@ BOOST_AUTO_TEST_CASE( ioHadnler_parameters )
 
 
   // write parameters to file
-  writeParameters( h5_file, parameters );
+  {
+    H5IO h5io( fileName, H5F_ACC_TRUNC );
+    h5io.writeParameters( h5io.file(), parameters );
+  }
 
-  delete h5_file;
-  h5_file = readUserBlock( fileName );
 
   //read in parameters from file
   std::vector<std::shared_ptr<AGNOS::Parameter> > newParameters;
-  readParameters( h5_file, newParameters );
+  {
+    H5IO h5io( fileName, H5F_ACC_RDONLY );
+    h5io.readParameters( h5io.file(), newParameters );
+  }
 
 
   BOOST_REQUIRE( (parameters.size() == newParameters.size() ) );
@@ -59,7 +83,6 @@ BOOST_AUTO_TEST_CASE( ioHadnler_parameters )
     BOOST_REQUIRE( (parameters[i]->max() == newParameters[i]->max()) );
   }
 
-  delete h5_file;
 }
 
 BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
@@ -112,22 +135,23 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
   /* surrogate->initialize(); */
   surrogate->build();
 
-  // write surrogate to file
   std::string fileName = "test.h5";
-  H5File* h5_file = writeUserBlock( fileName );
-  writeSurrogate( h5_file, surrogate );
-  delete h5_file;
-
+  // write surrogate to file
+  {
+    H5IO h5io( fileName, H5F_ACC_TRUNC );
+    h5io.writeSurrogate( h5io.file(), surrogate );
+  }
   //read in surrogate from file
   std::vector<unsigned int> readOrder;
   std::set<std::string> readComputeSolutions ;
   std::vector< std::vector<unsigned int> > readIndexSet ;
   std::map<std::string, LocalMatrix> readCoefficients ;
+  {
+    H5IO h5io( fileName, H5F_ACC_RDONLY );
+    h5io.readSurrogate( h5io.file(), 
+        readOrder, readComputeSolutions, readIndexSet, readCoefficients );
+  }
 
-  h5_file = readUserBlock( fileName );
-  readSurrogate( h5_file, readOrder, readComputeSolutions, readIndexSet,
-      readCoefficients );
-  delete h5_file;
 
   // check for order
   BOOST_REQUIRE( (order.size() == readOrder.size() ) );

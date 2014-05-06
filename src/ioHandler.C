@@ -3,29 +3,38 @@
 
 namespace AGNOS{
 
-  /** write user block to file for reference purposes */
-  H5File* writeUserBlock( std::string fileName )
+  /********************************************//**
+   * \brief Constructor
+   *
+   * by default it opens fileName with H5F_ACC_EXCL access flag and H5P_DEFAULT
+   * create and access propery lists. 
+   *
+   * 
+   ***********************************************/
+  H5IO::H5IO( std::string fileName, int accessFlag )
+    :
+    _h5File( new H5File(fileName, accessFlag, H5P_DEFAULT, H5P_DEFAULT )),
+    _fileName(fileName),
+    _accessFlag(accessFlag)
   {
-    // create a new file using default properties
-    H5File* h5_file 
-      = new H5File(fileName, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
-
-    return h5_file;
   }
+
+  
+  H5IO::~H5IO( )
+  {
+    delete _h5File;
+  }
+
+  /** write user block to file for reference purposes */
+  void H5IO::writeUserBlock(  )
+  { return ; }
 
   /** read in user block and get a reference to H5File object */
-  // H5F_RDONLY
-  H5File* readUserBlock( std::string fileName )
-  {
-    // create a new file using default properties
-    H5File* h5_file 
-      = new H5File(fileName, H5F_ACC_RDONLY, H5P_DEFAULT, H5P_DEFAULT );
-
-    return h5_file;
-  }
+  void H5IO::readUserBlock(  )
+  { return ; }
 
   /** write parameter info: dim, type, bounds; to HDF5 file*/
-  void writeParameters(
+  void H5IO::writeParameters(
       CommonFG* common,
       std::vector<std::shared_ptr<AGNOS::Parameter> > parameters)
   {
@@ -69,7 +78,7 @@ namespace AGNOS{
   }
 
   /** read parameter info: dim, type, bounds; from HDF5 file*/
-  void readParameters(
+  void H5IO::readParameters(
       CommonFG* common,
       std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters)
   {
@@ -110,7 +119,7 @@ namespace AGNOS{
   }
 
   /** write surrogate properties to HDF5 file */
-  void writeSurrogate( 
+  void H5IO::writeSurrogate( 
       CommonFG* common,
       std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >& surrogate )
   {
@@ -208,7 +217,7 @@ namespace AGNOS{
   }
 
   /** read surrogate properties from HDF5 file */
-  void readSurrogate( 
+  void H5IO::readSurrogate( 
       CommonFG* common,
       std::vector<unsigned int>& order,
       std::set<std::string>& computeSolutions,
