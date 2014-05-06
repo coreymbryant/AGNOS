@@ -78,13 +78,20 @@ MAINTAINERCLEANFILES = Makefile.in \
 											 catenary/testFile.dat \
 											 diffusion/testFile.dat \
 											 catenaryLibmesh/testFile.dat \
+											 catenaryLibmesh/*.txt \
+											 catenaryLibmesh/*.gp.* \
 											 viscousBurgers/testFile.dat \
+											 viscousBurgers/*.txt \
+											 viscousBurgers/*.gp.* \
 											 channelFlow/*.dat  \
 											 channelFlow/output/* \
 											 channelFlow/*.txt \
 											 channelFlow/*.out* \
+											 channelFlow/*.pdf \
 											 grins/*.dat  \
 											 grins/output/* \
+											 grins/*.exo \
+											 grins/*.pdf \
 											 grins/*.txt \
 											 grins/*.out*
 

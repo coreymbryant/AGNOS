@@ -112,5 +112,5 @@ endif
 # Want these put with the distro so we can run make check
 EXTRA_DIST = $(shellfiles_src) input_files test_data 
 
-CLEANFILES = *.out* test.log
+CLEANFILES = *.out* test.log *.h5
 
