@@ -6,6 +6,7 @@ libagnos_include_HEADERS = \
 											surrogate/Parameter.h \
 											surrogate/QuadratureRule.h \
 											surrogate/QuadratureTensorProduct.h \
+											surrogate/SurrogateModelBase.h \
 											surrogate/SurrogateModel.h \
 											surrogate/SurrogatePseudoSpectral.h \
 											surrogate/PseudoSpectralTensorProduct.h \

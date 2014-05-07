@@ -203,7 +203,8 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
         comm,
         flowSolver,
         parameters, 
-        order  )
+        order,
+        computeSolutions)
   );
 
   // build a secondary surrogate just to test errorEstimate
@@ -220,6 +221,7 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
       secondarySolutions )
       );
 
+
   T_P primalPred, adjointPred;
   double surrogateError = 0.;
   int iter=0, maxIter=2;
@@ -233,6 +235,7 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
     secondarySurrogate->refine();
     uniformSurrogate->build( );
     secondarySurrogate->build( );
+
 
     primalPred = uniformSurrogate->evaluate( "primal", paramValue );
     primalPred -= primalSol ;
