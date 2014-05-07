@@ -34,6 +34,7 @@ LIBS = $(LIBMESH_LIBS) \
 #----------------------------------------
 lib_LTLIBRARIES = libagnos.la
 libagnos_la_SOURCES = $(top_srcdir)/contrib/sandia_rules/sandia_rules.cpp \
+											surrogate/SurrogateModelBase.C \
 											surrogate/SurrogateModel.C \
 											surrogate/Parameter.C \
 											surrogate/QuadratureRule.C \
