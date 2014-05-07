@@ -1,9 +1,8 @@
 
-
+// local
 #include "agnosDefines.h"
 #include "PhysicsCatenary.h"
 #include "PseudoSpectralTensorProduct.h"
-// local
 #include "ioHandler.h"
 
 // boost
