@@ -29,7 +29,8 @@ namespace AGNOS
       /** Default constructor */
       Element( 
           std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
-          std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >& surrogates, 
+          std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >& 
+          surrogates, 
           std::shared_ptr< PhysicsModel<T_S,T_P> >&               physics,
           double weight = 1.0
           ) ;
@@ -54,8 +55,8 @@ namespace AGNOS
       { return _parameters; }
 
       /** return SurrogateModel pointer */
-      std::vector< std::shared_ptr< SurrogateModel<T_S,T_P> > > surrogates( ) const
-      { return _surrogates; }
+      std::map< std::string, std::shared_ptr< SurrogateModel<T_S,T_P> > > 
+        surrogates( ) const { return _surrogates; }
 
       /** return PhysicsModel pointer */
       std::shared_ptr<PhysicsModel<T_S,T_P> >  physics( ) const
@@ -63,7 +64,7 @@ namespace AGNOS
 
       /** Set surrogate model to new model */
       void setSurrogates(
-          std::vector< std::shared_ptr< SurrogateModel<T_S,T_P> > >&
+          std::map< std::string, std::shared_ptr< SurrogateModel<T_S,T_P> > >&
           newSurrogates )
       { _surrogates = newSurrogates; }
 
@@ -84,7 +85,8 @@ namespace AGNOS
       std::vector< std::shared_ptr<AGNOS::Parameter> >  _parameters;
 
       /** pointer to SurrogateModels */
-      std::vector< std::shared_ptr< SurrogateModel<T_S,T_P> > > _surrogates;
+      std::map< std::string, std::shared_ptr< SurrogateModel<T_S,T_P> > > 
+        _surrogates ;
 
       /** pointer to PhysicsModel */
       std::shared_ptr< PhysicsModel<T_S,T_P> > _physics;
