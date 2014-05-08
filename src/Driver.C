@@ -99,8 +99,8 @@ namespace AGNOS
     _anisotropic = input("anisotropic",false);
 
     /* initialize surrogate model container */
-    std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates =
-      _initSurrogate( input, parameters, physics ); 
+    std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > > 
+      surrogates = _initSurrogate( input, parameters, physics ); 
 
 
     // Construct a single initial element and add it to the update queue
@@ -124,8 +124,9 @@ namespace AGNOS
         for (unsigned int c=0; c<children.size(); c++)
         {
           // cosntruct a new surrogate for this element
-          std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > childSurrogates =
-              _initSurrogate( input, children[c].parameters(), children[c].physics() ) ;
+          std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > > 
+            childSurrogates = _initSurrogate( 
+                input, children[c].parameters(), children[c].physics() ) ;
           children[c].setSurrogates( childSurrogates ); 
 
           // save element to update queue
@@ -271,23 +272,19 @@ namespace AGNOS
  * handles the initialziation of each surrogate model listed in input file
  * 
  ***********************************************/
-  std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > >
+  std::map<std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >
     Driver::_initSurrogate( GetPot& input, 
         std::vector< std::shared_ptr<AGNOS::Parameter> > parameters,
         std::shared_ptr<PhysicsModel<T_S,T_P> > physics)
   {
     input.set_prefix("surrogateModels/");
     unsigned int nSurrogates = input.vector_variable_size("modelNames");
-    std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates;
-    surrogates.reserve(nSurrogates);
+    std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >
+      surrogates;
 
-    /* _surrogateNames.resize( input.vector_variable_size("modelNames") ); */
     for(unsigned int n=0; n < nSurrogates; n++)
     {
       std::string modelName = input("modelNames","", n);
-      _surrogateNames.insert( std::pair<std::string,unsigned int>(
-            modelName, n )
-          );
 
       // get section name and set prefix
       std::string sectionName = "surrogateModels/";
@@ -365,30 +362,38 @@ namespace AGNOS
             /** primary surrogate  */
             if ( primarySurrogate.empty() )
             {
-              surrogates.push_back(
-                  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
-                    new PseudoSpectralTensorProduct<T_S,T_P>( 
-                      _comm, 
-                      physics,
-                      parameters, 
-                      order,
-                      computeSolutions )
-                    ) 
+              surrogates.insert(
+                  std::pair< std::string,
+                  std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > >(
+                    modelName,
+                    std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                      new PseudoSpectralTensorProduct<T_S,T_P>( 
+                        _comm, 
+                        physics,
+                        parameters, 
+                        order,
+                        computeSolutions )
+                      ) 
+                    )
                   );
             }
             /** secondary surrogate  */
             else 
             {
-              surrogates.push_back(
-                  std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
-                    new PseudoSpectralTensorProduct<T_S,T_P>( 
-                      surrogates[_surrogateNames[primarySurrogate]],
-                      increaseOrder,
-                      multiplyOrder,
-                      evaluateSolutions,
-                      computeSolutions
-                      )
-                    ) 
+              surrogates.insert(
+                  std::pair< std::string,
+                  std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > >(
+                    modelName,
+                    std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+                      new PseudoSpectralTensorProduct<T_S,T_P>( 
+                        surrogates[primarySurrogate],
+                        increaseOrder,
+                        multiplyOrder,
+                        evaluateSolutions,
+                        computeSolutions
+                        )
+                      ) 
+                    )
                   );
             }
 
@@ -450,11 +455,13 @@ namespace AGNOS
     {
       const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
       // build initial approximation
-      for(unsigned int i=0;i<elem.surrogates().size(); i++)
+      std::map< std::string, std::shared_ptr< SurrogateModel<T_S,T_P> >
+        >::iterator sit = elem.surrogates().begin();
+      for(; sit != elem.surrogates().end(); sit++)
       {
-        std::cout << "pre surrogate build " << i << std::endl;
-        elem.surrogates()[i]->build();
-        std::cout << "post surrogate build " << i << std::endl;
+        std::cout << "pre surrogate build " << sit->first << std::endl;
+        sit->second->build();
+        std::cout << "post surrogate build " << sit->first << std::endl;
       }
 
       // add element to active list
@@ -638,7 +645,7 @@ namespace AGNOS
               // error contributions
               for (unsigned int c=0; c<children.size(); c++)
               {
-                std::vector< std::shared_ptr<SurrogateModel<T_S,T_P> > > 
+                std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > > 
                   childSurrogates = _initSurrogate( 
                       _input, children[c].parameters(), children[c].physics() ) ;
                 children[c].setSurrogates( childSurrogates ); 
@@ -680,16 +687,25 @@ namespace AGNOS
                 // if adaptiveDriver, use error Surrogate
                 if (_adaptiveDriver)
                 {
+                  std::map<std::string,
+                    std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > >::iterator
+                      sit = elit->surrogates().begin();
+                  std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >
+                    primarySurrogate = sit->second;
+                  sit++;
+                  std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >
+                    errorSurrogate = sit->second;
+
                   // get error coefficients
                   std::map< std::string, LocalMatrix> errorCoeffs =
-                    elit->surrogates()[1]->getCoefficients() ;
+                    errorSurrogate->getCoefficients() ;
     
 
                   // copy index sets (these are already sorted by construction)
                   std::vector< std::vector<unsigned int> > sortedN 
-                    = elit->surrogates()[0]->indexSet() ;
+                    = primarySurrogate->indexSet() ;
                   std::vector< std::vector<unsigned int> > sortedM 
-                    = elit->surrogates()[1]->indexSet() ;
+                    = errorSurrogate->indexSet() ;
 
                   /* if(AGNOS_DEBUG) */
                   {
@@ -715,13 +731,13 @@ namespace AGNOS
                   // determine largest coeff of error surrogate
                   unsigned int i, unique, maxIndex = 0;
                   double maxCoefficient = 0; 
-                  std::vector<std::vector<unsigned int> >::iterator sit = sortedM.begin(); 
+                  std::vector<std::vector<unsigned int> >::iterator iit = sortedM.begin(); 
 
                   if (!errorCoeffs.empty())
                   {
-                    for (i=0,unique=0;sit!= sortedM.end(); sit++, i++)
+                    for (i=0,unique=0;iit!= sortedM.end(); iit++, i++)
                     {
-                      if ( *sit != sortedN[i-unique] )
+                      if ( *iit != sortedN[i-unique] )
                       {
                         unique++;
 
@@ -734,8 +750,8 @@ namespace AGNOS
                         /* if(AGNOS_DEBUG) */
                         {
                           std::cout << " found one: index:" << i << "    " ;
-                          for (unsigned int j=0; j<sit->size(); j++)
-                            std::cout << (*sit)[j] << " " ;
+                          for (unsigned int j=0; j<iit->size(); j++)
+                            std::cout << (*iit)[j] << " " ;
                           std::cout << "   coeff value = " << errorCoeffs["errorEstimate"](i,0) ;
                           std::cout << std::endl;
                         } // if AGNOS_DEBUG
@@ -752,7 +768,7 @@ namespace AGNOS
                   // increase only that dir
                   for (unsigned int j=0; j<sortedM[maxIndex].size();j++)
                     if ( sortedM[maxIndex][j] >
-                        elit->surrogates()[0]->getExpansionOrder()[j] )
+                        primarySurrogate->getExpansionOrder()[j] )
                       increase[j] += _pIncrement[j];
 
                   if(AGNOS_DEBUG)
@@ -773,8 +789,11 @@ namespace AGNOS
               // refine all surrogates. We don't need to worry about the
               // anisotropic causing problems with secondary surrogates,
               // refinement based on primary takes precedence. 
-              for(unsigned int i=0;i<elit->surrogates().size(); i++)
-                elit->surrogates()[i]->refine( increase ) ;
+              std::map< std::string,
+                std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > >::iterator sit
+                  = elit->surrogates().begin();
+              for(;sit !=elit->surrogates().end(); sit++)
+                sit->second->refine( increase ) ;
               
               // add to update queue
               _elemsToUpdate.push(*elit);
@@ -840,13 +859,16 @@ namespace AGNOS
         const AGNOS::Element<T_S,T_P>& elem = _elemsToUpdate.front();
 
         // rebuild surrogates for elements that need updated
-        for(unsigned int i=0;i<elem.surrogates().size(); i++)
+        std::map< std::string,
+          std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > >::iterator sit
+            = elit->surrogates().begin();
+        for(;sit != elem.surrogates().end(); sit++)
         {
           if(AGNOS_DEBUG)
-            std::cout << "DEBUG: pre surrogate build " << i << " rank-" << globalRank << std::endl;
-          elem.surrogates()[i]->build();
+            std::cout << "DEBUG: pre surrogate build " << sit->first << " rank-" << globalRank << std::endl;
+          sit->second->build();
           if(AGNOS_DEBUG)
-            std::cout << "DEBUG: post surrogate build " << i << " rank-" << globalRank << std::endl;
+            std::cout << "DEBUG: post surrogate build " << sit->first << " rank-" << globalRank << std::endl;
         }
 
         // remove element from update list
@@ -982,7 +1004,8 @@ namespace AGNOS
       for (; elit!=_activeElems.end(); elit++)
       {
         // at this point only sample from primary surrogate
-        elit->surrogates()[0]->sample( "qoi", _nSamples, sampleVec  );
+        elit->surrogates().begin()->second->sample( 
+            "qoi", _nSamples, sampleVec  );
 
         for(unsigned int s=0; s<_nSamples; s++)
           sampleOut << sampleVec[s](0) << std::endl;
@@ -1071,17 +1094,18 @@ namespace AGNOS
         out << std::endl;
       }
 
-      std::map<std::string,unsigned int>::iterator sid =
-        _surrogateNames.begin();
-      for(; sid !=_surrogateNames.end(); ++sid)
+      std::map< std::string, std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >
+        >::iterator sit = elit->surrogates().begin();
+      for(; sit !=elit->surrogates().end(); ++sit)
       {
         if (this->_comm.rank() == 0)
         {
           out << "#----------------------------------------------------" <<
             std::endl;
-          out << "#     " << sid->first << ": " << std::endl;
+          out << "#     " << sit->first << ": " << std::endl;
           out << "#     order = " ;
-          std::vector<unsigned int> order = elit->surrogates()[sid->second]->getExpansionOrder();
+          std::vector<unsigned int> order 
+            = sit->second->getExpansionOrder();
           for(unsigned int i=0; i < _paramDim; i++)
             out << order[i] << " " ;
           out << std::endl;
@@ -1089,13 +1113,13 @@ namespace AGNOS
         }
 
         if (_outputCoefficients)
-          elit->surrogates()[sid->second]->printCoefficients( _solutionsToPrint, out );
+          sit->second->printCoefficients( _solutionsToPrint, out );
         if (_outputWeights)
-          elit->surrogates()[sid->second]->printIntegrationWeights( out );
+          sit->second->printIntegrationWeights( out );
         if (_outputPoints)
-          elit->surrogates()[sid->second]->printIntegrationPoints( out );
+          sit->second->printIntegrationPoints( out );
         if (_outputIndexSet)
-          elit->surrogates()[sid->second]->printIndexSet( out );
+          sit->second->printIndexSet( out );
       }
 
       if (this->_comm.rank() == 0)
@@ -1153,9 +1177,13 @@ namespace AGNOS
     globalTotal *= globalTotal;
     globalSurrogate *= globalSurrogate ;
 
+    std::map< std::string, std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >
+      >::iterator sit = elem.surrogates().begin();
+    std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> >
+      primarySurrogate = sit->second;
+
     // get physics error contrib
-    double physicsError;
-    physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
+    double physicsError = (primarySurrogate->l2Norm( "errorEstimate"))(0);
 
     /**Add to global tally  */
     globalPhysics+= elem.weight() * std::pow(physicsError,2.) ;
@@ -1173,14 +1201,18 @@ namespace AGNOS
     }
     else
     {
+      sit++;
+      std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > errorSurrogate 
+        = sit->second;
       // total error contribution
-      double totalError     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
+      double totalError = 
+        ( errorSurrogate->l2Norm( "errorEstimate") )(0);
       elem._totalError = totalError ;
       globalTotal += elem.weight() * std::pow(totalError,2.);
 
       // surrogate error contribution
-      double surrogateError = elem.surrogates()[0]->l2NormDifference( 
-            *(elem.surrogates()[1]), "errorEstimate");
+      double surrogateError = primarySurrogate->l2NormDifference( 
+            *(errorSurrogate), "errorEstimate");
       elem._surrogateError = surrogateError ;
       globalSurrogate += elem.weight() * std::pow(surrogateError,2.) ;
 
