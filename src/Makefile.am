@@ -36,11 +36,13 @@ lib_LTLIBRARIES = libagnos.la
 libagnos_la_SOURCES = $(top_srcdir)/contrib/sandia_rules/sandia_rules.cpp \
 											surrogate/SurrogateModelBase.C \
 											surrogate/SurrogateModel.C \
+											surrogate/SurrogateEvaluator.C \
 											surrogate/Parameter.C \
 											surrogate/QuadratureRule.C \
 											surrogate/QuadratureTensorProduct.C \
 											surrogate/SurrogatePseudoSpectral.C \
 											surrogate/PseudoSpectralTensorProduct.C \
+											surrogate/EvaluatorPseudoSpectral.C \
 											physics/PhysicsUser.C \
 											physics/PhysicsCatenary.C \
 											physics/PhysicsLibmesh.C \

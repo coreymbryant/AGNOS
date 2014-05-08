@@ -8,6 +8,12 @@
 namespace AGNOS
 {
 
+  enum SurrogateModelType{
+    PSEUDO_SPECTRAL_TENSOR_PRODUCT=0,
+    PSEUDO_SPECTRAL_SPARSE_GRID,
+    PSEUDO_SPECTRAL_MONTE_CARLO,
+    COLLOCATION };
+
 
   /********************************************//**
    * \brief Surrogate model class
@@ -16,7 +22,7 @@ namespace AGNOS
    * PhysicsModel must be provided
    ***********************************************/
   template<class T_S, class T_P>
-  class SurrogateModel : public SurrogateModelBase<T_S,T_P>
+  class SurrogateModel : virtual public SurrogateModelBase<T_S,T_P>
   {
 
 
@@ -64,14 +70,10 @@ namespace AGNOS
       virtual void printIntegrationWeights( std::ostream& out ) const = 0;
       /** print integration points */
       virtual void printIntegrationPoints( std::ostream& out ) const = 0;
-      /** print index set */
-      virtual void printIndexSet( std::ostream& out ) const = 0;
       /** print integration weights in table format*/
       virtual void prettyPrintIntegrationWeights( ) const = 0;
       /** print integration weights in table format*/
       virtual void prettyPrintIntegrationPoints( ) const = 0;
-      /** print integration weights in table format*/
-      virtual void prettyPrintIndexSet( ) const = 0;
 
       /** reference to physics pointer */
       std::shared_ptr<PhysicsModel<T_S,T_P> > getPhysics( ) const

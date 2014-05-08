@@ -225,6 +225,7 @@ AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
 AC_CONFIG_FILES(test/GrinsTest.sh,	          [chmod +x test/GrinsTest.sh])
 AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
 AC_CONFIG_FILES(test/hdf5Test.sh,	            [chmod +x test/hdf5Test.sh])
+AC_CONFIG_FILES(test/EvaluatorTest.sh,	      [chmod +x test/EvaluatorTest.sh])
 
 dnl-----------------------------------------------
 dnl Generate run scripts for examples

@@ -1,5 +1,6 @@
 
 #include "SurrogateModelBase.h"
+#include "QuadratureTensorProduct.h"
 #include <gsl/gsl_rng.h>
 namespace AGNOS
 {
@@ -78,7 +79,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P> 
     const std::map< std::string, LocalMatrix >
-    SurrogateModelBase<T_S,T_P>::getCoefficients( ) 
+    SurrogateModelBase<T_S,T_P>::getCoefficients( ) const
     {
       if(AGNOS_DEBUG)
         std::cout << "DEBUG: entering getCoefficients routine" << std::endl;
@@ -97,7 +98,8 @@ namespace AGNOS
           if(AGNOS_DEBUG)
             std::cout << "DEBUG: getCoefficients routine: id: " << *id << std::endl;
 
-          unsigned int solSize = _solSize[*id];
+          unsigned int solSize 
+            = const_cast<SurrogateModelBase<T_S,T_P>*>(this)->_solSize[*id];
           LocalMatrix solCoefficients(this->_totalNCoeff,solSize);
 
           if (myRank == 0)
@@ -119,7 +121,9 @@ namespace AGNOS
               {
                 /* std::cout<<"solCoeff("<<i<<","<<j<<"):" */
                 /*   << (*this->_coefficients[*id])(i,j) << std::endl; */
-                solCoefficients(i,j) = (*this->_coefficients[*id])(i,j)  ;
+                solCoefficients(i,j) 
+                  = (*const_cast<SurrogateModelBase<T_S,T_P>*>(this)
+                      ->_coefficients[*id])(i,j)  ;
               }
 
 
@@ -185,7 +189,10 @@ namespace AGNOS
                 {
                   /* std::cout << "rank " << myRank << " _coefficients(i,j): " << */
                   /*   (*this->_coefficients[*id])(i,j) << std::endl; */
-                  cbuf.push_back( (*this->_coefficients[*id])(i,j) )  ;
+                  cbuf.push_back( 
+                      (*const_cast<SurrogateModelBase<T_S,T_P>*>(this)
+                       ->_coefficients[*id])(i,j) 
+                      )  ;
                 }
 
               } // for j in index set
@@ -522,6 +529,80 @@ namespace AGNOS
   
 
   /********************************************//**
+   * \brief calculate l2 norm by integration
+   ***********************************************/
+  template<class T_S, class T_P>
+    std::map< std::string, T_P> SurrogateModelBase<T_S,T_P>::l2Norm(
+        std::set< std::string > solutionNames
+        )
+    {
+
+
+      // initialize to zero
+      std::map< std::string, T_P> l2norm;
+      std::set<std::string>::iterator id = solutionNames.begin();
+      for (; id != solutionNames.end(); id++)
+      {
+        l2norm.insert( std::pair<std::string,T_P>(
+              *id, T_P( std::vector<double>(this->_solSize[*id],0.) ) )
+            );
+      }
+
+      if(this->_groupRank==0)
+      {
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+        for(unsigned int i=0; i<integrationOrder.size();i++)
+          integrationOrder[i] += 0;
+
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
+        {
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
+
+          std::map<std::string,T_P> pointValue 
+            = this->evaluate(solutionNames,paramValues,true);
+          for (id=solutionNames.begin(); id != solutionNames.end(); id++)
+          {
+
+            for(unsigned int j=0; j<l2norm[*id].size();j++)
+              l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
+                * quadWeights[i] ; 
+          }
+
+        } // end loop over quad points
+
+      } // end groupRank == 0
+
+      
+      // take square root
+      for (id=solutionNames.begin(); id != solutionNames.end(); id++)
+      {
+
+        for(unsigned int j=0; j<l2norm[*id].size();j++)
+          l2norm[*id](j) =  std::sqrt( l2norm[*id](j) );
+      }
+
+
+      return l2norm;
+    }
+
+
+  /********************************************//**
    * \brief 
    ***********************************************/
   template<class T_S,class T_P>
@@ -529,11 +610,147 @@ namespace AGNOS
         SurrogateModelBase<T_S,T_P>& comparisonModel,
         std::string solutionName )
     {
-      std::cerr << "\n\t ERROR: l2NormDifference( ... )"
-        << " is not implemented in derived class\n" 
-        << std::endl;
-      exit(1);
+
+      // make sure solutionName is present in both models
+      // evaluate at integration points
+      //
+      //
+      // initialize to zero
+      double l2norm = 0;
+
+      if (this->_solutionNames.count(solutionName) == 0) 
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " base model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+      if (comparisonModel.getSolutionNames().count(solutionName) == 0 )
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " comparison model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+
+      if(this->_groupRank==0)
+      {
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+        std::vector<unsigned int> comparisonOrder 
+          = comparisonModel.getExpansionOrder() ;
+        for(unsigned int i=0; i<integrationOrder.size();i++)
+          integrationOrder[i] 
+            = std::max(integrationOrder[i],comparisonOrder[i]) 
+            + 0;
+
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
+        {
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
+
+          T_P diffVec = this->evaluate(solutionName,paramValues);
+          /* std::cout << " test: base model eval " << std::endl; */
+          diffVec -= comparisonModel.evaluate(solutionName,paramValues);
+          /* std::cout << " test: comparison model eval " << std::endl; */
+
+
+          l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
+          /* l2norm += 1  * quadWeights[i] ; */ 
+
+        } // end loop over quad points
+
+      } // end of if groupRank == 0
+
+      
+      // take square root
+      l2norm =  std::sqrt( l2norm );
+
+
+      return l2norm;
+
     }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+    template<class T_S, class T_P> 
+      void SurrogateModelBase<T_S,T_P>::printIndexSet( std::ostream& out ) const
+      {
+        if (this->_groupRank == 0)
+        {
+          out << std::endl;
+      out << "#----------------------------------------------------" <<
+            std::endl;
+          out << "# Index Set" << std::endl;
+          out << "#----------------------------------------------------" <<
+          std::endl;
+
+          for (unsigned int i=0; i< _indexSet.size(); i++)
+          {
+            for (unsigned int j=0; j< _indexSet[i].size(); j++)
+            {
+              out << std::setw(5) << _indexSet[i][j] << " " ;
+            }
+            out << std::endl;
+          }
+          out << "#----------------------------------------------------" <<
+            std::endl;
+        }
+
+      return ;
+    }
+
+/********************************************//**
+ * \brief 
+ ***********************************************/
+  template<class T_S, class T_P> 
+    void SurrogateModelBase<T_S,T_P>::prettyPrintIndexSet( ) const
+    {
+      if (this->_groupRank == 0)
+      {
+        std::cout << std::endl;
+        std::cout << "====================================================" <<
+          std::endl;
+        std::cout << " Index Set" << std::endl;
+        std::cout << "----------------------------------------------------" <<
+        std::endl;
+      std::cout << "   \\ dir      " << std::endl;
+      std::cout << "    \\        " ;
+      for(unsigned int dim=0; dim < this->_dimension; dim++)
+        std::cout << std::setw(4) << "xi_" << dim << " " ;
+      std::cout << std::endl;
+      std::cout << "  id \\  " << std::endl;
+      std::cout << "----------------------------------------------------" <<
+        std::endl;
+        for (unsigned int i=0; i< _indexSet.size(); i++)
+        {
+        std::cout << std::setw(5) << i << "   |   ";
+          for (unsigned int j=0; j< _indexSet[i].size(); j++)
+          {
+            std::cout << std::setw(5) << _indexSet[i][j] << " " ;
+          }
+          std::cout << std::endl;
+        }
+
+      }
+      return ;
+    }
+
 
 
   template class 

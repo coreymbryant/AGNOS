@@ -16,6 +16,7 @@ namespace AGNOS
         std::set<std::string> computeSolutions
         )
       :
+        SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions),
         SurrogatePseudoSpectral<T_S,T_P>( comm, physics,
             parameters, order, computeSolutions)
     {
@@ -32,8 +33,14 @@ namespace AGNOS
         std::set<std::string> evaluateSolutions,
         std::set<std::string> computeSolutions
         )
-      : SurrogatePseudoSpectral<T_S,T_P>(primarySurrogate, increaseOrder,
-          multiplyOrder, evaluateSolutions, computeSolutions)
+        : 
+          SurrogateModelBase<T_S,T_P>(
+            primarySurrogate->getComm(),
+            primarySurrogate->getParameters(),
+            primarySurrogate->getExpansionOrder(),
+            computeSolutions),
+         SurrogatePseudoSpectral<T_S,T_P>(primarySurrogate, increaseOrder,
+            multiplyOrder, evaluateSolutions, computeSolutions)
     {
     }
 

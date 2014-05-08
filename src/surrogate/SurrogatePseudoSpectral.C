@@ -15,8 +15,10 @@ namespace AGNOS
         const std::vector<unsigned int>& order,
         std::set<std::string> computeSolutions
         )
-      : SurrogateModel<T_S,T_P>( comm, physics, parameters, order,
-          computeSolutions) 
+      : 
+        SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions),
+        EvaluatorPseudoSpectral<T_S,T_P>(comm,parameters,order,computeSolutions),
+        SurrogateModel<T_S,T_P>(comm,physics,parameters,order,computeSolutions)
     {
     }
 
@@ -32,7 +34,18 @@ namespace AGNOS
         std::set<std::string> evaluateSolutions,
         std::set<std::string> computeSolutions
         )
-      : SurrogateModel<T_S,T_P>(primarySurrogate, increaseOrder, multiplyOrder,
+      : 
+        SurrogateModelBase<T_S,T_P>(
+            primarySurrogate->getComm(),
+            primarySurrogate->getParameters(),
+            primarySurrogate->getExpansionOrder(),
+            computeSolutions),
+        EvaluatorPseudoSpectral<T_S,T_P>(
+            primarySurrogate->getComm(),
+            primarySurrogate->getParameters(),
+            primarySurrogate->getExpansionOrder(), 
+            computeSolutions),
+        SurrogateModel<T_S,T_P>(primarySurrogate, increaseOrder, multiplyOrder,
           evaluateSolutions, computeSolutions)
     {
     }
@@ -76,42 +89,6 @@ namespace AGNOS
     return _integrationPoints;
   }
 
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P> 
-    const std::vector< std::vector< unsigned int> > 
-    SurrogatePseudoSpectral<T_S,T_P>::indexSet( ) const
-    {
-      return _indexSet;
-    }
-
-/********************************************//**
- * \brief 
- *
- * 
- ***********************************************/
-  template<class T_S, class T_P> 
-    std::vector<double> SurrogatePseudoSpectral<T_S,T_P>::evaluateBasis( 
-        const std::vector< std::vector< unsigned int > >& indexSet,
-        T_S& parameterValue 
-        ) const
-    {
-      unsigned int nTerms = indexSet.size() ;
-      std::vector<double> basisValues( nTerms ,1.);
-
-      for(unsigned int id=0; id < nTerms ; id++)
-        for(unsigned int dir=0; dir < this->_dimension; dir++)
-        {
-          basisValues[id] 
-            *= this->_parameters[dir]->evalBasisPoly( 
-                indexSet[id][dir], parameterValue(dir) ) ;
-        }
-
-      return basisValues;
-    }
 
 /********************************************//**
  * \brief 
@@ -591,122 +568,6 @@ namespace AGNOS
 
 /********************************************//**
  * \brief 
- * 
- ***********************************************/
-  template<class T_S, class T_P>
-    std::map<std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::evaluate( 
-        std::set< std::string > solutionNames,
-        T_S& parameterValues, /**< parameter values to evaluate*/
-        bool saveLocal  /**< save solution locally after evaluation*/
-        ) const
-    {
-      if(AGNOS_DEBUG)
-        std::cout << "DEBUG: entering surrogate evaluate" << std::endl;
-
-      // initalize some data structure
-      unsigned int totalNCoeff = this->_totalNCoeff;
-      std::map< std::string, T_P> surrogateValue;
-
-      PetscErrorCode ierr;
-
-      if(this->_groupRank==0)
-      {
-
-        // initalize polyValues data structure
-        Vec polyValuesVec;
-        ierr = VecCreateMPI(
-            this->_comm.get(),  // comm
-            PETSC_DECIDE,       // local size (let petsc decide)
-            totalNCoeff,        // global size
-            &polyValuesVec);    // vector
-        Vector polyValues(polyValuesVec,this->_comm);
-        polyValues.zero();
-
-          
-        // evaluate all basis polys at given parameterValue
-        std::vector<double> myPolyVals = evaluateBasis( 
-            this->_indexSet,
-            parameterValues 
-            );
-        
-        // copy poly vals into Petsc data structure
-        for(unsigned int i=0; i<polyValues.local_size(); i++)
-          polyValues.set( i+polyValues.first_local_index() ,
-              myPolyVals[i+polyValues.first_local_index()] ) ;
-
-        // close vector
-        polyValues.close();
-
-
-        // loop over all solutions requested
-        std::set<std::string>::iterator id = solutionNames.begin();
-        for (; id != solutionNames.end(); id++)
-        {
-          // Make sure we have all the requested solution names
-          if
-            (!const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->getSolutionNames().count(*id))
-          {
-            std::cout << std::endl;
-            std::cerr 
-              << " ERROR: requested evaluation for solution " 
-              << *id << ", " 
-              << "which isn't present."
-              << std::endl;
-            std::cout << std::endl;
-            std::abort();
-          }
-
-          // reference for solution size
-          unsigned int solSize 
-            = const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_solSize[*id] ;
-
-
-          if(AGNOS_DEBUG)
-            std::cout << "DEBUG: evaluating surrogate model for: " << *id <<
-              "with size:" <<  solSize << std::endl;
-
-
-          // create vector to store result of evaluation
-          Vec resultVec;;
-          ierr = VecCreateMPI(
-              this->_comm.get(), 
-              PETSC_DECIDE,
-              solSize,
-              &resultVec);
-          Vector result(resultVec,this->_comm);
-          result.zero();
-
-          // compute  matrix vector product b/w polyValues and coefficient matrix
-          ierr = MatMultTranspose( 
-              (const_cast<SurrogatePseudoSpectral<T_S,T_P>*>(this)->_coefficients[*id])->mat(),
-              polyValues.vec(),
-              result.vec()
-              );
-
-
-          // localize result on each processor
-          std::vector<double> localResult(solSize,0.);
-          result.localize(localResult);
-            
-          if (saveLocal)
-          {
-            // save result in return map
-            surrogateValue.insert(
-                std::pair< std::string, T_P >(*id, T_P(localResult) ) 
-                ) ;
-
-          }
-
-        } // solNames
-      } // if groupRank ==0
-
-      if(AGNOS_DEBUG)
-        std::cout << "DEBUG: leaving surrogate evaluate" << std::endl;
-      return surrogateValue;
-    }
-
-/********************************************//**
- * \brief 
  ***********************************************/
   template<class T_S,class T_P>
   void SurrogatePseudoSpectral<T_S,T_P>::printIntegrationPoints( 
@@ -836,229 +697,6 @@ namespace AGNOS
       return;
     }
 
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-    template<class T_S, class T_P> 
-      void SurrogatePseudoSpectral<T_S,T_P>::printIndexSet( std::ostream& out ) const
-      {
-        if (this->_groupRank == 0)
-        {
-          out << std::endl;
-      out << "#----------------------------------------------------" <<
-            std::endl;
-          out << "# Index Set" << std::endl;
-          out << "#----------------------------------------------------" <<
-          std::endl;
-
-          for (unsigned int i=0; i< _indexSet.size(); i++)
-          {
-            for (unsigned int j=0; j< _indexSet[i].size(); j++)
-            {
-              out << std::setw(5) << _indexSet[i][j] << " " ;
-            }
-            out << std::endl;
-          }
-          out << "#----------------------------------------------------" <<
-            std::endl;
-        }
-
-      return ;
-    }
-
-/********************************************//**
- * \brief 
- ***********************************************/
-  template<class T_S, class T_P> 
-    void SurrogatePseudoSpectral<T_S,T_P>::prettyPrintIndexSet( ) const
-    {
-      if (this->_groupRank == 0)
-      {
-        std::cout << std::endl;
-        std::cout << "====================================================" <<
-          std::endl;
-        std::cout << " Index Set" << std::endl;
-        std::cout << "----------------------------------------------------" <<
-        std::endl;
-      std::cout << "   \\ dir      " << std::endl;
-      std::cout << "    \\        " ;
-      for(unsigned int dim=0; dim < this->_dimension; dim++)
-        std::cout << std::setw(4) << "xi_" << dim << " " ;
-      std::cout << std::endl;
-      std::cout << "  id \\  " << std::endl;
-      std::cout << "----------------------------------------------------" <<
-        std::endl;
-        for (unsigned int i=0; i< _indexSet.size(); i++)
-        {
-        std::cout << std::setw(5) << i << "   |   ";
-          for (unsigned int j=0; j< _indexSet[i].size(); j++)
-          {
-            std::cout << std::setw(5) << _indexSet[i][j] << " " ;
-          }
-          std::cout << std::endl;
-        }
-
-      }
-      return ;
-    }
-
-  /********************************************//**
-   * \brief calculate l2 norm by integration
-   ***********************************************/
-  template<class T_S, class T_P>
-    std::map< std::string, T_P> SurrogatePseudoSpectral<T_S,T_P>::l2Norm(
-        std::set< std::string > solutionNames
-        )
-    {
-
-
-      // initialize to zero
-      std::map< std::string, T_P> l2norm;
-      std::set<std::string>::iterator id = solutionNames.begin();
-      for (; id != solutionNames.end(); id++)
-      {
-        l2norm.insert( std::pair<std::string,T_P>(
-              *id, T_P( std::vector<double>(this->_solSize[*id],0.) ) )
-            );
-      }
-
-      if(this->_groupRank==0)
-      {
-        //---------
-        //get integration points for higher order quad rule
-        std::vector<unsigned int> integrationOrder = this->_order;
-        for(unsigned int i=0; i<integrationOrder.size();i++)
-          integrationOrder[i] += 0;
-
-        QuadratureTensorProduct integrationQuadratureRule(
-            this->_parameters, integrationOrder );
-
-        unsigned int dimension = this->_dimension;
-        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-        double** quadPoints = integrationQuadratureRule.getQuadPoints();
-        double* quadWeights = integrationQuadratureRule.getQuadWeights();
-
-
-
-        //----------
-        // loop over quad points
-        for(unsigned int i=0; i<nQuadPoints; i++)
-        {
-          T_S paramValues(dimension);
-          for(unsigned int j=0; j<paramValues.size(); j++)
-            paramValues(j) = quadPoints[i][j];
-
-          std::map<std::string,T_P> pointValue 
-            = this->evaluate(solutionNames,paramValues,true);
-          for (id=solutionNames.begin(); id != solutionNames.end(); id++)
-          {
-
-            for(unsigned int j=0; j<l2norm[*id].size();j++)
-              l2norm[*id](j) += pointValue[*id](j) * pointValue[*id](j) 
-                * quadWeights[i] ; 
-          }
-
-        } // end loop over quad points
-
-      } // end groupRank == 0
-
-      
-      // take square root
-      for (id=solutionNames.begin(); id != solutionNames.end(); id++)
-      {
-
-        for(unsigned int j=0; j<l2norm[*id].size();j++)
-          l2norm[*id](j) =  std::sqrt( l2norm[*id](j) );
-      }
-
-
-      return l2norm;
-    }
-
-
-  /********************************************//**
-   * \brief 
-   ***********************************************/
-  template<class T_S,class T_P>
-    double SurrogatePseudoSpectral<T_S,T_P>::l2NormDifference(
-        SurrogateModel<T_S,T_P>& comparisonModel,
-        std::string solutionName )
-    {
-
-      // make sure solutionName is present in both models
-      // evaluate at integration points
-      //
-      //
-      // initialize to zero
-      double l2norm = 0;
-
-      if (this->_solutionNames.count(solutionName) == 0) 
-      {
-        std::cerr << "\n\t ERROR: requested solution name not present in "
-          << " base model of l2NormDifference( ... ). \n "
-          << std::endl;
-        exit(1);
-      }
-      if (comparisonModel.getSolutionNames().count(solutionName) == 0 )
-      {
-        std::cerr << "\n\t ERROR: requested solution name not present in "
-          << " comparison model of l2NormDifference( ... ). \n "
-          << std::endl;
-        exit(1);
-      }
-
-      if(this->_groupRank==0)
-      {
-        //---------
-        //get integration points for higher order quad rule
-        std::vector<unsigned int> integrationOrder = this->_order;
-        std::vector<unsigned int> comparisonOrder 
-          = comparisonModel.getExpansionOrder() ;
-        for(unsigned int i=0; i<integrationOrder.size();i++)
-          integrationOrder[i] 
-            = std::max(integrationOrder[i],comparisonOrder[i]) 
-            + 0;
-
-        QuadratureTensorProduct integrationQuadratureRule(
-            this->_parameters, integrationOrder );
-
-        unsigned int dimension = this->_dimension;
-        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
-        double** quadPoints = integrationQuadratureRule.getQuadPoints();
-        double* quadWeights = integrationQuadratureRule.getQuadWeights();
-
-
-
-        //----------
-        // loop over quad points
-        for(unsigned int i=0; i<nQuadPoints; i++)
-        {
-          T_S paramValues(dimension);
-          for(unsigned int j=0; j<paramValues.size(); j++)
-            paramValues(j) = quadPoints[i][j];
-
-          T_P diffVec = this->evaluate(solutionName,paramValues);
-          /* std::cout << " test: base model eval " << std::endl; */
-          diffVec -= comparisonModel.evaluate(solutionName,paramValues);
-          /* std::cout << " test: comparison model eval " << std::endl; */
-
-
-          l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
-          /* l2norm += 1  * quadWeights[i] ; */ 
-
-        } // end loop over quad points
-
-      } // end of if groupRank == 0
-
-      
-      // take square root
-      l2norm =  std::sqrt( l2norm );
-
-
-      return l2norm;
-
-    }
 
   template class 
     SurrogatePseudoSpectral<libMesh::DenseVector<double>, libMesh::DenseVector<double> >;

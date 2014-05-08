@@ -8,12 +8,6 @@
 namespace AGNOS
 {
 
-  enum SurrogateModelType{
-    PSEUDO_SPECTRAL_TENSOR_PRODUCT=0,
-    PSEUDO_SPECTRAL_SPARSE_GRID,
-    PSEUDO_SPECTRAL_MONTE_CARLO,
-    COLLOCATION };
-
   /********************************************//**
    * \brief Abstract SurrogateModelBase class.
    *
@@ -62,7 +56,7 @@ namespace AGNOS
       /** calculate the L2 norm over parameter space */
       virtual std::map<std::string, T_P> l2Norm( 
           std::set<std::string> solutionNames  ///< solution to return
-          ) = 0;
+          ) ;
       /** calculate the L2 norm over parameter space */
       T_P l2Norm( 
           std::string solutionName  ///< solution to return
@@ -85,10 +79,11 @@ namespace AGNOS
         getParameters( ) const { return _parameters; }
 
       /** reference to locally stored coefficients */
-      /* const std::map< std::string, LocalMatrix>   getLocalCoefficients() const */
-      /* { return _coefficients; } */
+      const std::map< std::string, std::shared_ptr<DistMatrix> > 
+        getDistCoefficients() const
+      { return _coefficients; }
       /** reference to all coefficients */
-      const std::map< std::string, LocalMatrix>   getCoefficients() ;
+      const std::map< std::string, LocalMatrix>   getCoefficients() const;
 
       /** print the coefficient vectors */
       void printCoefficients( 
@@ -99,13 +94,19 @@ namespace AGNOS
       /** print the coefficient vectors */
       void printCoefficients( std::ostream& out ) ;
 
+      /** print index set */
+      virtual void printIndexSet( std::ostream& out ) const ;
+      /** print integration weights in table format*/
+      virtual void prettyPrintIndexSet( ) const ;
+
       /** Sample the surrogate model N times and place results in sampleVec  */
       virtual void sample( 
           std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
           );
 
       /** Return index set for this surrogate */
-      virtual const std::vector< std::vector<unsigned int> > indexSet() const = 0 ;
+      virtual const std::vector< std::vector<unsigned int> > indexSet() const 
+      { return _indexSet; } 
 
       /** expansion order used to construct surrogateModel */
       const std::vector<unsigned int> getExpansionOrder( ) const
@@ -158,6 +159,17 @@ namespace AGNOS
       unsigned int _totalNCoeff;
       /** indicies of coefficients corresponding to local process */
       std::vector<unsigned int> _coeffIndices;
+
+        
+      /********************************************//**
+       * \brief index set used in the expansion
+       * 
+       * It is up to derived models to decide how this is defined, i.e. for
+       * PseudoSpectral it is the index set definining the polynomials in the
+       * expansion. May need to be defined differently for  other types of
+       * surrogate models
+       ***********************************************/
+      std::vector< std::vector<unsigned int> > _indexSet;
 
       /** dimension of coefficient vectors for each solution name */
       std::map< std::string, unsigned int> _solSize;
