@@ -17,8 +17,8 @@ namespace AGNOS
         std::set<std::string> computeSolutions 
         )
       : 
-        _physics(physics),
-        SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions)
+        SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions),
+        _physics(physics)
     {
       int globalRank,globalSize;
       MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
@@ -65,13 +65,13 @@ namespace AGNOS
           std::set<std::string> computeSolutions 
         )
       : 
-        _physics( primarySurrogate->getPhysics() ), 
-        _evalSurrogate( primarySurrogate ),
         SurrogateModelBase<T_S,T_P>(
             primarySurrogate->getComm(),
             primarySurrogate->getParameters(),
             primarySurrogate->getExpansionOrder(),
-            computeSolutions)
+            computeSolutions),
+        _physics( primarySurrogate->getPhysics() ), 
+        _evalSurrogate( primarySurrogate )
     {
       int globalRank,globalSize;
       MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);

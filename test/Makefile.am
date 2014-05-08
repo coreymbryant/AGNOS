@@ -57,6 +57,14 @@ hdf5Test_SOURCES   = hdf5Test.C
 TESTS += hdf5Test.sh
 shellfiles_src += hdf5Test.sh
 
+#------------------------------------
+# Evaluator test
+#------------------------------------
+check_PROGRAMS       += EvaluatorTest
+EvaluatorTest_SOURCES   = EvaluatorTest.C
+TESTS += EvaluatorTest.sh
+shellfiles_src += EvaluatorTest.sh
+
 
 
 polynomialTest_LDADD = $(CPPUNIT_LIBS)

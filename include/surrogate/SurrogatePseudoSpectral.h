@@ -2,7 +2,7 @@
 #ifndef SURROGATE_PSEUDO_SPECTRAL_H
 #define SURROGATE_PSEUDO_SPECTRAL_H
 #include "SurrogateModel.h"
-#include "QuadratureTensorProduct.h"
+#include "EvaluatorPseudoSpectral.h"
 #include "petscmat.h"
 
 
@@ -20,7 +20,9 @@ namespace AGNOS
  * non-isotropic polynomial orders are supported. 
  ***********************************************/
   template<class T_S, class T_P>
-    class SurrogatePseudoSpectral : public SurrogateModel<T_S,T_P>
+    class SurrogatePseudoSpectral : 
+      public SurrogateModel<T_S,T_P>,
+      public EvaluatorPseudoSpectral<T_S,T_P>
   {
 
     public:
@@ -59,37 +61,17 @@ namespace AGNOS
           );
 
       using SurrogateModel<T_S,T_P>::evaluate; 
-      std::map<std::string, T_P> evaluate( 
-          std::set< std::string >  solutionNames,
-          T_S&                        parameterValues,
-          bool saveLocal = true /**< save solution locally after evaluation*/
-          ) const ;
 
-      using SurrogateModel<T_S,T_P>::l2Norm;
-      std::map< std::string, T_P> l2Norm(
-        std::set< std::string > solutionNames
-        );
-      double l2NormDifference(
-          SurrogateModel<T_S,T_P>& comparisonModel,
-          std::string solutionName );
 
       // Manipulators
       unsigned int              getNIntegrationPoints( ) const;
       std::vector<T_S>          getIntegrationPoints( ) const;
       std::vector<double>       getIntegrationWeights( ) const;
-      /** Return index set for this surrogate */
-      const std::vector< std::vector< unsigned int> > 
-                                indexSet( ) const;
-      std::vector<double>       evaluateBasis( 
-          const std::vector< std::vector<unsigned int> >& indexSet,
-          T_S& parameterValues ) const;
 
       void                      printIntegrationWeights( std::ostream& out ) const;
       void                      printIntegrationPoints( std::ostream& out ) const;
-      void                      printIndexSet( std::ostream& out ) const;
       void                      prettyPrintIntegrationWeights( ) const;
       void                      prettyPrintIntegrationPoints( ) const;
-      void                      prettyPrintIndexSet( ) const;
 
 
     protected:
@@ -99,7 +81,6 @@ namespace AGNOS
       std::vector<double>       _integrationWeights ;
       std::vector<unsigned int> _integrationIndices;
 
-      std::vector< std::vector<unsigned int> > _indexSet;
 
 
 

@@ -8,8 +8,10 @@ libagnos_include_HEADERS = \
 											surrogate/QuadratureTensorProduct.h \
 											surrogate/SurrogateModelBase.h \
 											surrogate/SurrogateModel.h \
+											surrogate/SurrogateEvaluator.h \
 											surrogate/SurrogatePseudoSpectral.h \
 											surrogate/PseudoSpectralTensorProduct.h \
+											surrogate/EvaluatorPseudoSpectral.h \
 											physics/PhysicsModel.h \
 											physics/PhysicsUser.h \
 											physics/PhysicsCatenary.h \
