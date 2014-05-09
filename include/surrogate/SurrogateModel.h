@@ -3,7 +3,6 @@
 #define SURROGATE_MODEL_H 
 
 #include "SurrogateModelBase.h"
-#include "PhysicsModel.h"
 
 namespace AGNOS
 {
@@ -45,7 +44,7 @@ namespace AGNOS
        * construct a new surrogate increasing the order and using
        * primarySurrogate to perform evaluations in the constructions */
       SurrogateModel( 
-          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+          std::shared_ptr<SurrogateModelBase<T_S,T_P> > primarySurrogate, 
           std::vector<unsigned int> increaseOrder = std::vector<std::string>(),
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::vector<std::string>(),
@@ -58,33 +57,10 @@ namespace AGNOS
       /** Initialization routine */
       virtual void initialize( ) = 0 ;
 
-      /** build the surrogate model construction */
-      virtual void build( ) = 0; 
-
-
-      /** Refine the surrogate model.  */
-      virtual void refine( );
+      virtual void refineUniformly( ) ;
       virtual void refine( const std::vector<unsigned int>& increase ) ;
 
-      /** print integration weights */
-      virtual void printIntegrationWeights( std::ostream& out ) const = 0;
-      /** print integration points */
-      virtual void printIntegrationPoints( std::ostream& out ) const = 0;
-      /** print integration weights in table format*/
-      virtual void prettyPrintIntegrationWeights( ) const = 0;
-      /** print integration weights in table format*/
-      virtual void prettyPrintIntegrationPoints( ) const = 0;
-
-      /** reference to physics pointer */
-      std::shared_ptr<PhysicsModel<T_S,T_P> > getPhysics( ) const
-      { return _physics; }
-      /** set reference to physics pointer */
-      void setPhysics( std::shared_ptr<PhysicsModel<T_S,T_P> > physics ) 
-      { _physics = physics; }
-
     protected: 
-      /** reference to underlying physics */
-      std::shared_ptr<PhysicsModel<T_S,T_P> > _physics;
       
       /** expansion order */
       std::vector<unsigned int> _increaseOrder ;
@@ -96,7 +72,7 @@ namespace AGNOS
 
       /** Primary surrogate to use in evaluation for secondary surrogate
        * construciton */
-      std::shared_ptr<SurrogateModel<T_S,T_P> >      _evalSurrogate ;
+      std::shared_ptr<SurrogateModelBase<T_S,T_P> >      _evalSurrogate ;
 
       /** Data structure to hold evalSurrogate evaluations, to be used in
        * surrogate construction */

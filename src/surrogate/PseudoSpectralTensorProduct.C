@@ -27,7 +27,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     PseudoSpectralTensorProduct<T_S,T_P>::PseudoSpectralTensorProduct( 
-        std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+        std::shared_ptr<SurrogateModelBase<T_S,T_P> > primarySurrogate, 
         std::vector<unsigned int> increaseOrder ,
         unsigned int multiplyOrder ,
         std::set<std::string> evaluateSolutions,

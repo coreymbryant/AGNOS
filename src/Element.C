@@ -14,7 +14,7 @@ namespace AGNOS
   template<class T_S, class T_P>
     Element<T_S,T_P>::Element(
         std::vector< std::shared_ptr<AGNOS::Parameter> >&       parameters,
-        std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >& 
+        std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > >&
         surrogates, 
         std::shared_ptr< PhysicsModel<T_S,T_P> >&                 physics,
         double weight
@@ -162,7 +162,7 @@ namespace AGNOS
     {
       // retrieve element mean coefficients
       std::map<std::string,T_P> elementMeans
-        = elit->surrogates().begin()->second->mean( );
+        = elit->surrogates()[0]->mean( );
 
       // add contributions from this element to global means
       for(unsigned int i=0 ; i<solutionNames.size();i++)
@@ -207,7 +207,7 @@ namespace AGNOS
     {
       // retrieve element mean coefficients
       std::map<std::string,T_P> elementNorms
-        = elit->surrogates().begin()->second->l2Norm( );
+        = elit->surrogates()[0]->l2Norm( );
 
       // add contributions from this element to global means
       for(unsigned int i=0 ; i<solutionNames.size();i++)

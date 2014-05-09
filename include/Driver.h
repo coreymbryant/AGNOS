@@ -48,9 +48,8 @@ namespace AGNOS
     protected:
       GetPot& _input;
       std::shared_ptr< PhysicsModel<T_S,T_P> > _initPhysics( GetPot& input );
-      std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > > 
-        _initSurrogate( 
-            GetPot& input, 
+      std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > 
+        _initSurrogate( GetPot& input, 
             std::vector< std::shared_ptr<AGNOS::Parameter> > parameters,
             std::shared_ptr<PhysicsModel<T_S,T_P> > physics) ;
 
@@ -86,6 +85,7 @@ namespace AGNOS
       
       // ---------------------
       // SURROGATE VARIABLES
+      std::map<std::string, unsigned int> _surrogateNames;
       bool _refineSurrogate;
       bool _hRefine;
       bool _pRefine;

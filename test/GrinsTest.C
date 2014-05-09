@@ -238,8 +238,8 @@ BOOST_AUTO_TEST_CASE( grins_convergence )
   {
     iter++;
 
-    uniformSurrogate->refine( );
-    secondarySurrogate->refine();
+    uniformSurrogate->refineUniformly( );
+    secondarySurrogate->refineUniformly();
     uniformSurrogate->build( );
     secondarySurrogate->build( );
 
@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE( grins_qoi )
   {
     iter++;
 
-    uniformSurrogate.refine( );
+    uniformSurrogate.refineUniformly( );
     uniformSurrogate.build( );
 
     qoiPred = uniformSurrogate.l2Norm( "qoi" );

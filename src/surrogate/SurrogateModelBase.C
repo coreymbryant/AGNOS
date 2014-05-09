@@ -21,6 +21,7 @@ namespace AGNOS
       _dimension( parameters.size() ),
       _order(order),
       _solutionNames(computeSolutions),
+      _physics(NULL),
       _physicsGroup(0),
       _nPhysicsGroups(1),
       _groupRank(0) 

@@ -231,8 +231,8 @@ BOOST_AUTO_TEST_CASE( channel_convergence )
   {
     iter++;
 
-    uniformSurrogate->refine( );
-    secondarySurrogate->refine();
+    uniformSurrogate->refineUniformly( );
+    secondarySurrogate->refineUniformly();
     uniformSurrogate->build( );
     secondarySurrogate->build( );
 
