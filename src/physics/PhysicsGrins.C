@@ -116,6 +116,7 @@ namespace AGNOS
     // print out some simulation info
     _simulation->print_sim_info();
 
+    this->_initOutput( );
 
   }
 
