@@ -17,6 +17,8 @@ namespace AGNOS{
       /** Default destructor */
       ~H5IO();
 
+      void close();
+
       // TODO USE user-block to tag date, time, commit ref etc
       // defined in file creation/access property list
       // H5P_DEFAULT used for now
@@ -41,7 +43,8 @@ namespace AGNOS{
       /** write surrogate properties to HDF5 file */
       void writeSurrogate( 
           CommonFG* common,
-          std::shared_ptr<SurrogateModel<T_S,T_P> >& surrogate );
+          std::shared_ptr<SurrogateModelBase<T_S,T_P> >& surrogate,
+          std::string surrName = "surrogate" );
 
       /** read surrogate properties from HDF5 file */
       // H5F_RDONLY
@@ -50,12 +53,37 @@ namespace AGNOS{
           std::vector<unsigned int>& order,
           std::set<std::string>& computeSolutions,
           std::vector< std::vector<unsigned int> >& indexSet,
-          std::map< std::string, LocalMatrix >& coefficients
+          std::map< std::string, LocalMatrix >& coefficients,
+          std::string surrName = "surrogate"
           );
 
       // TODO: do we need physics read and write or do we rely on input file
       //  - would at least need mesh info to make sure it matches dimension of
       //  coeff vectors
+      /** write physics data */
+      void writePhysics(
+          CommonFG* common,
+          std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics );
+      /** read physics data */
+      void readPhysics(
+          CommonFG* common,
+          std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics );
+
+
+      /** write element */
+      void writeElement(
+          CommonFG* common,
+          AGNOS::Element<T_S,T_P>& element ,
+          unsigned int elemId = 0);
+      /** read element */
+      void readElement(
+          CommonFG* common,
+          AGNOS::Element<T_S,T_P>& element,
+          unsigned int elemId = 0);
+
+
+      /** write simulation data */
+      /** read simulation data */
 
       /** reference to underlying H5File object */
       H5File* file() const { return _h5File; }
