@@ -21,10 +21,12 @@ BOOST_AUTO_TEST_CASE( ioHandler_constructor )
     H5IO h5io( fileName, H5F_ACC_TRUNC );
     BOOST_REQUIRE( (h5io.fileName() == fileName) ) ;
     BOOST_REQUIRE( (h5io.accessFlag() == H5F_ACC_TRUNC) ) ;
+    h5io.close();
   }
   {
     H5IO h5io( fileName, H5F_ACC_RDONLY );
     BOOST_REQUIRE( (h5io.accessFlag() == H5F_ACC_RDONLY) ) ;
+    h5io.close();
   }
 
 }
@@ -36,10 +38,12 @@ BOOST_AUTO_TEST_CASE( ioHandler_user_block )
   {
     H5IO h5io( fileName, H5F_ACC_TRUNC );
     h5io.writeUserBlock( );
+    h5io.close();
   }
   {
     H5IO h5io( fileName, H5F_ACC_RDONLY );
     h5io.readUserBlock( );
+    h5io.close();
   }
 
 
@@ -63,6 +67,7 @@ BOOST_AUTO_TEST_CASE( ioHadnler_parameters )
   {
     H5IO h5io( fileName, H5F_ACC_TRUNC );
     h5io.writeParameters( h5io.file(), parameters );
+    h5io.close();
   }
 
 
@@ -71,6 +76,7 @@ BOOST_AUTO_TEST_CASE( ioHadnler_parameters )
   {
     H5IO h5io( fileName, H5F_ACC_RDONLY );
     h5io.readParameters( h5io.file(), newParameters );
+    h5io.close();
   }
 
 
@@ -122,7 +128,7 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
           new AGNOS::Parameter(UNIFORM, 1.0,3.0) )
         );
 
-  std::shared_ptr<AGNOS::SurrogateModel<T_S,T_P> > surrogate (
+  std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> > surrogate (
       new AGNOS::PseudoSpectralTensorProduct<T_S,T_P>(
         comm,
         physics,
@@ -139,6 +145,7 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
   {
     H5IO h5io( fileName, H5F_ACC_TRUNC );
     h5io.writeSurrogate( h5io.file(), surrogate );
+    h5io.close();
   }
   //read in surrogate from file
   std::vector<unsigned int> readOrder;
@@ -149,6 +156,7 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
     H5IO h5io( fileName, H5F_ACC_RDONLY );
     h5io.readSurrogate( h5io.file(), 
         readOrder, readComputeSolutions, readIndexSet, readCoefficients );
+    h5io.close();
   }
 
 
@@ -188,5 +196,119 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
       for(unsigned int j=0;j<cit->second.n();j++)
         BOOST_REQUIRE( (cit->second(i,j) == readCoefficients[cit->first](i,j) ) );
   }
+
+}
+
+BOOST_AUTO_TEST_CASE( ioHandler_element )
+{
+  // Set dummy inputs for libmesh initialization
+  int ac=1;
+  char** av = new char* [ac];
+  char* name = new char[27];
+  strcpy(name, "test");
+  av[0] = name;
+  MPI_Init(&ac,&av);
+  Communicator comm(MPI_COMM_WORLD);
+  LibMeshInit libmesh_init(ac, av, comm.get()) ;
+  delete av, name;
+
+  // physics
+  GetPot inputfile = GetPot() ;
+  std::shared_ptr<AGNOS::PhysicsModel<T_S,T_P> > physics(
+      new AGNOS::PhysicsCatenary<T_S,T_P>(comm,inputfile ) 
+      );
+
+
+  // order
+  std::vector<unsigned int> order;
+  order.push_back(1);
+  order.push_back(2);
+  order.push_back(0);
+  order.push_back(0);
+  
+  // parameters
+  std::vector<std::shared_ptr<AGNOS::Parameter> > parameters;
+  for(unsigned int i=0; i<order.size();i++)
+    parameters.push_back( 
+        std::shared_ptr<AGNOS::Parameter>(
+          new AGNOS::Parameter(UNIFORM, 1.0,3.0) )
+        );
+
+  // compute solutions names
+  std::set<std::string> computeSolutions ;
+  computeSolutions.insert("primal");
+  computeSolutions.insert("adjoint");
+  computeSolutions.insert("qoi");
+
+  // surrogate
+  std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates;
+  surrogates.push_back(
+        std::shared_ptr<AGNOS::PseudoSpectralTensorProduct<T_S,T_P> >(
+          new AGNOS::PseudoSpectralTensorProduct<T_S,T_P>( 
+            comm, 
+            physics,
+            parameters, 
+            order,
+            computeSolutions )
+          ) 
+      );
+  surrogates[0]->build();
+
+
+  // construct an element
+  Element<T_S,T_P> element(parameters,surrogates,physics, 1.0);
+
+  std::string fileName = "test.h5";
+  // write element to file
+  {
+    H5IO h5io( fileName, H5F_ACC_TRUNC );
+    h5io.writeElement( h5io.file(), element, 0 );
+    h5io.close();
+  }
+
+  //read in surrogate from file
+  /* { */
+  /*   H5IO h5io( fileName, H5F_ACC_RDONLY ); */
+  /*   h5io.readSurrogate( h5io.file(), */ 
+  /*       readOrder, readComputeSolutions, readIndexSet, readCoefficients ); */
+  /* } */
+
+
+  /* // check for order */
+  /* BOOST_REQUIRE( (order.size() == readOrder.size() ) ); */
+  /* for(unsigned int o=0;o<order.size();o++) */
+  /*   BOOST_REQUIRE( (order[o] == readOrder[o]) ) ; */
+
+  /* // check for compute solutions */
+  /* BOOST_REQUIRE( (computeSolutions.size() == readComputeSolutions.size() ) ); */
+  /* std::set<std::string>::iterator sit = computeSolutions.begin(); */
+  /* for(;sit!=computeSolutions.end();sit++) */
+  /*   BOOST_REQUIRE( (readComputeSolutions.count(*sit) != 0 ) ) ; */
+
+  /* // check for indexSet */ 
+  /* std::vector< std::vector<unsigned int> > indexSet = surrogate->indexSet() ; */
+  /* BOOST_REQUIRE( (indexSet.size() == readIndexSet.size() ) ); */
+  /* for(unsigned int i=0; i<indexSet.size(); i++) */
+  /* { */
+  /*   BOOST_REQUIRE( (indexSet[i].size() == readIndexSet[i].size() ) ); */
+  /*   for(unsigned int j=0;j<indexSet[i].size();j++) */
+  /*     BOOST_REQUIRE( (indexSet[i][j] == readIndexSet[i][j] ) ); */
+  /* } */
+
+  /* // check for coefficients */
+  /* std::map<std::string, LocalMatrix> coefficients */ 
+  /*   = surrogate->getCoefficients(); */
+  /* BOOST_REQUIRE( (coefficients.size() == readCoefficients.size() ) ); */
+  
+  /* std::map<std::string, LocalMatrix>::iterator cit */ 
+  /*   = coefficients.begin(); */ 
+  /* for(;cit!=coefficients.end();cit++) */
+  /* { */
+  /*   BOOST_REQUIRE( (cit->second.m() == readCoefficients[cit->first].m()) ) ; */
+  /*   BOOST_REQUIRE( (cit->second.n() == readCoefficients[cit->first].n()) ) ; */
+  /*   for(unsigned int i=0;i<cit->second.m();i++) */
+  /*     for(unsigned int j=0;j<cit->second.n();j++) */
+  /*       BOOST_REQUIRE( (cit->second(i,j) == readCoefficients[cit->first](i,j) ) ); */
+  /* } */
 
 }
