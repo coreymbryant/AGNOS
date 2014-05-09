@@ -16,18 +16,17 @@ namespace AGNOS
         const std::vector<unsigned int>&          order,
         std::set<std::string> computeSolutions 
         )
-      : 
-        SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions),
-        _physics(physics)
+      : SurrogateModelBase<T_S,T_P>(comm,parameters,order,computeSolutions)
     {
+      this->_physics = (physics);
       int globalRank,globalSize;
       MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
       MPI_Comm_size(MPI_COMM_WORLD,&globalSize);
-      this->_physicsGroup = globalRank / ( _physics->comm().size() ) ;
-      this->_nPhysicsGroups = globalSize / ( _physics->comm().size() ) ;
-      MPI_Comm_rank(_physics->comm().get(),&this->_groupRank);
+      this->_physicsGroup = globalRank / ( this->_physics->comm().size() ) ;
+      this->_nPhysicsGroups = globalSize / ( this->_physics->comm().size() ) ;
+      MPI_Comm_rank(this->_physics->comm().get(),&this->_groupRank);
 
-      assert( this->_groupRank == (globalRank % _physics->comm().size() ) );
+      assert( this->_groupRank == (globalRank % this->_physics->comm().size() ) );
 
 
       //check against available physics solutions
@@ -58,7 +57,7 @@ namespace AGNOS
  ***********************************************/
   template<class T_S, class T_P>
     SurrogateModel<T_S,T_P>::SurrogateModel( 
-          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+          std::shared_ptr<SurrogateModelBase<T_S,T_P> > primarySurrogate, 
           std::vector<unsigned int> increaseOrder ,
           unsigned int multiplyOrder ,
           std::set<std::string> evaluateSolutions , 
@@ -70,17 +69,17 @@ namespace AGNOS
             primarySurrogate->getParameters(),
             primarySurrogate->getExpansionOrder(),
             computeSolutions),
-        _physics( primarySurrogate->getPhysics() ), 
         _evalSurrogate( primarySurrogate )
     {
+      this->_physics = ( primarySurrogate->getPhysics() );
       int globalRank,globalSize;
       MPI_Comm_rank(MPI_COMM_WORLD,&globalRank);
       MPI_Comm_size(MPI_COMM_WORLD,&globalSize);
-      this->_physicsGroup = globalRank / ( _physics->comm().size() ) ;
-      this->_nPhysicsGroups = globalSize / ( _physics->comm().size() ) ;
-      MPI_Comm_rank(_physics->comm().get(),&this->_groupRank);
+      this->_physicsGroup = globalRank / ( this->_physics->comm().size() ) ;
+      this->_nPhysicsGroups = globalSize / ( this->_physics->comm().size() ) ;
+      MPI_Comm_rank(this->_physics->comm().get(),&this->_groupRank);
 
-      assert( this->_groupRank == (globalRank % _physics->comm().size() ) );
+      assert( this->_groupRank == (globalRank % this->_physics->comm().size() ) );
 
 
       // augment order appropriately
@@ -141,7 +140,7 @@ namespace AGNOS
  * \brief 
  ***********************************************/
   template<class T_S, class T_P>
-    void SurrogateModel<T_S,T_P>::refine( )
+    void SurrogateModel<T_S,T_P>::refineUniformly( )
     {
       std::vector<unsigned int> increase(this->_dimension, 1);
       refine( increase );

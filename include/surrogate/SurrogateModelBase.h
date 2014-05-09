@@ -4,6 +4,7 @@
 
 #include "agnosDefines.h"
 #include "Parameter.h"
+#include "PhysicsModel.h"
 
 namespace AGNOS
 {
@@ -28,6 +29,27 @@ namespace AGNOS
           );
       /** Destructor */
       virtual ~SurrogateModelBase();
+
+      /** build the surrogate model construction */
+      virtual void build( ) 
+      { 
+        std::cout 
+          << " WARNING: unable to build SurrogateModelBase object. " 
+          << std::endl;
+        return; 
+      } 
+      /** Refine the surrogate model.  */
+      virtual void refineUniformly( ) 
+      { 
+        std::cout 
+          << " WARNING: unable to refine SurrogateModelBase object. " 
+          << std::endl;
+        return; 
+      } 
+      virtual void refine( const std::vector<unsigned int>& increase ) 
+      {
+        refineUniformly() ;
+      };
 
       /** evaluate surrogate model at give parameterValues and return
        * solutionNames */
@@ -85,20 +107,6 @@ namespace AGNOS
       /** reference to all coefficients */
       const std::map< std::string, LocalMatrix>   getCoefficients() const;
 
-      /** print the coefficient vectors */
-      void printCoefficients( 
-        std::vector<std::string> solutionNames,
-        std::ostream& out ) ;
-      /** print the coefficient vectors */
-      void printCoefficients( std::string solutionName, std::ostream& out ) ;
-      /** print the coefficient vectors */
-      void printCoefficients( std::ostream& out ) ;
-
-      /** print index set */
-      virtual void printIndexSet( std::ostream& out ) const ;
-      /** print integration weights in table format*/
-      virtual void prettyPrintIndexSet( ) const ;
-
       /** Sample the surrogate model N times and place results in sampleVec  */
       virtual void sample( 
           std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
@@ -137,10 +145,44 @@ namespace AGNOS
       const int groupRank() const
       { return _groupRank; }
 
-    protected: 
+      /** reference to physics pointer */
+      std::shared_ptr<PhysicsModel<T_S,T_P> > getPhysics( ) const
+      { return _physics; }
 
+
+
+      /** print the coefficient vectors */
+      void printCoefficients( 
+        std::vector<std::string> solutionNames,
+        std::ostream& out ) ;
+      /** print the coefficient vectors */
+      void printCoefficients( std::string solutionName, std::ostream& out ) ;
+      /** print the coefficient vectors */
+      void printCoefficients( std::ostream& out ) ;
+
+      /** print index set */
+      virtual void printIndexSet( std::ostream& out ) const ;
+      /** print integration weights in table format*/
+      virtual void prettyPrintIndexSet( ) const ;
+
+      /** print integration weights */
+      virtual void printIntegrationWeights( std::ostream& out ) {};
+      /** print integration points */
+      virtual void printIntegrationPoints( std::ostream& out ) {};
+      /** print integration weights in table format*/
+      virtual void prettyPrintIntegrationWeights( ) {};
+      /** print integration weights in table format*/
+      virtual void prettyPrintIntegrationPoints( ) {};
+
+
+
+
+    protected: 
       /** reference to communicator */
       const Communicator& _comm;
+
+      /** reference to underlying physics */
+      std::shared_ptr<PhysicsModel<T_S,T_P> > _physics;
       /** reference to physics group number */
       int _physicsGroup;
       /** reference to number of physics groups */

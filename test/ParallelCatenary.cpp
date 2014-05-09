@@ -248,7 +248,7 @@ typedef libMesh::DenseVector<double> T_S ;
         unsigned int maxIter = 25;
         for (unsigned int iter=0; iter < maxIter-1; iter++)
         {
-          mySurrogate->refine();
+          mySurrogate->refineUniformly();
           mySurrogate->build();
           testValue = mySurrogate->evaluate( "primal", paramValue, true ) ;
         }

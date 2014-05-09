@@ -104,20 +104,16 @@ using namespace AGNOS;
 
         std::vector<unsigned int> myOrder(dimension,3);
 
-        std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >
-          surrogates ;
-        surrogates.insert( 
-            std::pair< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >(
-              "primarySurrogate",
-              std::shared_ptr<SurrogateModel<T_S,T_P> > (
-                new PseudoSpectralTensorProduct<T_S,T_P>(
-                    comm,
-                    myPhysics,
-                    myParameters, 
-                    myOrder  
-                    )
-                )
-             )
+        std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates ;
+        surrogates.push_back( 
+            std::shared_ptr<SurrogateModelBase<T_S,T_P> > (
+              new PseudoSpectralTensorProduct<T_S,T_P>(
+                  comm,
+                  myPhysics,
+                  myParameters, 
+                  myOrder  
+                  )
+              )
           );
 
         AGNOS::Element<T_S,T_P> baseElement(
@@ -173,20 +169,16 @@ using namespace AGNOS;
         constantPhysics->attach_compute_function(&constantFunction);
         myPhysics = constantPhysics;
 
-        std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >
-          surrogates ;
-        surrogates.insert( 
-            std::pair< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >(
-              "primarySurrogate",
-              std::shared_ptr<SurrogateModel<T_S,T_P> > (
-                new PseudoSpectralTensorProduct<T_S,T_P>(
-                    comm,
-                    myPhysics,
-                    myParameters, 
-                    myOrder  
-                    )
-                )
-             )
+        std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates ;
+        surrogates.push_back( 
+            std::shared_ptr<SurrogateModel<T_S,T_P> > (
+              new PseudoSpectralTensorProduct<T_S,T_P>(
+                  comm,
+                  myPhysics,
+                  myParameters, 
+                  myOrder  
+                  )
+              )
           );
 
         AGNOS::Element<T_S,T_P> baseElement(
@@ -194,19 +186,17 @@ using namespace AGNOS;
             surrogates,
             myPhysics
             );
-        std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate =
-          baseElement.surrogates().begin()->second ;
-        primarySurrogate->build();
+        baseElement.surrogates()[0]->build( );
 
         T_S paramValue(dimension);
         paramValue(0) = 1.5;
         T_P testValue, testMean ;
 
-        T_P baseValue = primarySurrogate->evaluate( "primal", paramValue );
+        T_P baseValue = baseElement.surrogates()[0]->evaluate( "primal", paramValue );
         std::cout << "base testValue = " << baseValue(0) << std::endl;
 
         std::map<std::string,T_P> baseMeans =
-          primarySurrogate->mean( );
+          baseElement.surrogates()[0]->mean( );
         T_P baseMean( baseMeans["primal"] );
         std::cout << "base meanValue = " << baseMean(0) << std::endl;
 
@@ -219,32 +209,27 @@ using namespace AGNOS;
         {
           paramValue(0) = 0.5 * ( children[c].parameters()[0]->min() 
             + children[c].parameters()[0]->max() );
-          std::map< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> > >
+          std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > >
             childSurrogates;
-          childSurrogates.insert( 
-              std::pair< std::string, std::shared_ptr<SurrogateModel<T_S,T_P> >
-              > (
-                "primarySurrogate",
-                std::shared_ptr<SurrogateModel<T_S,T_P> > (
-                  new PseudoSpectralTensorProduct<T_S,T_P>(
-                      comm,
-                      children[c].physics(),
-                      children[c].parameters(), 
-                      myOrder  )
-                  )
+          childSurrogates.push_back( 
+              std::shared_ptr<SurrogateModel<T_S,T_P> > (
+                new PseudoSpectralTensorProduct<T_S,T_P>(
+                    comm,
+                    children[c].physics(),
+                    children[c].parameters(), 
+                    myOrder  
+                    )
                 )
             );
           children[c].setSurrogates( childSurrogates );
-          std::shared_ptr<SurrogateModel<T_S,T_P> > childPrimarySurrogate =
-            children[c].surrogates().begin()->second ;
-          childPrimarySurrogate->build();
+          children[c].surrogates()[0]->build();
 
-          testValue = childPrimarySurrogate->evaluate( "primal", paramValue );
+          testValue = children[c].surrogates()[0]->evaluate( "primal", paramValue );
           std::cout << "child: " << c << " testValue = " << testValue(0) << std::endl;
           std::cout << "child: " << c << " diff = " << 
               std::abs(testValue(0) - baseValue(0)) << std::endl;
           std::map<std::string,T_P> childMeans =
-            childPrimarySurrogate->mean( );
+            children[c].surrogates()[0]->mean( );
           testMean = childMeans["primal"] ;
           std::cout << "child: " << c << " meanValue = " << testMean(0) <<
             std::endl;

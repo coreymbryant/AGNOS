@@ -96,7 +96,7 @@ using namespace AGNOS;
           std::cout << " n_elem = " << myPhysics->getMesh( ).n_active_elem() << std::endl;
 
           /* myPhysics->refine( ); */
-          mySurrogate->refine();
+          mySurrogate->refineUniformly();
           mySurrogate->build();
         }
         std::cout << "testValue = " << testValue(0) << std::endl;

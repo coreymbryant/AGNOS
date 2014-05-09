@@ -37,7 +37,7 @@ namespace AGNOS
        * construct a new surrogate increasing the order and using
        * primarySurrogate to perform evaluations in the constructions */
       PseudoSpectralTensorProduct( 
-          std::shared_ptr<SurrogateModel<T_S,T_P> > primarySurrogate, 
+          std::shared_ptr<SurrogateModelBase<T_S,T_P> > primarySurrogate, 
           std::vector<unsigned int> increaseOrder = std::vector<unsigned int>(),
           unsigned int multiplyOrder = 1,
           std::set<std::string> evaluateSolutions = std::set<std::string>(),
