@@ -432,6 +432,34 @@ namespace AGNOS
     return surrogates;
   }
 
+/********************************************//**
+ * \brief An evaluator routine to compute the global surrogate model
+ * 
+ * Needed for external evaluators, since the surrogate model may be constructed
+ * of SurrogateEvaluators on multiple elements. 
+ *
+ * Defaults to evaluating surrogate 0 on each element and returning all
+ * solutions.
+ ***********************************************/
+  T_P Driver::evaluate( std::string solutionName, T_S& parameterValues )
+  {
+    std::cout 
+      << "------------- Evaluating global surrogate model ----- "
+      << std::endl;
+    std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
+
+    T_P value;
+    value.zero();
+
+    // loop through active elements 
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit ;
+    for (elit=_activeElems.begin(); elit!=_activeElems.end(); ++elit)
+      if ( elit->covers(parameterValues) )
+        value += 
+          elit->surrogates()[0]->evaluate( solutionName, parameterValues );
+
+    return value;
+  }
 
 /********************************************//**
  * \brief an initial driver run routine for testing
