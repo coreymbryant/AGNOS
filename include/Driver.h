@@ -28,6 +28,8 @@ namespace AGNOS
 
       void run( ) ;
 
+      T_P evaluate( std::string, T_S& parameterValues ) ;
+
       void postProcess( ) ;
       void printSolutionData( ) ;
       void printSurrogateSettings(  ) ;
