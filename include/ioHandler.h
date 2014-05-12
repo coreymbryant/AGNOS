@@ -43,19 +43,14 @@ namespace AGNOS{
       /** write surrogate properties to HDF5 file */
       void writeSurrogate( 
           CommonFG* common,
-          std::shared_ptr<SurrogateModelBase<T_S,T_P> >& surrogate,
-          std::string surrName = "surrogate" );
+          std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> >& surrogate);
 
       /** read surrogate properties from HDF5 file */
       // H5F_RDONLY
       void readSurrogate( 
           CommonFG* common,
-          std::vector<unsigned int>& order,
-          std::set<std::string>& computeSolutions,
-          std::vector< std::vector<unsigned int> >& indexSet,
-          std::map< std::string, LocalMatrix >& coefficients,
-          std::string surrName = "surrogate"
-          );
+          std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> >& surrogate,
+          const Communicator& comm) ;
 
       // TODO: do we need physics read and write or do we rely on input file
       //  - would at least need mesh info to make sure it matches dimension of
@@ -67,23 +62,25 @@ namespace AGNOS{
       /** read physics data */
       void readPhysics(
           CommonFG* common,
-          std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics );
+          std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics,
+          const Communicator& physicsComm);
 
 
       /** write element */
       void writeElement(
           CommonFG* common,
-          AGNOS::Element<T_S,T_P>& element ,
-          unsigned int elemId = 0);
+          AGNOS::Element<T_S,T_P>& element );
       /** read element */
       void readElement(
           CommonFG* common,
           AGNOS::Element<T_S,T_P>& element,
-          unsigned int elemId = 0);
+          const Communicator& comm, const Communicator& physicsComm);
 
 
       /** write simulation data */
+      // TODO save driver info (only needed for restart)
       /** read simulation data */
+      // TODO read driver info (only needed for restart)
 
       /** reference to underlying H5File object */
       H5File* file() const { return _h5File; }
