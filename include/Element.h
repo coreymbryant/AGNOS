@@ -38,17 +38,23 @@ namespace AGNOS
       /** Default destructor */
       virtual ~Element( ) ;
 
+      /** determine if a parameter point lies in this element */
+      bool covers( T_S& parameterValue )
+      {
+        bool result = true;
+        for(unsigned int i=0;i<_parameters.size();i++)
+          if ( (parameterValue(i) < _parameters[i]->min())
+              || (parameterValue(i) >= _parameters[i]->max()) )
+          {
+            result = false;
+            break;
+          }
+
+        return result;
+      }
+
       /** split element into 2^dim children */
       std::vector< Element<T_S,T_P> > split( ) ;
-
-      // TODO do we need both or should we set a flag like in driver to control
-      // what type of refinement is performed?
-      // Do we even need these at all?
-      /** refine element's surrogate model */
-      /* void refinePhysics( ) ; */
-
-      /** refine element's physics model */
-      /* void refineSurrogate( ) ; */
 
       /** return parameters reference */
       std::vector<std::shared_ptr<AGNOS::Parameter> >   parameters( ) const
