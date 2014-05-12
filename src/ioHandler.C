@@ -1,5 +1,6 @@
 
 #include "ioHandler.h"
+#include "EvaluatorPseudoSpectral.h"
 
 namespace AGNOS{
 
@@ -123,23 +124,27 @@ namespace AGNOS{
   /** write surrogate properties to HDF5 file */
   void H5IO::writeSurrogate( 
       CommonFG* common,
-      std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> >& surrogate,
-      std::string surrName )
+      std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> >& surrogate ) 
   {
-    Group* group = new Group( common->createGroup( surrName ) );
-
     int rank = 1;
     hsize_t dims[1];
 
     DataSpace* dataspace;
     DataSet* dataset;
 
+    // write surrogate parameters data
+    Group* group = new Group( common->createGroup( "parameters" ) ) ;
+    std::vector<std::shared_ptr<AGNOS::Parameter> > parameters
+      = surrogate->getParameters( ) ;
+    writeParameters( group, parameters ) ;
+    delete group;
+
     // order data
     std::vector<unsigned int>  order = surrogate->getExpansionOrder();
     dims[0] = order.size();
     dataspace = new DataSpace(rank,dims);
     dataset = new DataSet(
-        group->createDataSet("order", PredType::NATIVE_INT, *dataspace ) 
+        common->createDataSet("order", PredType::NATIVE_INT, *dataspace ) 
         );
     dataset->write( order.data(), PredType::NATIVE_INT );
     delete dataset;
@@ -156,7 +161,7 @@ namespace AGNOS{
     DataType strDataType = StrType(PredType::C_S1, H5T_VARIABLE);
     dataspace = new DataSpace(rank,dims);
     dataset = new DataSet(
-        group->createDataSet("computeSolutions", strDataType, *dataspace ) 
+        common->createDataSet("computeSolutions", strDataType, *dataspace ) 
         );
     dataset->write( arr_c_str.data(), strDataType );
     delete dataset;
@@ -177,14 +182,14 @@ namespace AGNOS{
 
     dataspace = new DataSpace(rank,setDims);
     dataset = new DataSet(
-        group->createDataSet("indexSet", PredType::NATIVE_INT, *dataspace ) 
+        common->createDataSet("indexSet", PredType::NATIVE_INT, *dataspace ) 
         );
     dataset->write( is, PredType::NATIVE_INT );
     delete dataset;
     delete dataspace;
     
     // coefficients
-    Group* subGroup = new Group( group->createGroup( "coefficients" ) ) ;
+    group = new Group( common->createGroup( "coefficients" ) ) ;
     std::map< std::string, LocalMatrix > coefficients
       = surrogate->getCoefficients();
     std::map< std::string, LocalMatrix >::iterator cit
@@ -204,15 +209,13 @@ namespace AGNOS{
           coeff[i*setDims[1]+j] = cit->second(i,j) ;
 
       dataset = new DataSet(
-          subGroup->createDataSet( 
+          group->createDataSet( 
             cit->first, PredType::NATIVE_DOUBLE, *dataspace) 
           );
       dataset->write( coeff, PredType::NATIVE_DOUBLE );
       delete dataset;
     }
     delete dataspace;
-    delete subGroup;
-
     delete group;
 
     return;
@@ -221,31 +224,31 @@ namespace AGNOS{
   /** read surrogate properties from HDF5 file */
   void H5IO::readSurrogate( 
       CommonFG* common,
-      std::vector<unsigned int>& order,
-      std::set<std::string>& computeSolutions,
-      std::vector< std::vector<unsigned int> >& indexSet,
-      std::map< std::string, LocalMatrix >& coefficients,
-      std::string surrName
-      )
+      std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> >& surrogate,
+      const Communicator& comm) 
   {
-
-    Group group = common->openGroup( surrName );
     DataSet dataset ;
     DataSpace dataspace ;
     int rank = 1;
     hsize_t dims[rank];
+    
+
+    // read surrogate parameters data
+    std::vector<std::shared_ptr<AGNOS::Parameter> > parameters;
+    Group group = common->openGroup("parameters");
+    readParameters( &group, parameters ) ;
 
     // order data
-    order.clear();
-    dataset = group.openDataSet("order");
+    std::vector<unsigned int> order;
+    dataset = common->openDataSet("order");
     dataspace = dataset.getSpace();
     rank = dataspace.getSimpleExtentDims( dims, NULL);
     order.resize(dims[0]);
     dataset.read( order.data(), PredType::NATIVE_INT );
 
     // compute solutions
-    computeSolutions.clear();
-    dataset = group.openDataSet("computeSolutions");
+    std::set<std::string> computeSolutions;
+    dataset = common->openDataSet("computeSolutions");
     dataspace = dataset.getSpace();
     rank = dataspace.getSimpleExtentDims( dims, NULL);
 
@@ -259,8 +262,8 @@ namespace AGNOS{
       computeSolutions.insert( std::string(arr_c_str[i]) ) ;
 
     // index_set
-    indexSet.clear();
-    dataset = group.openDataSet("indexSet");
+    std::vector< std::vector<unsigned int> > indexSet;
+    dataset = common->openDataSet("indexSet");
     dataspace = dataset.getSpace();
     hsize_t setDims[2];
     rank = dataspace.getSimpleExtentDims( setDims, NULL);
@@ -276,15 +279,15 @@ namespace AGNOS{
     delete is;
 
     // coefficients
-    coefficients.clear();
-    Group subGroup = group.openGroup("coefficients");
-    hsize_t nObj = subGroup.getNumObjs();
+    std::map< std::string, LocalMatrix > coefficients;
+    group = common->openGroup("coefficients");
+    hsize_t nObj = group.getNumObjs();
 
     for(unsigned int o=0; o<nObj; o++)
     {
-      std::string solName = subGroup.getObjnameByIdx(o) ;
+      std::string solName = group.getObjnameByIdx(o) ;
 
-      dataset = subGroup.openDataSet( solName );
+      dataset = group.openDataSet( solName );
       dataspace = dataset.getSpace();
       rank = dataspace.getSimpleExtentDims( setDims, NULL);
       nComp = setDims[0] * setDims[1] ;
@@ -302,6 +305,18 @@ namespace AGNOS{
       delete coeff;
     }
 
+    // construct the surrogate model as an evaluator
+    //  - if a different type is required after intialization the necessary data
+    //  can be transferred
+    AGNOS::EvaluatorPseudoSpectral<T_S,T_P>* evalSurrogate
+      = new AGNOS::EvaluatorPseudoSpectral<T_S,T_P>(
+      comm,
+      parameters, 
+      order,
+      computeSolutions);
+    evalSurrogate->build(indexSet,coefficients);
+    
+    surrogate.reset(  evalSurrogate ) ;
 
     return;
   }
@@ -312,91 +327,15 @@ namespace AGNOS{
       CommonFG* common,
       std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics )
   {
-    /* Group* group = new Group( common->createGroup( "physics" ) ); */
-    /* delete group; */
     return ;
   }
 
   /** read physics data */
   void H5IO::readPhysics(
       CommonFG* common,
-      std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics )
+      std::shared_ptr<PhysicsModel<T_S,T_P> >&  physics,
+      const Communicator& physicsComm)
   {
-    /* Group group = common->openGroup( "physics" ) ; */
-    /* DataSet dataset ; */
-    /* DataSpace dataspace ; */
-    /* int rank = 1; */
-    /* hsize_t dims[rank]; */
-
-    /* // order data */
-    /* order.clear(); */
-    /* dataset = group.openDataSet("order"); */
-    /* dataspace = dataset.getSpace(); */
-    /* rank = dataspace.getSimpleExtentDims( dims, NULL); */
-    /* order.resize(dims[0]); */
-    /* dataset.read( order.data(), PredType::NATIVE_INT ); */
-
-    /* // compute solutions */
-    /* computeSolutions.clear(); */
-    /* dataset = group.openDataSet("computeSolutions"); */
-    /* dataspace = dataset.getSpace(); */
-    /* rank = dataspace.getSimpleExtentDims( dims, NULL); */
-
-    /* std::vector<const char*> arr_c_str; */
-    /* arr_c_str.resize(dims[0]); */
-    /* DataType strDataType = StrType(PredType::C_S1, H5T_VARIABLE); */
-
-    /* dataset.read( arr_c_str.data(), strDataType ); */
-
-    /* for(unsigned int i=0; i<arr_c_str.size();i++) */
-    /*   computeSolutions.insert( std::string(arr_c_str[i]) ) ; */
-
-    /* // index_set */
-    /* indexSet.clear(); */
-    /* dataset = group.openDataSet("indexSet"); */
-    /* dataspace = dataset.getSpace(); */
-    /* hsize_t setDims[2]; */
-    /* rank = dataspace.getSimpleExtentDims( setDims, NULL); */
-
-    /* int nComp = setDims[0] * setDims[1] ; */
-    /* int *is = new int[nComp]; */
-    /* dataset.read( is, PredType::NATIVE_INT ); */
-
-    /* indexSet.resize(setDims[0]); */
-    /* for(unsigned int i=0; i<setDims[0];i++) */
-    /*   for(unsigned int j=0; j<setDims[1];j++) */
-    /*     indexSet[i].push_back(is[i*setDims[1]+j]) ; */
-    /* delete is; */
-
-    /* // coefficients */
-    /* coefficients.clear(); */
-    /* Group subGroup = group.openGroup("coefficients"); */
-    /* hsize_t nObj = subGroup.getNumObjs(); */
-
-    /* for(unsigned int o=0; o<nObj; o++) */
-    /* { */
-    /*   std::string solName = subGroup.getObjnameByIdx(o) ; */
-
-    /*   dataset = subGroup.openDataSet( solName ); */
-    /*   dataspace = dataset.getSpace(); */
-    /*   rank = dataspace.getSimpleExtentDims( setDims, NULL); */
-    /*   nComp = setDims[0] * setDims[1] ; */
-    /*   double *coeff = new double[nComp]; */
-    /*   dataset.read( coeff, PredType::NATIVE_DOUBLE ); */
-
-    /*   LocalMatrix coeffMat(setDims[0],setDims[1]); */
-    /*   for(unsigned int i=0;i<setDims[0];i++) */
-    /*     for(unsigned int j=0;j<setDims[1];j++) */
-    /*       coeffMat(i,j) = coeff[i*setDims[1]+j] ; */
-
-    /*   coefficients.insert( */ 
-    /*       std::pair<std::string,LocalMatrix>(solName,coeffMat) */
-    /*       ) ; */
-    /*   delete coeff; */
-    /* } */
-
-
-    /* delete group; */
     return;
   }
 
@@ -404,18 +343,15 @@ namespace AGNOS{
   /** write a single element's data to HDF5 file */
   void H5IO::writeElement( 
       CommonFG* common,
-      AGNOS::Element<T_S,T_P>& element,
-      unsigned int elemId )
+      AGNOS::Element<T_S,T_P>& element )
   {
-    Group* group = new Group( 
-        common->createGroup( "Elem"+std::to_string(elemId) ) );
 
     // write element specific data
     int rank = 1;
     hsize_t dims[1] = {1};
     DataSpace* dataspace = new DataSpace(rank,dims);
     DataSet* dataset = new DataSet(
-        group->createDataSet("weight", PredType::NATIVE_DOUBLE, *dataspace)
+        common->createDataSet("weight", PredType::NATIVE_DOUBLE, *dataspace)
         );
     double weight[] = { element.weight() } ;
     dataset->write( weight, PredType::NATIVE_DOUBLE );
@@ -426,22 +362,28 @@ namespace AGNOS{
     // write element parameters data
     std::vector<std::shared_ptr<AGNOS::Parameter> > parameters
       = element.parameters( ) ;
-    writeParameters( group, parameters ) ;
+    writeParameters( common, parameters ) ;
 
     // write element surrogates 
-    Group* subGroup = new Group( group->createGroup( "surrogates" ) ) ;
+    Group* group = new Group( common->createGroup( "surrogates" ) ) ;
     std::vector<std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates =
       element.surrogates() ;
     unsigned int nSurrogates = surrogates.size();
     for(unsigned int i=0;i<nSurrogates;i++)
-      writeSurrogate( subGroup, surrogates[i], "surrogate "+std::to_string(i) );
+    {
+      Group* subGroup 
+        = new Group( group->createGroup( "surrogate_"+std::to_string(i) ) ) ;
+      writeSurrogate( subGroup, surrogates[i] );
+      delete subGroup;
+    }
+    delete group;
 
     // write element physics
-    std::shared_ptr<PhysicsModel<T_S,T_P> >  physics
-      = element.physics( ) ;
+    group = new Group( common->createGroup( "physics" ) ) ;
+    std::shared_ptr<PhysicsModel<T_S,T_P> >  physics = element.physics( ) ;
     writePhysics( group, physics );
-
     delete group;
+
     return;
   }
 
@@ -449,58 +391,53 @@ namespace AGNOS{
   void H5IO::readElement( 
       CommonFG* common,
       AGNOS::Element<T_S,T_P>& element,
-      unsigned int elemId )
+      const Communicator& comm, const Communicator& physicsComm )
   {
-    /* Group group = common->openGroup( "Elem"+std::to_string(elemId) ) ; */
-    /* DataSet dataset ; */
-    /* DataSpace dataspace ; */
-    /* int rank = 1; */
-    /* hsize_t dims[rank]; */
+    DataSet dataset ;
+    DataSpace dataspace ;
+    int rank = 1;
+    hsize_t dims[rank];
 
-    /* // read element specific data */
-    /* double weight[1] ; */
-    /* dataset = group.openDataSet("weight"); */
-    /* dataspace = dataset.getSpace(); */
-    /* rank = dataspace.getSimpleExtentDims( dims, NULL ); */
-    /* dataset.read( weight, PredType::NATIVE_DOUBLE ); */
+    // read element specific data
+    double weight[1] ;
+    dataset = common->openDataSet("weight");
+    dataspace = dataset.getSpace();
+    rank = dataspace.getSimpleExtentDims( dims, NULL );
+    dataset.read( weight, PredType::NATIVE_DOUBLE );
     
-    /* // read element parameters data */
-    /* std::vector<std::shared_ptr<AGNOS::Parameter> > parameters; */
-    /* readParameters( group, parameters ) ; */
+    // read element parameters data
+    std::vector<std::shared_ptr<AGNOS::Parameter> > parameters;
+    readParameters( common, parameters ) ;
 
-    /* // read element surrogates */ 
-    /* Group subGroup = group.openGroup("surrogates"); */
-    /* std::vector<std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates = */
-    /*   element.surrogates() ; */
+    // read element surrogates 
+    Group group = common->openGroup("surrogates");
+    std::vector<std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates ;
 
-    /* hsize_t nSurrogates = subGroup.getNumObjs(); */
-    /* for(unsigned int i=0;i<nSurrogates;i++) */
-    /* { */
-    /*   std::vector<std::shared_ptr<SurrogateModel<T_S,T_P> > > surrogates; */
-    /*   std::vector<unsigned int> readOrder; */
-    /*   std::set<std::string> readComputeSolutions ; */
-    /*   std::vector< std::vector<unsigned int> > readIndexSet ; */
-    /*   std::map<std::string, LocalMatrix> readCoefficients ; */
-    /*   readSurrogate( &subGroup, */
-    /*       readOrder, readComputeSolutions, readIndexSet, readCoefficients ); */
+    hsize_t nSurrogates = group.getNumObjs();
+    for(unsigned int i=0;i<nSurrogates;i++)
+    {
+      std::shared_ptr<SurrogateModelBase<T_S,T_P> > surrogate ;
+      Group* subGroup 
+        = new Group( group.openGroup( "surrogate_"+std::to_string(i) ) ) ;
+      readSurrogate( subGroup, surrogate, comm );
 
-    /*   surrogates.push_back( std::shared_ptr<SurrogateModelBase<T_S,T_P> >( */
-    /*         new */ 
-    /*         )) */
-    /* } */
-    /*   readSurrogate( */ 
-    /*       subGroup, surrogates[i], "surrogate "+std::to_string(i) ); */
+      surrogates.push_back( surrogate );
+      delete subGroup;
+    }
 
     
-    /* for(unsigned int i=0;i<nSurrogates;i++) */
-    /*   writeSurrogate( group, surrogates[i], "surrogate "+std::to_string(i) ); */
+    // read element physics
+    group = common->openGroup("physics");
+    std::shared_ptr<PhysicsModel<T_S,T_P> >  physics;
+    readPhysics( &group, physics, physicsComm );
 
-    /* // write element physics */
-    /* std::shared_ptr<PhysicsModel<T_S,T_P> >  physics */
-    /*   = element.physics( ) ; */
-    /* writePhysics( group, physics ); */
+    // construct element
+    element = AGNOS::Element<T_S,T_P>(
+        parameters, 
+        surrogates, 
+        physics, 
+        weight[0]);
 
-    /* delete group; */
     return;
   }
 

@@ -147,17 +147,20 @@ BOOST_AUTO_TEST_CASE( ioHandler_surrogates )
     h5io.writeSurrogate( h5io.file(), surrogate );
     h5io.close();
   }
+  std::cout << "post write surrogate" << std::endl;
   //read in surrogate from file
-  std::vector<unsigned int> readOrder;
-  std::set<std::string> readComputeSolutions ;
-  std::vector< std::vector<unsigned int> > readIndexSet ;
-  std::map<std::string, LocalMatrix> readCoefficients ;
+  std::shared_ptr<AGNOS::SurrogateModelBase<T_S,T_P> > readSurrogate;
   {
     H5IO h5io( fileName, H5F_ACC_RDONLY );
-    h5io.readSurrogate( h5io.file(), 
-        readOrder, readComputeSolutions, readIndexSet, readCoefficients );
+    h5io.readSurrogate( h5io.file(), readSurrogate, comm );
     h5io.close();
   }
+  std::vector<unsigned int> readOrder = readSurrogate->getExpansionOrder();
+  std::set<std::string> readComputeSolutions = readSurrogate->getSolutionNames();
+  std::vector< std::vector<unsigned int> > readIndexSet =
+    readSurrogate->indexSet();
+  std::map<std::string, LocalMatrix> readCoefficients  =
+    readSurrogate->getCoefficients();
 
 
   // check for order
@@ -262,16 +265,15 @@ BOOST_AUTO_TEST_CASE( ioHandler_element )
   // write element to file
   {
     H5IO h5io( fileName, H5F_ACC_TRUNC );
-    h5io.writeElement( h5io.file(), element, 0 );
+    h5io.writeElement( h5io.file(), element);
     h5io.close();
   }
 
   //read in surrogate from file
-  /* { */
-  /*   H5IO h5io( fileName, H5F_ACC_RDONLY ); */
-  /*   h5io.readSurrogate( h5io.file(), */ 
-  /*       readOrder, readComputeSolutions, readIndexSet, readCoefficients ); */
-  /* } */
+  {
+    /* H5IO h5io( fileName, H5F_ACC_RDONLY ); */
+    /* h5io.readElement( h5io.file(), element, comm, comm ); */
+  }
 
 
   /* // check for order */
