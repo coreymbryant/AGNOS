@@ -47,6 +47,7 @@ using namespace AGNOS;
   {
 
     CPPUNIT_TEST_SUITE( ElementTest );
+    CPPUNIT_TEST( coversTest  );
     CPPUNIT_TEST( splitSamePoly );
     CPPUNIT_TEST( splitConstant );
     CPPUNIT_TEST_SUITE_END();
@@ -86,6 +87,64 @@ using namespace AGNOS;
       {
       }
 
+      /** Split element and test which element contains new eval point  */
+      void coversTest()
+      {
+        std::cout 
+          << "\n--------------------------\n "
+          << "Testing Element framework for covering eval point "
+          << std::endl;
+
+        std::vector<unsigned int> myOrder(dimension,1);
+
+        std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates ;
+        surrogates.push_back( 
+            std::shared_ptr<SurrogateModelBase<T_S,T_P> > (
+              new PseudoSpectralTensorProduct<T_S,T_P>(
+                  comm,
+                  myPhysics,
+                  myParameters, 
+                  myOrder  
+                  )
+              )
+          );
+
+        AGNOS::Element<T_S,T_P> baseElement(
+            myParameters,
+            surrogates,
+            myPhysics
+            );
+        baseElement.surrogates()[0]->build( );
+
+        T_S paramValue0(dimension);
+        T_S paramValue1(dimension);
+        paramValue0(0) = 1.25;
+        paramValue1(0) = 2.25;
+
+
+        std::vector< Element<T_S,T_P> > children = baseElement.split() ;
+        for (unsigned int c=0; c<children.size(); c++)
+        {
+          bool test0 = children[c].covers( paramValue0 );
+          bool test1 = children[c].covers( paramValue1 );
+          std::cout << "child: " << c << " min = " <<
+            children[c].parameters()[0]->min() << std::endl;
+          std::cout << "child: " << c << " max = " <<
+            children[c].parameters()[0]->max() << std::endl;
+          std::cout << "child: " << c << " covers0? = " << test0 << std::endl;
+          std::cout << "child: " << c << " covers1? = " << test1 << std::endl;
+
+          if ( c == 0)
+            CPPUNIT_ASSERT( test0 );
+          if ( c == 1)
+            CPPUNIT_ASSERT( test1 );
+
+        }
+
+
+
+
+      }
       
       /********************************************//**
        * \brief Test to confirm that splitting an Element, but not rebuilding
