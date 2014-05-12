@@ -1,6 +1,7 @@
 /* #include "agnosDefines.h" */
 
 #include "Driver.h"
+#include "ioHandler.h"
 #include "Element.h"
 #include "SurrogateModel.h"
 #include "PseudoSpectralTensorProduct.h"
@@ -34,25 +35,52 @@ namespace AGNOS
       ) :
     _comm(comm), _physicsComm(physicsComm), _input(input) 
   {
-
     if(AGNOS_DEBUG)
       std::cout << "rank: " << _comm.rank() <<  std::endl;
 
     
     // DRIVER SETTINGS
-    _maxIter = input("driver/maxIter",1);
+    _maxIter = _input("driver/maxIter",1);
     /** assumes one secondary surrogate used for total error estimation */
-    _adaptiveDriver = input("driver/adaptive",false);
+    _adaptiveDriver = _input("driver/adaptive",false);
     std::cout << "adapt? " << _adaptiveDriver << std::endl;
-    _refinePercentage = input("driver/refinePercentage",0.20);
+    _refinePercentage = _input("driver/refinePercentage",0.20);
     
     // ADAPTIVE SETTINGS
-    _simultRefine = input("driver/simultRefine",false);
+    _simultRefine = _input("driver/simultRefine",false);
+
+    // restart capabilities
+    bool restart = _input("driver/restart",false);
+    if (restart)
+    {
+      std::string restartFile = _input("restart/fileName","agnos.h5");
+      _h5io = new H5IO( restartFile, H5F_ACC_RDONLY );
+      buildFromRestart( );
+    }
+    else 
+      build();
     
+  }
+
+/********************************************//**
+ * \brief an initial driver run routine for testing
+ * 
+ ***********************************************/
+  Driver::~Driver( )
+  {
+  }
+
+
+/********************************************//**
+ * \brief build simulation driver based on input file
+ * 
+ ***********************************************/
+ void  Driver::build( )
+  {
     
     // PARAMETER SETTINGS
-    _paramDim = input("parameters/dimension", 1);
-    _nInitialHRefinements = input("parameters/nInitialHRefinements", 0);
+    _paramDim = _input("parameters/dimension", 1);
+    _nInitialHRefinements = _input("parameters/nInitialHRefinements", 0);
 
     // read in parameer dimension and bounds
     // TODO if less than dim but greater than one -> error
@@ -70,9 +98,9 @@ namespace AGNOS
     // provided directions sections
     for (unsigned int i=0; i < _paramDim; i++)
     {
-      paramType = input("parameters/types",paramType,i);
-      paramMin  = input("parameters/mins",paramMin,i); 
-      paramMax  = input("parameters/maxs",paramMax,i);
+      paramType = _input("parameters/types",paramType,i);
+      paramMin  = _input("parameters/mins",paramMin,i); 
+      paramMax  = _input("parameters/maxs",paramMax,i);
       parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
             new AGNOS::Parameter( paramType, paramMin, paramMax )) 
           );
@@ -80,27 +108,27 @@ namespace AGNOS
 
     
     // PHYSICS SETTINGS
-    std::shared_ptr< PhysicsModel<T_S,T_P> > physics = _initPhysics( input );
+    std::shared_ptr< PhysicsModel<T_S,T_P> > physics = _initPhysics( _input );
 
 
     // SURROGATE MODEL(s) SETTINGS
-    input.set_prefix("surrogateModels/") ;
-    _refineSurrogate = input("refine",false);
-    _hRefine = input("hRefine",false);
-    _pRefine = input("pRefine",true);
+    _input.set_prefix("surrogateModels/") ;
+    _refineSurrogate = _input("refine",false);
+    _hRefine = _input("hRefine",false);
+    _pRefine = _input("pRefine",true);
     // pIncrement vector (default to 1 in all directions)
-    int pIncrementDim = input.vector_variable_size("pIncrement");
+    int pIncrementDim = _input.vector_variable_size("pIncrement");
     if (pIncrementDim == 1)
       for (unsigned int i=0; i < _paramDim; i++)
-        _pIncrement.push_back( input("pIncrement", 1) ) ;
+        _pIncrement.push_back( _input("pIncrement", 1) ) ;
     else
       for (unsigned int i=0; i < _paramDim; i++)
-        _pIncrement.push_back( input("pIncrement", 1, i) ) ;
-    _anisotropic = input("anisotropic",false);
+        _pIncrement.push_back( _input("pIncrement", 1, i) ) ;
+    _anisotropic = _input("anisotropic",false);
 
     /* initialize surrogate model container */
     std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates =
-      _initSurrogate( input, parameters, physics ); 
+      _initSurrogate( _input, parameters, physics ); 
 
 
     // Construct a single initial element and add it to the update queue
@@ -125,7 +153,7 @@ namespace AGNOS
         {
           // cosntruct a new surrogate for this element
           std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > childSurrogates =
-              _initSurrogate( input, children[c].parameters(), children[c].physics() ) ;
+              _initSurrogate( _input, children[c].parameters(), children[c].physics() ) ;
           children[c].setSurrogates( childSurrogates ); 
 
           // save element to update queue
@@ -137,8 +165,8 @@ namespace AGNOS
     
 
     // OUTPUT DATA SETTINGS
-    input.set_prefix("output/") ;
-    _outputFilename      = input("filename","cout");
+    _input.set_prefix("output/") ;
+    _outputFilename      = _input("filename","cout");
     if ( _outputFilename == "cout" )
       _os.reset( &(std::cout) );
     else
@@ -146,31 +174,23 @@ namespace AGNOS
       
 
     _solutionsToPrint.clear(); ;
-    for (unsigned int i=0; i < input.vector_variable_size("solutions"); i++)
-      _solutionsToPrint.push_back(input("solutions", "",i) );
+    for (unsigned int i=0; i < _input.vector_variable_size("solutions"); i++)
+      _solutionsToPrint.push_back(_input("solutions", "",i) );
 
-    _computeMeans        = input("computeMeans",true);
-    _computeNorms        = input("computeNorms",true);
-    _outputIterations    = input("iterations",false);
-    _outputCoefficients  = input("coefficients",true);
-    _outputWeights       = input("weights",true);
-    _outputPoints        = input("points",true);
-    _outputIndexSet      = input("index_set",true);
+    _computeMeans        = _input("computeMeans",true);
+    _computeNorms        = _input("computeNorms",true);
+    _outputIterations    = _input("iterations",false);
+    _outputCoefficients  = _input("coefficients",true);
+    _outputWeights       = _input("weights",true);
+    _outputPoints        = _input("points",true);
+    _outputIndexSet      = _input("index_set",true);
 
-    _generateSamples     = input("generateSamples",false);
-    _sampleFile          = input("sampleFile","./sampleFile");
-    _nSamples            = input("nSamples",10000);
+    _generateSamples     = _input("generateSamples",false);
+    _sampleFile          = _input("sampleFile","./sampleFile");
+    _nSamples            = _input("nSamples",10000);
 
     // reset prefix to root
-    input.set_prefix("") ;
-  }
-
-/********************************************//**
- * \brief an initial driver run routine for testing
- * 
- ***********************************************/
-  Driver::~Driver( )
-  {
+    _input.set_prefix("") ;
   }
 
 /********************************************//**
@@ -306,6 +326,8 @@ namespace AGNOS
         surrogateType =  PSEUDO_SPECTRAL_SPARSE_GRID ;
       else if (surrType == "PseudoSpectralMonteCarlo")
         surrogateType =  PSEUDO_SPECTRAL_MONTE_CARLO ;
+      else if (surrType == "EvaluatorPseudoSpectral")
+        surrogateType =  EVALUATOR_PSEUDO_SPECTRAL ;
       else if (surrType == "Collocation")
         surrogateType =  COLLOCATION ;
       else
@@ -430,6 +452,27 @@ namespace AGNOS
 
 
     return surrogates;
+  }
+
+/********************************************//**
+ * \brief build a simulation driver using a restart file
+ * 
+ ***********************************************/
+ void  Driver::buildFromRestart( )
+  {
+    // initialize as usual
+    // read in restart data
+  }
+
+/********************************************//**
+ * \brief build a simulation driver using a restart file
+ * 
+ ***********************************************/
+ void  Driver::buildEvaluator( H5IO& h5io )
+  {
+    _activeElems.clear();
+
+    // read in active elements
   }
 
 /********************************************//**

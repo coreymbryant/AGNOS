@@ -5,12 +5,14 @@
 
 #include "Element.h"
 #include <mpi.h>
-
+#include <mpi.h>
+#include <H5Cpp.h>
 
 
 
 namespace AGNOS
 {
+  class H5IO;
 
   /********************************************//**
    * \brief Base class for driving the construction of SurrogateModel objects
@@ -25,6 +27,10 @@ namespace AGNOS
       Driver( const Communicator& comm, const Communicator& physicsComm, GetPot& input );
 
       virtual ~Driver( );
+
+      void build( );
+      void buildFromRestart( );
+      void buildEvaluator( H5IO& h5io );
 
       void run( ) ;
 
@@ -67,6 +73,8 @@ namespace AGNOS
       double        _refinePercentage ;
       /** force simultaneous refinement of both spaces */
       bool _simultRefine;
+      /** restart HDF5 file */
+      H5IO* _h5io;
       // ---------------------
       // ---------------------
       
