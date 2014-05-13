@@ -259,7 +259,9 @@ BOOST_AUTO_TEST_CASE( ioHandler_element )
 
 
   // construct an element
-  Element<T_S,T_P> element(parameters,surrogates,physics, 1.0);
+  std::shared_ptr<Element<T_S,T_P> > element(
+      new Element<T_S,T_P>(parameters,surrogates,physics, 1.0)
+      );
 
   std::string fileName = "test.h5";
   // write element to file
@@ -270,47 +272,25 @@ BOOST_AUTO_TEST_CASE( ioHandler_element )
   }
 
   //read in surrogate from file
+  std::shared_ptr<Element<T_S,T_P> > readElement ;
   {
-    /* H5IO h5io( fileName, H5F_ACC_RDONLY ); */
-    /* h5io.readElement( h5io.file(), element, comm, comm ); */
+    H5IO h5io( fileName, H5F_ACC_RDONLY );
+    h5io.readElement( h5io.file(), readElement, comm, comm );
   }
 
 
-  /* // check for order */
-  /* BOOST_REQUIRE( (order.size() == readOrder.size() ) ); */
-  /* for(unsigned int o=0;o<order.size();o++) */
-  /*   BOOST_REQUIRE( (order[o] == readOrder[o]) ) ; */
+  // check for weight
+  double readWeight = readElement->weight() ;
+  BOOST_REQUIRE( (1.0 == readWeight) );
 
-  /* // check for compute solutions */
-  /* BOOST_REQUIRE( (computeSolutions.size() == readComputeSolutions.size() ) ); */
-  /* std::set<std::string>::iterator sit = computeSolutions.begin(); */
-  /* for(;sit!=computeSolutions.end();sit++) */
-  /*   BOOST_REQUIRE( (readComputeSolutions.count(*sit) != 0 ) ) ; */
-
-  /* // check for indexSet */ 
-  /* std::vector< std::vector<unsigned int> > indexSet = surrogate->indexSet() ; */
-  /* BOOST_REQUIRE( (indexSet.size() == readIndexSet.size() ) ); */
-  /* for(unsigned int i=0; i<indexSet.size(); i++) */
-  /* { */
-  /*   BOOST_REQUIRE( (indexSet[i].size() == readIndexSet[i].size() ) ); */
-  /*   for(unsigned int j=0;j<indexSet[i].size();j++) */
-  /*     BOOST_REQUIRE( (indexSet[i][j] == readIndexSet[i][j] ) ); */
-  /* } */
-
-  /* // check for coefficients */
-  /* std::map<std::string, LocalMatrix> coefficients */ 
-  /*   = surrogate->getCoefficients(); */
-  /* BOOST_REQUIRE( (coefficients.size() == readCoefficients.size() ) ); */
+  // check for parameters
+  std::vector<std::shared_ptr<AGNOS::Parameter> > readParameters
+    = element->parameters();
+  BOOST_REQUIRE( (readParameters.size() == parameters.size()) ) ;
   
-  /* std::map<std::string, LocalMatrix>::iterator cit */ 
-  /*   = coefficients.begin(); */ 
-  /* for(;cit!=coefficients.end();cit++) */
-  /* { */
-  /*   BOOST_REQUIRE( (cit->second.m() == readCoefficients[cit->first].m()) ) ; */
-  /*   BOOST_REQUIRE( (cit->second.n() == readCoefficients[cit->first].n()) ) ; */
-  /*   for(unsigned int i=0;i<cit->second.m();i++) */
-  /*     for(unsigned int j=0;j<cit->second.n();j++) */
-  /*       BOOST_REQUIRE( (cit->second(i,j) == readCoefficients[cit->first](i,j) ) ); */
-  /* } */
-
+  // check for surrogates
+  std::vector<std::shared_ptr<SurrogateModelBase<T_S,T_P> > > readSurrogates 
+    = element->surrogates();
+  BOOST_REQUIRE( (readSurrogates.size() == surrogates.size()) ) ;
+  
 }

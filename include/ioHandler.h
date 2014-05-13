@@ -69,11 +69,11 @@ namespace AGNOS{
       /** write element */
       void writeElement(
           CommonFG* common,
-          AGNOS::Element<T_S,T_P>& element );
+          std::shared_ptr<AGNOS::Element<T_S,T_P> >& element );
       /** read element */
       void readElement(
           CommonFG* common,
-          AGNOS::Element<T_S,T_P>& element,
+          std::shared_ptr<AGNOS::Element<T_S,T_P> >& element,
           const Communicator& comm, const Communicator& physicsComm);
 
 
