@@ -78,9 +78,11 @@ namespace AGNOS{
 
 
       /** write simulation data */
-      // TODO save driver info (only needed for restart)
+      void writeSimulation( std::list<AGNOS::Element<T_S,T_P> >& _activeElems ) ;
       /** read simulation data */
-      // TODO read driver info (only needed for restart)
+      void readSimulation( 
+          std::list<AGNOS::Element<T_S,T_P> >& _activeElems,
+          const Communicator& comm, const Communicator& physicsComm ) ;
 
       /** reference to underlying H5File object */
       H5File* file() const { return _h5File; }
