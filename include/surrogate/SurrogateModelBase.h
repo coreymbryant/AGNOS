@@ -9,6 +9,13 @@
 namespace AGNOS
 {
 
+  enum SurrogateModelType{
+    PSEUDO_SPECTRAL_TENSOR_PRODUCT=0,
+    PSEUDO_SPECTRAL_SPARSE_GRID,
+    PSEUDO_SPECTRAL_MONTE_CARLO,
+    EVALUATOR_PSEUDO_SPECTRAL,
+    COLLOCATION };
+
   /********************************************//**
    * \brief Abstract SurrogateModelBase class.
    *
