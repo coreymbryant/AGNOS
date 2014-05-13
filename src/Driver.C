@@ -51,11 +51,19 @@ namespace AGNOS
 
     // restart capabilities
     bool restart = _input("driver/restart",false);
+    bool evaluator = _input("driver/evaluator",false);
     if (restart)
     {
       std::string restartFile = _input("restart/fileName","agnos.h5");
       _h5io = new H5IO( restartFile, H5F_ACC_RDONLY );
       buildFromRestart( );
+    }
+    else if (evaluator)
+    {
+      std::string evaluatorFile 
+        = _input("driver/evaluatorFile","agnos.h5");
+      _h5io = new H5IO( evaluatorFile, H5F_ACC_RDONLY );
+      buildEvaluator( *_h5io );
     }
     else 
       build();
@@ -203,7 +211,7 @@ namespace AGNOS
     //TODO  deal with parallel issue
     //what?
     std::shared_ptr< PhysicsModel<T_S,T_P> > physics ;
-    std::string physicsName = input("physics/type","");
+    std::string physicsName = input("physics/type","catenary");
     _refinePhysics = input("physics/refine",false);
     _uniformRefine = input("physics/uniformRefine",true);
 
@@ -471,8 +479,8 @@ namespace AGNOS
  void  Driver::buildEvaluator( H5IO& h5io )
   {
     _activeElems.clear();
-
     // read in active elements
+    h5io.readSimulation( _activeElems, _comm, _physicsComm );
   }
 
 /********************************************//**
