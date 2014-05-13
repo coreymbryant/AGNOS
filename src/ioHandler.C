@@ -432,12 +432,55 @@ namespace AGNOS{
     readPhysics( &group, physics, physicsComm );
 
     // construct element
-    element.reset( 
+    element.reset(
         new AGNOS::Element<T_S,T_P>( parameters, surrogates, physics, weight[0])
-        );
+        ) ;
 
     return;
   }
 
+
+  /** write simulation data */
+  void H5IO::writeSimulation( std::list<AGNOS::Element<T_S,T_P> >& activeElems )
+  {
+    Group* group = new Group( _h5File->createGroup("Elements") );
+
+    int elemNum = 0;
+    std::list<AGNOS::Element<T_S,T_P> >::iterator elit
+      = activeElems.begin();
+    for(;elit != activeElems.end(); elit++)
+    {
+      Group* subGroup 
+        = new Group( group->createGroup( "Elem_"+std::to_string(elemNum++) ) ) ;
+      std::shared_ptr<AGNOS::Element<T_S,T_P> > elemPtr( 
+          new AGNOS::Element<T_S,T_P>(*elit) 
+          );
+      writeElement(subGroup,elemPtr) ;
+    }
+
+    return ;
+  }
+
+  /** read simulation data */
+  void H5IO::readSimulation( 
+      std::list<AGNOS::Element<T_S,T_P> >& activeElems,
+      const Communicator& comm, const Communicator& physicsComm )
+  {
+    activeElems.clear();
+    Group group = _h5File->openGroup("Elements");
+
+    hsize_t nElems = group.getNumObjs();
+
+    for(unsigned int i=0; i<nElems; i++)
+    {
+      Group subGroup 
+        = group.openGroup( "Elem_"+std::to_string(i) );
+      std::shared_ptr<AGNOS::Element<T_S,T_P> > elem ;
+      readElement(&subGroup,elem,comm,physicsComm) ;
+      activeElems.push_front(*elem) ;
+    }
+
+    return ;
+  }
 
 } // end namespace
