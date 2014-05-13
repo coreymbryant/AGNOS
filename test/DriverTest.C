@@ -114,8 +114,13 @@ BOOST_AUTO_TEST_CASE( driver_build_evaluator )
   input.set("driver/evaluatorFile","test.h5");
   AGNOS::Driver driver( comm, comm, input );
 
-  
   BOOST_REQUIRE( (driver._activeElems.size() == 16) );
+
+  std::vector<double> paramValue(4,2.0);
+  T_P parameterValue(paramValue);
+  driver.evaluate("primal",parameterValue);
+  driver.evaluate("adjoint",parameterValue);
+  driver.evaluate("qoi",parameterValue);
 
 }
 
