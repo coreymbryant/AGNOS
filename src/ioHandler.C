@@ -343,7 +343,7 @@ namespace AGNOS{
   /** write a single element's data to HDF5 file */
   void H5IO::writeElement( 
       CommonFG* common,
-      AGNOS::Element<T_S,T_P>& element )
+      std::shared_ptr<AGNOS::Element<T_S,T_P> >& element )
   {
 
     // write element specific data
@@ -353,7 +353,7 @@ namespace AGNOS{
     DataSet* dataset = new DataSet(
         common->createDataSet("weight", PredType::NATIVE_DOUBLE, *dataspace)
         );
-    double weight[] = { element.weight() } ;
+    double weight[] = { element->weight() } ;
     dataset->write( weight, PredType::NATIVE_DOUBLE );
     delete dataset;
     delete dataspace;
@@ -361,13 +361,13 @@ namespace AGNOS{
 
     // write element parameters data
     std::vector<std::shared_ptr<AGNOS::Parameter> > parameters
-      = element.parameters( ) ;
+      = element->parameters( ) ;
     writeParameters( common, parameters ) ;
 
     // write element surrogates 
     Group* group = new Group( common->createGroup( "surrogates" ) ) ;
     std::vector<std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates =
-      element.surrogates() ;
+      element->surrogates() ;
     unsigned int nSurrogates = surrogates.size();
     for(unsigned int i=0;i<nSurrogates;i++)
     {
@@ -380,7 +380,7 @@ namespace AGNOS{
 
     // write element physics
     group = new Group( common->createGroup( "physics" ) ) ;
-    std::shared_ptr<PhysicsModel<T_S,T_P> >  physics = element.physics( ) ;
+    std::shared_ptr<PhysicsModel<T_S,T_P> >  physics = element->physics( ) ;
     writePhysics( group, physics );
     delete group;
 
@@ -390,7 +390,7 @@ namespace AGNOS{
   /** read a single element's data from HDF5 file */
   void H5IO::readElement( 
       CommonFG* common,
-      AGNOS::Element<T_S,T_P>& element,
+      std::shared_ptr<AGNOS::Element<T_S,T_P> >& element,
       const Communicator& comm, const Communicator& physicsComm )
   {
     DataSet dataset ;
@@ -432,11 +432,9 @@ namespace AGNOS{
     readPhysics( &group, physics, physicsComm );
 
     // construct element
-    element = AGNOS::Element<T_S,T_P>(
-        parameters, 
-        surrogates, 
-        physics, 
-        weight[0]);
+    element.reset( 
+        new AGNOS::Element<T_S,T_P>( parameters, surrogates, physics, weight[0])
+        );
 
     return;
   }
