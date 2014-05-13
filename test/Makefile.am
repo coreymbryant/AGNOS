@@ -65,6 +65,14 @@ EvaluatorTest_SOURCES   = EvaluatorTest.C
 TESTS += EvaluatorTest.sh
 shellfiles_src += EvaluatorTest.sh
 
+#------------------------------------
+# Driver test
+#------------------------------------
+check_PROGRAMS       += DriverTest
+DriverTest_SOURCES   = DriverTest.C
+TESTS += DriverTest.sh
+shellfiles_src += DriverTest.sh
+
 
 
 polynomialTest_LDADD = $(CPPUNIT_LIBS)
