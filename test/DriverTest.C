@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE( driver_constructor )
   BOOST_REQUIRE( (driver._refinePercentage == 0.20) );
   BOOST_REQUIRE( (driver._simultRefine == false) );
   BOOST_REQUIRE( (driver._paramDim == 1) );
-  BOOST_REQUIRE( (driver._nInitialHRefinements == 0) );
+  BOOST_REQUIRE( (driver._nInitialHRefinements == 1) );
 
   BOOST_REQUIRE( (driver._refinePhysics == true) );
   BOOST_REQUIRE( (driver._uniformRefine == true) );
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE( driver_constructor )
   BOOST_REQUIRE( (driver._pIncrement.size() == 1) );
   BOOST_REQUIRE( (driver._pIncrement[0] == 1) );
 
-  BOOST_REQUIRE( (driver._elemsToUpdate.size() == 1) );
+  BOOST_REQUIRE( (driver._elemsToUpdate.size() == 2) );
 
   BOOST_REQUIRE( (driver._outputFilename == "./testFile.dat") );
   BOOST_REQUIRE( (driver._solutionsToPrint.size() == 3) );
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE( driver_constructor )
 
 }
 
-BOOST_AUTO_TEST_CASE( driver_build )
+BOOST_AUTO_TEST_CASE( driver_run )
 {
   // Set dummy inputs for libmesh initialization
   int ac=1;
@@ -108,22 +108,32 @@ BOOST_AUTO_TEST_CASE( driver_build_evaluator )
   LibMeshInit libmesh_init(ac, av, comm.get()) ;
   delete av, name;
 
+  /* GetPot input( "driver.in" ); */
   GetPot input ;
   input = GetPot( );
   input.set("driver/evaluator",true);
-  input.set("driver/evaluatorFile","test.h5");
+  input.set("driver/evaluatorFile","agnos.h5");
   AGNOS::Driver driver( comm, comm, input );
 
-  BOOST_REQUIRE( (driver._activeElems.size() == 16) );
+  BOOST_REQUIRE( (driver._activeElems.size() == 2) );
 
-  std::vector<double> paramValue(4,2.0);
-  T_P parameterValue(paramValue);
-  driver.evaluate("primal",parameterValue);
-  driver.evaluate("adjoint",parameterValue);
-  driver.evaluate("qoi",parameterValue);
+  std::vector<double> paramValue(1,2.5);
+  T_S parameterValue(paramValue);
+
+  T_P primal = driver.evaluate("primal",parameterValue);
+  double primalValue =  -10. / (8. *  parameterValue(0) ) ;
+  BOOST_REQUIRE_CLOSE( primalValue, primal(0), 1e-6 ) ;
+
+  T_P adjoint = driver.evaluate("adjoint",parameterValue);
+  double adjointValue =  1.0 / (4. * parameterValue(0))  ;
+  BOOST_REQUIRE_CLOSE( adjointValue, adjoint(0), 1e-6 ) ;
+
+  T_P qoi = driver.evaluate("qoi",parameterValue);
+  double qoiValue =  primalValue ;
+  BOOST_REQUIRE_CLOSE( qoiValue, qoi(0), 1e-6 ) ;
 
 }
 
-BOOST_AUTO_TEST_CASE( driver_build_from_restart )
-{
-}
+/* BOOST_AUTO_TEST_CASE( driver_build_from_restart ) */
+/* { */
+/* } */

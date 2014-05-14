@@ -66,7 +66,10 @@ namespace AGNOS
       buildEvaluator( *_h5io );
     }
     else 
+    {
+      _h5io = new H5IO( "agnos.h5", H5F_ACC_TRUNC );
       build();
+    }
     
   }
 
@@ -76,6 +79,7 @@ namespace AGNOS
  ***********************************************/
   Driver::~Driver( )
   {
+    delete _h5io ;
   }
 
 
@@ -500,15 +504,17 @@ namespace AGNOS
     std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
 
     T_P value;
-    value.zero();
 
     // loop through active elements 
     std::list<AGNOS::Element<T_S,T_P> >::iterator elit ;
     for (elit=_activeElems.begin(); elit!=_activeElems.end(); ++elit)
       if ( elit->covers(parameterValues) )
-        value += 
+        value = 
           elit->surrogates()[0]->evaluate( solutionName, parameterValues );
 
+
+    if(AGNOS_DEBUG)
+      std::cout << "leaving Driver::evaluate" << std::endl;
     return value;
   }
 
@@ -986,6 +992,9 @@ namespace AGNOS
 
     postProcess();
     
+
+    // save driver info to hdf5 file for restarts and evaluators
+    _h5io->writeSimulation( _activeElems );
 
 
     return;
