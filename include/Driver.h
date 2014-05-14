@@ -128,6 +128,7 @@ namespace AGNOS
       bool                      _generateSamples      ;
       std::string               _sampleFile ;
       unsigned int              _nSamples ;
+
   };
 
   

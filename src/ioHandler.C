@@ -23,6 +23,7 @@ namespace AGNOS{
   
   H5IO::~H5IO( )
   {
+    close();
     delete _h5File;
   }
 
@@ -196,14 +197,15 @@ namespace AGNOS{
       = coefficients.begin(); 
 
     rank = 2;
-    setDims[0] = cit->second.m();
-    setDims[1] = cit->second.n();
-    dataspace = new DataSpace(rank,setDims);
-
-    nComp = setDims[0] * setDims[1] ;
-    double *coeff = new double[nComp];
     for(;cit!=coefficients.end();cit++)
     {
+      setDims[0] = cit->second.m();
+      setDims[1] = cit->second.n();
+      dataspace = new DataSpace(rank,setDims);
+
+      nComp = setDims[0] * setDims[1] ;
+      double *coeff = new double[nComp];
+
       for(unsigned int i=0; i<setDims[0];i++)
         for(unsigned int j=0; j<setDims[1];j++)
           coeff[i*setDims[1]+j] = cit->second(i,j) ;
@@ -363,6 +365,7 @@ namespace AGNOS{
     std::vector<std::shared_ptr<AGNOS::Parameter> > parameters
       = element->parameters( ) ;
     writeParameters( common, parameters ) ;
+    
 
     // write element surrogates 
     Group* group = new Group( common->createGroup( "surrogates" ) ) ;
@@ -456,8 +459,10 @@ namespace AGNOS{
           new AGNOS::Element<T_S,T_P>(*elit) 
           );
       writeElement(subGroup,elemPtr) ;
+      delete subGroup;
     }
 
+    delete group;
     return ;
   }
 
