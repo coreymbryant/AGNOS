@@ -79,8 +79,8 @@ V_order = 'SECOND'
 P_order = 'FIRST'
 
 rho = '1.0'
-mu = '0.016249'
-U = '7.019943'
+mu = '0.096961'
+U = '8.797409'
 
 bc_ids = '1 2'
 bc_types = 'parabolic_profile no_slip'

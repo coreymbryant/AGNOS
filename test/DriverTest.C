@@ -12,6 +12,7 @@
 #include <boost/test/floating_point_comparison.hpp>
 
 
+using namespace libMesh;
 using namespace AGNOS;
 
 BOOST_AUTO_TEST_CASE( driver_constructor )

@@ -4,6 +4,8 @@
 // local includes
 #include "agnosDefines.h"
 
+using namespace libMesh;
+
 int main( int argc, char **argv)
 {
   MPI_Init(&argc,&argv);

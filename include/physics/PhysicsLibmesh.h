@@ -20,6 +20,7 @@
 #include LIBMESH_INCLUDE_UNORDERED_MAP
 #include LIBMESH_INCLUDE_UNORDERED_SET
 
+using namespace libMesh;
 namespace AGNOS
 {
 

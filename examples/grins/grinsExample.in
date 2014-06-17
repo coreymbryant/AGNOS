@@ -1,5 +1,5 @@
 [driver]
-maxIter = '1'
+maxIter = '4'
 adaptive = true
 simultRefine = false
 []
@@ -18,7 +18,6 @@ type = 'grins'
 refine = true
 uniformRefine = false
 grins_input = 'grins.in'
-solutions = 'primal adjoint'
 
 writePrimalViz = true
 writeAdjointViz = true
@@ -41,7 +40,7 @@ anisotropic = false
 
   [./primarySurrogate]
   type = 'PseudoSpectralTensorProduct'
-  order = '8'
+  order = '1'
   computeSolutions='primal adjoint errorEstimate qoi'
   [../]
 

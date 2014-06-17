@@ -447,6 +447,8 @@ namespace AGNOS{
   void H5IO::writeSimulation( std::list<AGNOS::Element<T_S,T_P> >& activeElems )
   {
     Group* group = new Group( _h5File->createGroup("Elements") );
+    std::cout << "    Simulation has " << activeElems.size()
+      << " active elements." << std::endl;
 
     int elemNum = 0;
     std::list<AGNOS::Element<T_S,T_P> >::iterator elit
