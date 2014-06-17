@@ -2,6 +2,8 @@
 #include <mpi.h>
 #include "Driver.h"
 
+using namespace libMesh;
+
 int main(int argc, char* argv[])
 {
   if( argc < 2 )

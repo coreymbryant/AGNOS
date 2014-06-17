@@ -88,6 +88,7 @@ namespace AGNOS
       // ---------------------
       // PARAMETERS VARIABLES
       unsigned int              _paramDim;
+      std::vector< std::shared_ptr<AGNOS::Parameter> > _globalParameters;
       /** number of times to initially h refine the parameter domain before
        * doing any computation */
       unsigned int              _nInitialHRefinements ;

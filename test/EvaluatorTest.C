@@ -10,6 +10,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/floating_point_comparison.hpp>
 
+using namespace libMesh;
 using namespace AGNOS;
 
 BOOST_AUTO_TEST_CASE( evaluator_constructor )

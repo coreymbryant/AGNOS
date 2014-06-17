@@ -18,6 +18,7 @@
 #endif // AGNOS_ENABLE_GRINS
 #include "PhysicsLibmesh.h"
 #include <mpi.h>
+#include <gsl/gsl_rng.h>
 
 namespace AGNOS
 {
@@ -97,8 +98,7 @@ namespace AGNOS
     // read in parameer dimension and bounds
     // TODO if less than dim but greater than one -> error
     //      if one and dim > 1 set all as same
-    std::vector< std::shared_ptr<AGNOS::Parameter> > parameters;
-    parameters.reserve(_paramDim);
+    _globalParameters.reserve(_paramDim);
 
 
     // construct parameter structures
@@ -113,7 +113,7 @@ namespace AGNOS
       paramType = _input("parameters/types",paramType,i);
       paramMin  = _input("parameters/mins",paramMin,i); 
       paramMax  = _input("parameters/maxs",paramMax,i);
-      parameters.push_back( std::shared_ptr<AGNOS::Parameter>(
+      _globalParameters.push_back( std::shared_ptr<AGNOS::Parameter>(
             new AGNOS::Parameter( paramType, paramMin, paramMax )) 
           );
     }
@@ -140,12 +140,12 @@ namespace AGNOS
 
     /* initialize surrogate model container */
     std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates =
-      _initSurrogate( _input, parameters, physics ); 
+      _initSurrogate( _input, _globalParameters, physics ); 
 
 
     // Construct a single initial element and add it to the update queue
     AGNOS::Element<T_S,T_P> baseElement(
-          parameters,
+          _globalParameters,
           surrogates,
           physics
           ) ;
@@ -994,6 +994,7 @@ namespace AGNOS
     
 
     // save driver info to hdf5 file for restarts and evaluators
+    std::cout << "    writing final simulation to file " << std::endl;
     _h5io->writeSimulation( _activeElems );
 
 
@@ -1067,17 +1068,79 @@ namespace AGNOS
       std::ofstream sampleOut;
       sampleOut.open(_sampleFile, std::ios::trunc);
       sampleOut << std::setprecision(5) << std::scientific ;
+      
+      //clear out any old samples
+      sampleVec.clear();
 
-      std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
-        _activeElems.begin();
-      for (; elit!=_activeElems.end(); elit++)
+      // make sure solutionName is available
+      /* agnos_assert( (_solutionNames.count( solutionName )) ) ; */
+
+      // variables needed for gsl randum number generator
+      std::vector<const gsl_rng_type *> T;
+      std::vector<gsl_rng *> r;
+      gsl_rng_env_setup();
+
+      // loop through parameters and set up rng
+      for(unsigned int p=0; p<_paramDim; p++)
       {
-        // at this point only sample from primary surrogate
-        elit->surrogates()[0]->sample( "qoi", _nSamples, sampleVec  );
+        // initialize rng for this parameter type
+        T.push_back( gsl_rng_default );
+        r.push_back( gsl_rng_alloc(T.back()) );
+      } // end 
 
-        for(unsigned int s=0; s<_nSamples; s++)
-          sampleOut << sampleVec[s](0) << std::endl;
-      }
+      // sample generation loop
+      for(unsigned int i=0; i<_nSamples; i++)
+      {
+        std::vector<double> s;
+        for(unsigned int p=0; p<_paramDim; p++)
+        {
+          double scaledSample;
+          // check type 
+          // UNIFROM
+          switch( ParameterType(_globalParameters[p]->type()) )
+          {
+            case UNIFORM:
+              scaledSample = _globalParameters[p]->min() 
+                + (_globalParameters[p]->max() - _globalParameters[p]->min() ) 
+                * gsl_rng_uniform(r[p]) ;
+              s.push_back( scaledSample  );
+              break;
+            case CONSTANT:
+              s.push_back( _globalParameters[p]->min() ) ;
+              break;
+          }
+        }
+
+        // store as template vector type
+        T_S paramValues(s);
+
+        // evaluate model
+        sampleVec.push_back( evaluate( "qoi", paramValues) ) ;
+
+
+      } // end loop over samples
+
+      // free up memory
+      for(unsigned int p=0; p<_paramDim; p++)
+        gsl_rng_free(r[p]);
+
+
+
+
+
+
+
+
+      /* std::list<AGNOS::Element<T_S,T_P> >::iterator elit = */
+      /*   _activeElems.begin(); */
+      /* for (; elit!=_activeElems.end(); elit++) */
+      /* { */
+      /*   // at this point only sample from primary surrogate */
+      /*   elit->surrogates()[0]->sample( "qoi", _nSamples, sampleVec  ); */
+
+      /*   for(unsigned int s=0; s<_nSamples; s++) */
+      /*     sampleOut << sampleVec[s](0) << std::endl; */
+      /* } */
 
       sampleOut.close();
     }
