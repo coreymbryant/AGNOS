@@ -507,10 +507,25 @@ namespace AGNOS
 
     // loop through active elements 
     std::list<AGNOS::Element<T_S,T_P> >::iterator elit ;
+    bool covered = false;
     for (elit=_activeElems.begin(); elit!=_activeElems.end(); ++elit)
       if ( elit->covers(parameterValues) )
+      {
+        covered = true;
         value = 
           elit->surrogates()[0]->evaluate( solutionName, parameterValues );
+      }
+
+    if (!covered)
+    {
+      std::cerr << "***** parameter value not in support of surrogate model \n";
+      std::cerr << "p: " ;
+      for(unsigned int p=0;p<parameterValues.size();p++)
+        std::cerr << parameterValues(p) << " " ;
+      std::cerr << std::endl;
+      std::cerr << " throwing error  ***********" << std::endl;
+      throw -1;
+    }
 
 
     if(AGNOS_DEBUG)

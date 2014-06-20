@@ -95,6 +95,12 @@ using namespace AGNOS;
           << "Testing Element framework for covering eval point "
           << std::endl;
 
+        myParameters.push_back( 
+            std::shared_ptr<AGNOS::Parameter>(
+              new AGNOS::Parameter(CONSTANT,1.0, 1.0) )
+            );
+        dimension++;
+
         std::vector<unsigned int> myOrder(dimension,1);
 
         std::vector< std::shared_ptr<SurrogateModelBase<T_S,T_P> > > surrogates ;
@@ -118,8 +124,13 @@ using namespace AGNOS;
 
         T_S paramValue0(dimension);
         T_S paramValue1(dimension);
+        T_S paramValue2(dimension);
         paramValue0(0) = 1.25;
+        paramValue0(1) = 1.0;
         paramValue1(0) = 2.25;
+        paramValue1(1) = 1.0;
+        paramValue2(0) = 2.25;
+        paramValue2(1) = 2.0;
 
 
         std::vector< Element<T_S,T_P> > children = baseElement.split() ;
@@ -141,6 +152,8 @@ using namespace AGNOS;
 
         }
 
+        bool test3 = children[0].covers( paramValue2 );
+        CPPUNIT_ASSERT( !test3 );
 
 
 
