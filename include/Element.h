@@ -43,12 +43,25 @@ namespace AGNOS
       {
         bool result = true;
         for(unsigned int i=0;i<_parameters.size();i++)
-          if ( (parameterValue(i) < _parameters[i]->min())
-              || (parameterValue(i) >= _parameters[i]->max()) )
+        {
+          if (_parameters[i]->type() == CONSTANT ) 
+          {
+            if ( parameterValue(i) != _parameters[i]->min() ) 
+            {
+              std::cout << "parameterValue: " << parameterValue(i) << " param_min: " << _parameters[i]->min() << std::endl;
+              result = false;
+              break;
+            }
+          }
+          else if (
+              (parameterValue(i) < _parameters[i]->min())
+              || (parameterValue(i) >= _parameters[i]->max()) 
+             )
           {
             result = false;
             break;
           }
+        }
 
         return result;
       }

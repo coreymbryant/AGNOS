@@ -133,6 +133,16 @@ BOOST_AUTO_TEST_CASE( driver_build_evaluator )
   double qoiValue =  primalValue ;
   BOOST_REQUIRE_CLOSE( qoiValue, qoi(0), 1e-6 ) ;
 
+  try
+  {
+    parameterValue(0) = -1000.0;
+    T_P dummy = driver.evaluate("primal",parameterValue);
+  }
+  catch(int err)
+	{
+    BOOST_REQUIRE( err == -1 ) ;
+  }
+
 }
 
 /* BOOST_AUTO_TEST_CASE( driver_build_from_restart ) */
