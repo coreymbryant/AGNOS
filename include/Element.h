@@ -48,7 +48,10 @@ namespace AGNOS
           {
             if ( parameterValue(i) != _parameters[i]->min() ) 
             {
-              std::cout << "parameterValue: " << parameterValue(i) << " param_min: " << _parameters[i]->min() << std::endl;
+              std::cout << "parameterValue(" << i << "): " 
+                << parameterValue(i) << std::endl;
+              std::cout << " param_min: " << _parameters[i]->min() << std::endl;
+              std::cout << " param_max: " << _parameters[i]->max() << std::endl;
               result = false;
               break;
             }
@@ -58,6 +61,10 @@ namespace AGNOS
               || (parameterValue(i) >= _parameters[i]->max()) 
              )
           {
+            std::cout << "parameterValue(" << i << "): " 
+              << parameterValue(i) << std::endl;
+            std::cout << " param_min: " << _parameters[i]->min() << std::endl;
+            std::cout << " param_max: " << _parameters[i]->max() << std::endl;
             result = false;
             break;
           }

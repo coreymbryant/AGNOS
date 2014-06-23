@@ -498,10 +498,13 @@ namespace AGNOS
  ***********************************************/
   T_P Driver::evaluate( std::string solutionName, T_S& parameterValues )
   {
-    std::cout 
-      << "------------- Evaluating global surrogate model ----- "
-      << std::endl;
-    std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
+    if(AGNOS_DEBUG)
+    {
+      std::cout 
+        << "------------- Evaluating global surrogate model ----- "
+        << std::endl;
+      std::cout << "nActiveElems = " << _activeElems.size() << std::endl;
+    }
 
     T_P value;
 
