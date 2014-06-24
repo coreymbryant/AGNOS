@@ -1158,8 +1158,8 @@ namespace AGNOS
       /*   // at this point only sample from primary surrogate */
       /*   elit->surrogates()[0]->sample( "qoi", _nSamples, sampleVec  ); */
 
-      /*   for(unsigned int s=0; s<_nSamples; s++) */
-      /*     sampleOut << sampleVec[s](0) << std::endl; */
+        for(unsigned int s=0; s<_nSamples; s++)
+          sampleOut << sampleVec[s](0) << std::endl;
       /* } */
 
       sampleOut.close();
