@@ -73,6 +73,8 @@ namespace AGNOS
       double        _refinePercentage ;
       /** force simultaneous refinement of both spaces */
       bool _simultRefine;
+      bool _forceSurrogateRefine;
+      bool _forcePhysicsRefine;
       /** restart HDF5 file */
       H5IO* _h5io;
       // ---------------------
