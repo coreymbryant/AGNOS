@@ -49,6 +49,8 @@ namespace AGNOS
     
     // ADAPTIVE SETTINGS
     _simultRefine = _input("driver/simultRefine",false);
+    _forceSurrogateRefine = _input("driver/forceSurrogateRefine",false);
+    _forcePhysicsRefine = _input("driver/forcePhysicsRefine",false);
 
     // restart capabilities
     bool restart = _input("driver/restart",false);
@@ -646,7 +648,7 @@ namespace AGNOS
                 //||
                 (globalSurrogateError <= globalPhysicsError)  
               )
-              ) || _simultRefine
+              ) || _simultRefine || _forcePhysicsRefine
              ) 
           {
             /* if(AGNOS_DEBUG) */
@@ -675,7 +677,7 @@ namespace AGNOS
                 //||
                 (globalSurrogateError >= globalPhysicsError)
               )
-              ) || _simultRefine
+              ) || _simultRefine || _forceSurrogateRefine
               )
           {
 
