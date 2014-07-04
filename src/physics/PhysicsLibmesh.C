@@ -134,6 +134,8 @@ namespace AGNOS
         solution.set(i, solutionVector(i) ) ;
       solution.close();
 
+      this->_system->update();
+
       return;
     }
 
