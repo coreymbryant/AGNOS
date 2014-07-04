@@ -133,6 +133,8 @@ namespace AGNOS
       solution.close();
       oldSolution.close();
 
+      this->_system->update();
+
       return;
     }
 
@@ -154,6 +156,14 @@ namespace AGNOS
     // Convert T_S vector to stl vector before calling turbulence model
     // setParameters()
     const std::vector<double> params = parameterValues.get_values();
+
+    /* if (AGNOS_DEBUG) */
+    {
+      std::cout << "paramVec: " ;
+      for(unsigned int i=0;i<params.size();i++)
+        std::cout << params[i] << " " ;
+      std::cout << std::endl;
+    }
 
     dynamic_cast<ChannelSystem*>(this->_system)->get_turbulence_model().setParameters(
         params);
