@@ -398,7 +398,7 @@ namespace AGNOS
           if(this->_groupRank==0)
           {
             std::vector<double> myPolyVals =  
-              evaluateBasis( this->_indexSet,
+              this->evaluateBasis( this->_indexSet,
                   _integrationPoints[pt]) ;
             for(unsigned int j=0; j<myPolyVals.size(); j++)
               polyValues->set(
