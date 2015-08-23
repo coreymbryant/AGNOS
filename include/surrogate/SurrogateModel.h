@@ -39,10 +39,10 @@ namespace AGNOS
        * primarySurrogate to perform evaluations in the constructions */
       SurrogateModel( 
           std::shared_ptr<SurrogateModelBase<T_S,T_P> > primarySurrogate, 
-          std::vector<unsigned int> increaseOrder = std::vector<std::string>(),
+          std::vector<unsigned int> increaseOrder = std::vector<unsigned int>(),
           unsigned int multiplyOrder = 1,
-          std::set<std::string> evaluateSolutions = std::vector<std::string>(),
-          std::set<std::string> computeSolutions = std::vector<std::string>()
+          std::set<std::string> evaluateSolutions = std::set<std::string>(),
+          std::set<std::string> computeSolutions = std::set<std::string>()
           );
 
       /** default destructor */
