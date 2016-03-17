@@ -6,6 +6,7 @@
 #include "libmesh/fem_system.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/mesh.h"
+#include "libmesh/elem.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/adjoint_refinement_estimator.h"
 #include "libmesh/mesh_refinement.h"
