@@ -24,7 +24,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
 AM_CPPFLAGS += $(BOOST_CPPFLAGS) \
 							 $(GSL_CFLAGS) \
 							 $(LIBMESH_CPPFLAGS) \
-							 $(HDF5_CFLAGS)
+							 $(HDF5_CFLAGS) \
+							 $(CPPUNIT_CFLAGS)
 
 #------------------------------------
 # Flags we need to pass to the linker
