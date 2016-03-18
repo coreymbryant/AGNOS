@@ -80,11 +80,11 @@ namespace AGNOS
 
     // No transient time solver
     burgersSystem.time_solver =
-        AutoPtr<TimeSolver>(new SteadySolver(burgersSystem) );
+        UniquePtr<TimeSolver>(new SteadySolver(burgersSystem) );
     {
       NewtonSolver *solver = new NewtonSolver(burgersSystem);
       /* PetscDiffSolver *solver = new PetscDiffSolver(burgersSystem); */
-      burgersSystem.time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      burgersSystem.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
       
       //TODO read in these setting?
       solver->quiet                       = true;
