@@ -237,9 +237,14 @@ void BurgersSystem::element_qoi (DiffContext &context,
   // Loop over the qps
   for (unsigned int qp=0; qp != n_qpoints; qp++)
     {
+      const Real x = q_point[qp](0);
       Number u = c.interior_value(0, qp);
 
-      Q[0] += JxW[qp] * u ;
+      /* Q[0] += JxW[qp] * u ; */
+      /* Q[0] += JxW[qp] * u * */
+      /*   std::exp( -100. * std::pow(x-0.5,2.) ); */
+      if (x >= 0)
+        Q[0] += JxW[qp] * u ;
 
     } // end of the quadrature point qp-loop
 }
@@ -277,9 +282,14 @@ void BurgersSystem::element_qoi_derivative (DiffContext &context,
   // Loop over the qps
   for (unsigned int qp=0; qp != n_qpoints; qp++)
     {
+      const Real x = q_point[qp](0);
 
       for (unsigned int i=0; i != n_u_dofs; i++)
-        Q(i) += JxW[qp] *phi[i][qp] ;
+        if (x >= 0)
+          Q(i) += JxW[qp] * phi[i][qp] ;
+        /* Q(i) += JxW[qp] *phi[i][qp] ; */
+        /* Q(i) += JxW[qp] * phi[i][qp] * */ 
+        /*   std::exp( -100. * std::pow(x-0.5,2.) ); */
 
     } // end of the quadrature point qp-loop
 }
