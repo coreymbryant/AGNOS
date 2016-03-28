@@ -54,6 +54,10 @@ namespace AGNOS
       void refine (  ) ;
       void refine ( T_P& errorIndicators ) ;
 
+      /** get number of degrees of freedom */
+      virtual unsigned int getNDofs( ) 
+      { return _equationSystems->n_active_dofs(); }
+
       /** Exact qoi */
       virtual T_P exactQoi( ) 
       {
