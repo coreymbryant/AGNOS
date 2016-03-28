@@ -547,6 +547,12 @@ namespace AGNOS
 
     std::ofstream errorOut;
     errorOut.open("error.txt", std::ios::trunc);
+    errorOut << "#" << " " ;
+    errorOut << "N_coeffs" << " " ;
+    errorOut << "N_phy_dof" << " " ;
+    errorOut << "E_total" << " "  ;
+    errorOut << "E_physics" << " " ;
+    errorOut << "E_surrogate" << std::endl;
 
     // First iteration
     // TODO can we combine this into iter loop?
@@ -575,11 +581,15 @@ namespace AGNOS
 
     std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
       _activeElems.begin();
+
+    // initialize dof counters
+    double globalNCounter = 0;
+    double globalSolSizeCounter = 0;
     
     // initialize global errors
+    double globalTotalError = 0;
     double globalPhysicsError = 0;
     double globalSurrogateError = 0;
-    double globalTotalError = 0;
     double maxElementError = 0;
 
     // if we are using adaptiveDriver then print out/save individual errors
@@ -588,6 +598,11 @@ namespace AGNOS
       // loop through all active elements
       for (; elit!=_activeElems.end(); elit++)
       {
+
+        globalNCounter        += elit->surrogates()[0]->getTotalNCoeff();
+        globalSolSizeCounter  += elit->surrogates()[0]->getPhysics()->getNDofs();
+
+
 
         computeErrors( 
             *elit, 
@@ -606,13 +621,17 @@ namespace AGNOS
     _physicsComm.broadcast(globalSurrogateError);
     _physicsComm.broadcast(globalPhysicsError);
 
-    std::cout << " NElEM:  "  << _activeElems.size() << std::endl;
+    std::cout << "     N_ElEM:  "  << _activeElems.size() << std::endl;
+    std::cout << "   N_COEFFS:  "  << globalNCounter << std::endl;
+    std::cout << " N_PHY_DOFS:  "  << globalSolSizeCounter << std::endl;
     std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-    errorOut << globalPhysicsError << " " ;
-
     std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
     std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+
+    errorOut << globalNCounter << " " ;
+    errorOut << globalSolSizeCounter << " " ;
     errorOut << globalTotalError << " "  ;
+    errorOut << globalPhysicsError << " " ;
     errorOut << globalSurrogateError << std::endl;
 
 
@@ -968,6 +987,8 @@ namespace AGNOS
       if (_adaptiveDriver)
       {
         // reset global values to 0
+        globalNCounter = 0.;
+        globalSolSizeCounter = 0.;
         globalPhysicsError = 0. ;
         globalSurrogateError = 0.;
         globalTotalError = 0.;
@@ -977,6 +998,8 @@ namespace AGNOS
           _activeElems.begin();
         for (; elit!=_activeElems.end(); ++elit)
         {
+          globalNCounter += elit->surrogates()[0]->getTotalNCoeff();
+          globalSolSizeCounter  += elit->surrogates()[0]->getPhysics()->getNDofs();
 
           computeErrors( 
               *elit, 
@@ -995,14 +1018,19 @@ namespace AGNOS
       _physicsComm.broadcast(globalSurrogateError);
       _physicsComm.broadcast(globalPhysicsError);
       
-      std::cout << "NElEM:  "  << _activeElems.size() << std::endl;
+      std::cout << "     N_ElEM:  "  << _activeElems.size() << std::endl;
+      std::cout << "   N_COEFFS:  "  << globalNCounter << std::endl;
+      std::cout << " N_PHY_DOFS:  "  << globalSolSizeCounter << std::endl;
       std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-      errorOut << globalPhysicsError << " " ;
-
       std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
       std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+
+      errorOut << globalNCounter << " " ;
+      errorOut << globalSolSizeCounter << " " ;
       errorOut << globalTotalError << " "  ;
+      errorOut << globalPhysicsError << " " ;
       errorOut << globalSurrogateError << std::endl;
+
 
     } // end for nIter
 
