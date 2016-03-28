@@ -119,6 +119,9 @@ namespace AGNOS
           std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
           );
 
+      /** Return total number of coefficients */
+      const unsigned int getTotalNCoeff() const { return _totalNCoeff; }
+
       /** Return index set for this surrogate */
       virtual const std::vector< std::vector<unsigned int> > indexSet() const 
       { return _indexSet; } 
