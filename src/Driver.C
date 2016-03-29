@@ -690,7 +690,7 @@ namespace AGNOS
           } // end of if refine physics
 
           //otherwise refine surrogate
-          else if ( ( _refineSurrogate 
+          if ( ( _refineSurrogate 
               &&
               ( //(!_adaptiveDriver)
                 //||
