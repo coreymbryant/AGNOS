@@ -70,7 +70,7 @@ namespace AGNOS
 
       /** Refinement methods for the physics model */
       virtual void refine( ) {};
-      virtual void refine( T_P errorIndicators ) {};
+      virtual void refine( T_P& errorIndicators ) {};
 
       /** get number of degrees of freedom */
       virtual unsigned int getNDofs( ) {};

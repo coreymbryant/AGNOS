@@ -841,7 +841,7 @@ namespace AGNOS
       _equationSystems->reinit();
 
       /* if ( this->_communicator.rank() == 0 ) */
-        std::cout << "   refined n_active_elem(): " 
+        std::cout << "un_refined n_active_elem(): " 
           << _mesh->n_active_elem() << std::endl;
 
     }

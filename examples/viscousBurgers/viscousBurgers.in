@@ -16,6 +16,7 @@ maxs = '1.0 1.0'
 [physics]
 type = 'viscousBurgers'
 refine = false
+uniformRefine = true
 
   [./viscousBurgers]
   solutions='primal adjoint errorEstimate errorIndicators qoi exactQoi'
@@ -25,7 +26,6 @@ refine = false
   nNonlinearSteps='15'
   nonlinearTolerance='1.e-9'
 
-  useUniformRefinement = true
   numberHRefinements = '1'
   numberPRefinements = '0'
   maxRefineSteps ='15'
