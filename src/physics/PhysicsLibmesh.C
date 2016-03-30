@@ -88,9 +88,9 @@ namespace AGNOS
     _meshRefinement->coarsen_by_parents()         = true;
     _meshRefinement->absolute_global_tolerance()  = 1e-6;
     /* _meshRefinement->nele_target()               = 64; */  
-    _meshRefinement->refine_fraction()            = 0.7;
-    _meshRefinement->coarsen_fraction()           = 0.3;  
-    _meshRefinement->coarsen_threshold()          = 1e-5;
+    _meshRefinement->refine_fraction()            = 0.6;
+    _meshRefinement->coarsen_fraction()           = 0.0;  
+    _meshRefinement->coarsen_threshold()          = 0.0;
     _meshRefinement->max_h_level()                = 15;
   }
 
@@ -869,8 +869,8 @@ namespace AGNOS
       
       //TODO input options to control type of refinement
       /* _meshRefinement->flag_elements_by_error_tolerance (error_per_cell); */            
-      /* _meshRefinement->flag_elements_by_error_fraction (error_per_cell); */             
-      _meshRefinement->flag_elements_by_elem_fraction (error_per_cell);              
+      _meshRefinement->flag_elements_by_error_fraction (error_per_cell);             
+      /* _meshRefinement->flag_elements_by_elem_fraction (error_per_cell); */              
                    
       //TODO input options to control whether we coarsen as well
       _meshRefinement->refine_and_coarsen_elements();
