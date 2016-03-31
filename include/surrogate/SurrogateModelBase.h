@@ -99,6 +99,12 @@ namespace AGNOS
           SurrogateModelBase<T_S,T_P>& comparisonModel,
           std::string solutionName
           ) ;
+      /** Compute the norm of the difference between two surrogates in this
+       * model */
+      virtual double l2NormDifference( 
+          std::string comparisonName,
+          std::string solutionName
+          ) ;
 
       /** set parameters object  */
       void setParameters( 

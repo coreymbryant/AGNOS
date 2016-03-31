@@ -356,6 +356,10 @@ namespace AGNOS
       for(unsigned int n=0; n < input.vector_variable_size("computeSolutions"); n++)
         computeSolutions.insert( input("computeSolutions","", n) );
 
+      //if exactQoi is present set the flag
+      if (n==0) // primary (or at least the first) surrogate
+        this->_exactQoiExists = ( computeSolutions.find("exactQoi") != computeSolutions.end() );
+
       /** Determine which type of surrogate we have, primary or secondary */
       std::string primarySurrogateName = input("primarySurrogate","");
 
@@ -550,6 +554,8 @@ namespace AGNOS
     errorOut << "#" << " " ;
     errorOut << "N_coeffs" << " " ;
     errorOut << "N_phy_dof" << " " ;
+    if (_exactQoiExists)
+      errorOut << "E_exact" << " "  ;
     errorOut << "E_total" << " "  ;
     errorOut << "E_physics" << " " ;
     errorOut << "E_surrogate" << std::endl;
@@ -587,9 +593,10 @@ namespace AGNOS
     double globalSolSizeCounter = 0;
     
     // initialize global errors
-    double globalTotalError = 0;
-    double globalPhysicsError = 0;
-    double globalSurrogateError = 0;
+    double globalExactError = 0;
+    double globalTotalErrorEstimate = 0;
+    double globalPhysicsErrorEstimate = 0;
+    double globalSurrogateErrorEstimate = 0;
     double maxElementError = 0;
 
     // if we are using adaptiveDriver then print out/save individual errors
@@ -606,10 +613,22 @@ namespace AGNOS
 
         computeErrors( 
             *elit, 
-            globalPhysicsError,
-            globalTotalError,
-            globalSurrogateError,
+            globalPhysicsErrorEstimate,
+            globalTotalErrorEstimate,
+            globalSurrogateErrorEstimate,
             maxElementError);
+
+        if(_exactQoiExists)
+        {
+          // square current sums so we can add additional elements as sum of
+          // squares
+          globalExactError *= globalExactError;
+          // get exact error contrib
+          double localExactError = elit->surrogates()[0]->l2NormDifference( 
+                "qoi", "exactQoi");
+          globalExactError += elit->weight() * std::pow(localExactError,2.) ;
+          globalExactError  = std::sqrt( globalExactError );
+        }
 
 
       } // end for active elements
@@ -617,22 +636,28 @@ namespace AGNOS
     } // end if adaptiveDriver
 
     // broadcast errors to all procs
-    _physicsComm.broadcast(globalTotalError);
-    _physicsComm.broadcast(globalSurrogateError);
-    _physicsComm.broadcast(globalPhysicsError);
+    if(_exactQoiExists)
+      _physicsComm.broadcast(globalExactError);
+    _physicsComm.broadcast(globalTotalErrorEstimate);
+    _physicsComm.broadcast(globalSurrogateErrorEstimate);
+    _physicsComm.broadcast(globalPhysicsErrorEstimate);
 
     std::cout << "     N_ElEM:  "  << _activeElems.size() << std::endl;
     std::cout << "   N_COEFFS:  "  << globalNCounter << std::endl;
     std::cout << " N_PHY_DOFS:  "  << globalSolSizeCounter << std::endl;
-    std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-    std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
-    std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+    if (_exactQoiExists)
+      std::cout << "GLOBAL:  totalExactError         = "  << globalExactError << std::endl;
+    std::cout << "GLOBAL:  totalErrorEstimate      = "  << globalTotalErrorEstimate << std::endl;
+    std::cout << "GLOBAL:  physicsErrorEstimate    = "  << globalPhysicsErrorEstimate << std::endl;
+    std::cout << "GLOBAL:  surrogateErrorEstimate  = "  << globalSurrogateErrorEstimate << std::endl;
 
     errorOut << globalNCounter << " " ;
     errorOut << globalSolSizeCounter << " " ;
-    errorOut << globalTotalError << " "  ;
-    errorOut << globalPhysicsError << " " ;
-    errorOut << globalSurrogateError << std::endl;
+    if (_exactQoiExists)
+      errorOut << globalExactError << " "  ;
+    errorOut << globalTotalErrorEstimate << " "  ;
+    errorOut << globalPhysicsErrorEstimate << " " ;
+    errorOut << globalSurrogateErrorEstimate << std::endl;
 
 
 
@@ -658,14 +683,14 @@ namespace AGNOS
       // unique physics objects
       for (elit=_activeElems.begin(); elit!=_activeElems.end(); ++elit)
       {
-        if ( elit->_totalError >= _refinePercentage * maxElementError )
+        if ( elit->_totalErrorEstimate >= _refinePercentage * maxElementError )
         {
           // Determine which space to refine
           if ( ( _refinePhysics 
               && 
               ( //(!_adaptiveDriver)
                 //||
-                (globalSurrogateError <= globalPhysicsError)  
+                (globalSurrogateErrorEstimate <= globalPhysicsErrorEstimate)  
               )
               ) || _simultRefine || _forcePhysicsRefine
              ) 
@@ -694,7 +719,7 @@ namespace AGNOS
               &&
               ( //(!_adaptiveDriver)
                 //||
-                (globalSurrogateError >= globalPhysicsError)
+                (globalSurrogateErrorEstimate >= globalPhysicsErrorEstimate)
               )
               ) || _simultRefine || _forceSurrogateRefine
               )
@@ -739,7 +764,7 @@ namespace AGNOS
               }
 
               // make sure contributions roughly equal element error
-              if( std::abs(childErrorSum - elit->_totalError) <= 1e-9 )
+              if( std::abs(childErrorSum - elit->_totalErrorEstimate) <= 1e-9 )
               {
                 std::cerr << std::endl;
                 std::cerr 
@@ -756,7 +781,7 @@ namespace AGNOS
             // TODO make percentage an option??
             if ( _hRefine 
                 && 
-                (childMaxSurrogateError>= (0.25 * elit->_surrogateError) ) 
+                (childMaxSurrogateError>= (0.25 * elit->_surrogateErrorEstimate) ) 
                 )
             {
               
@@ -927,7 +952,7 @@ namespace AGNOS
           if(AGNOS_DEBUG)
           {
             std::cout << "DEBUG: no refine rank-" << globalRank << std::endl;
-            std::cout << "      totalError=" << elit->_totalError ;
+            std::cout << "      totalErrorEstimate=" << elit->_totalErrorEstimate ;
             std::cout << "      maxElementError=" << maxElementError;
             std::cout << std::endl;
           }
@@ -989,9 +1014,10 @@ namespace AGNOS
         // reset global values to 0
         globalNCounter = 0.;
         globalSolSizeCounter = 0.;
-        globalPhysicsError = 0. ;
-        globalSurrogateError = 0.;
-        globalTotalError = 0.;
+        globalExactError = 0;
+        globalPhysicsErrorEstimate = 0. ;
+        globalSurrogateErrorEstimate = 0.;
+        globalTotalErrorEstimate = 0.;
 
         // loop through all active elements
         std::list<AGNOS::Element<T_S,T_P> >::iterator elit =
@@ -1003,10 +1029,22 @@ namespace AGNOS
 
           computeErrors( 
               *elit, 
-              globalPhysicsError,
-              globalTotalError,
-              globalSurrogateError,
+              globalPhysicsErrorEstimate,
+              globalTotalErrorEstimate,
+              globalSurrogateErrorEstimate,
               maxElementError);
+
+          if(_exactQoiExists)
+          {
+            // square current sums so we can add additional elements as sum of
+            // squares
+            globalExactError *= globalExactError;
+            // get exact error contrib
+            double localExactError = elit->surrogates()[0]->l2NormDifference( 
+                  "qoi", "exactQoi");
+            globalExactError += elit->weight() * std::pow(localExactError,2.) ;
+            globalExactError  = std::sqrt( globalExactError );
+          }
 
         } // end for active elements
 
@@ -1014,22 +1052,28 @@ namespace AGNOS
       
 
       // broadcast errors to all procs
-      _physicsComm.broadcast(globalTotalError);
-      _physicsComm.broadcast(globalSurrogateError);
-      _physicsComm.broadcast(globalPhysicsError);
+      if(_exactQoiExists) 
+        _physicsComm.broadcast(globalExactError);
+      _physicsComm.broadcast(globalTotalErrorEstimate);
+      _physicsComm.broadcast(globalSurrogateErrorEstimate);
+      _physicsComm.broadcast(globalPhysicsErrorEstimate);
       
       std::cout << "     N_ElEM:  "  << _activeElems.size() << std::endl;
       std::cout << "   N_COEFFS:  "  << globalNCounter << std::endl;
       std::cout << " N_PHY_DOFS:  "  << globalSolSizeCounter << std::endl;
-      std::cout << "GLOBAL:  physicsError    = "  << globalPhysicsError << std::endl;
-      std::cout << "GLOBAL:  totalError      = "  << globalTotalError << std::endl;
-      std::cout << "GLOBAL:  surrogateError  = "  << globalSurrogateError << std::endl;
+      if (_exactQoiExists)
+        std::cout << "GLOBAL:  totalExactError         = "  << globalExactError << std::endl;
+      std::cout << "GLOBAL:  totalErrorEstimate      = "  << globalTotalErrorEstimate << std::endl;
+      std::cout << "GLOBAL:  physicsErrorEstimate    = "  << globalPhysicsErrorEstimate << std::endl;
+      std::cout << "GLOBAL:  surrogateErrorEstimate  = "  << globalSurrogateErrorEstimate << std::endl;
 
       errorOut << globalNCounter << " " ;
       errorOut << globalSolSizeCounter << " " ;
-      errorOut << globalTotalError << " "  ;
-      errorOut << globalPhysicsError << " " ;
-      errorOut << globalSurrogateError << std::endl;
+      if (_exactQoiExists)
+        errorOut << globalExactError << " "  ;
+      errorOut << globalTotalErrorEstimate << " "  ;
+      errorOut << globalPhysicsErrorEstimate << " " ;
+      errorOut << globalSurrogateErrorEstimate << std::endl;
 
 
     } // end for nIter
@@ -1356,11 +1400,11 @@ namespace AGNOS
     globalSurrogate *= globalSurrogate ;
 
     // get physics error contrib
-    double physicsError;
-    physicsError = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
+    double physicsErrorEstimate;
+    physicsErrorEstimate = (elem.surrogates()[0]->l2Norm("errorEstimate"))(0);
 
     /**Add to global tally  */
-    globalPhysics+= elem.weight() * std::pow(physicsError,2.) ;
+    globalPhysics+= elem.weight() * std::pow(physicsErrorEstimate,2.) ;
 
 
     // safe guard against there not being a secondary surrogate
@@ -1376,20 +1420,20 @@ namespace AGNOS
     else
     {
       // total error contribution
-      double totalError     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
-      elem._totalError = totalError ;
-      globalTotal += elem.weight() * std::pow(totalError,2.);
+      double totalErrorEstimate     = (elem.surrogates()[1]->l2Norm("errorEstimate"))(0);
+      elem._totalErrorEstimate = totalErrorEstimate ;
+      globalTotal += elem.weight() * std::pow(totalErrorEstimate,2.);
 
       // surrogate error contribution
-      double surrogateError = elem.surrogates()[0]->l2NormDifference( 
+      double surrogateErrorEstimate = elem.surrogates()[0]->l2NormDifference( 
             *(elem.surrogates()[1]), "errorEstimate");
-      elem._surrogateError = surrogateError ;
-      globalSurrogate += elem.weight() * std::pow(surrogateError,2.) ;
+      elem._surrogateErrorEstimate = surrogateErrorEstimate ;
+      globalSurrogate += elem.weight() * std::pow(surrogateErrorEstimate,2.) ;
 
 
       // keep track of max of error
-      if (elem._totalError >= maxElementError)
-        maxElementError = elem._totalError ;
+      if (elem._totalErrorEstimate >= maxElementError)
+        maxElementError = elem._totalErrorEstimate ;
 
     } // end if errorSurrogate exists
 

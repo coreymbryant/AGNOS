@@ -99,9 +99,10 @@ namespace AGNOS
           std::shared_ptr< PhysicsModel<T_S,T_P> >& newPhysics )
       { _physics = newPhysics; }
 
-      double _physicsError ;
-      double _surrogateError ;
-      double _totalError ;
+      double _physicsErrorEstimate ;
+      double _surrogateErrorEstimate ;
+      double _totalErrorEstimate ;
+      double _totalExactError ;
 
       /** get weight of this element */
       double weight(){ return _weight;}

@@ -104,6 +104,7 @@ namespace AGNOS
       bool _pRefine;
       std::vector<unsigned int> _pIncrement;
       bool _anisotropic;
+      bool _exactQoiExists;
       // ---------------------
 
       // ---------------------
