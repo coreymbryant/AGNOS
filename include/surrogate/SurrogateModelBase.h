@@ -106,6 +106,10 @@ namespace AGNOS
           std::string solutionName
           ) ;
 
+      /** compute 'exact' error of surrogate by comparing to actual physics
+       * evaluations */
+      virtual double evaluateError( std::string solutionName );
+
       /** set parameters object  */
       void setParameters( 
           std::vector<std::shared_ptr<AGNOS::Parameter> >& parameters );

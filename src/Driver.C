@@ -295,6 +295,12 @@ namespace AGNOS
       exit(1);
     }
 
+    //if exactQoi is present set the flag
+    this->_exactQoiExists = ( 
+        physics->getAvailableSolutions().find("exactQoi")
+        != physics->getAvailableSolutions().end() 
+        ) ;
+
     return physics;
   }
 
@@ -358,7 +364,8 @@ namespace AGNOS
 
       //if exactQoi is present set the flag
       if (n==0) // primary (or at least the first) surrogate
-        this->_exactQoiExists = ( computeSolutions.find("exactQoi") != computeSolutions.end() );
+        this->_exactQoiExists *= ( computeSolutions.find("exactQoi") != computeSolutions.end() );
+
 
       /** Determine which type of surrogate we have, primary or secondary */
       std::string primarySurrogateName = input("primarySurrogate","");
@@ -467,7 +474,6 @@ namespace AGNOS
     }
 
     input.set_prefix("");
-
 
     return surrogates;
   }
@@ -624,8 +630,7 @@ namespace AGNOS
           // squares
           globalExactError *= globalExactError;
           // get exact error contrib
-          double localExactError = elit->surrogates()[0]->l2NormDifference( 
-                "qoi", "exactQoi");
+          double localExactError = elit->surrogates()[0]->evaluateError("exactQoi");
           globalExactError += elit->weight() * std::pow(localExactError,2.) ;
           globalExactError  = std::sqrt( globalExactError );
         }
@@ -1040,8 +1045,7 @@ namespace AGNOS
             // squares
             globalExactError *= globalExactError;
             // get exact error contrib
-            double localExactError = elit->surrogates()[0]->l2NormDifference( 
-                  "qoi", "exactQoi");
+            double localExactError = elit->surrogates()[0]->evaluateError("exactQoi");
             globalExactError += elit->weight() * std::pow(localExactError,2.) ;
             globalExactError  = std::sqrt( globalExactError );
           }
