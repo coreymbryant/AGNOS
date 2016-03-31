@@ -60,9 +60,9 @@ namespace AGNOS
 
       /** Exact qoi */
       virtual T_P exactQoi( ) 
-      {
-        T_P resultVector ;
-        return resultVector ;
+      { 
+        T_P resultVector(1);
+        return resultVector; 
       }
 
       /** Return libMesh system object */
