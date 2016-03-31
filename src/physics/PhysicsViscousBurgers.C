@@ -18,6 +18,24 @@
 namespace AGNOS
 {
 
+  template<class T_S, class T_P>
+  T_P PhysicsViscousBurgers<T_S,T_P>::exactQoi()
+  {
+    T_P resultVector(1);
+    /* resultVector(0) = 10.; */
+    Number mu = dynamic_cast<BurgersSystem*>(this->_system)->_mu ;
+    resultVector(0) = 0.5 
+      + 2.*mu * std::log( std::cosh( 1./4./mu));
+    if(AGNOS_DEBUG)
+    {
+      std::cout << "this->mu: " << mu << std::endl;
+      std::cout << "cosh( ) : " << std::cosh( 1./4./mu) << std::endl;
+      std::cout << "log( ): : " << std::log( std::cosh( 1./4./mu)) << std::endl;
+      std::cout << "exactQoi: " << resultVector(0) << std::endl;
+    }
+    return resultVector;
+  }
+
 /********************************************//**
  * \brief 
  ***********************************************/
@@ -160,6 +178,14 @@ namespace AGNOS
     /*   = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ; */
     dynamic_cast<BurgersSystem*>(this->_system)->_mu 
       = 1.0 + 0.62 * parameterValues(0) + 0.36 * parameterValues(1) ;
+
+    if (AGNOS_DEBUG)
+      std::cout << "DEBUG: system mu: " 
+        << dynamic_cast<BurgersSystem*>(this->_system)->_mu  << std::endl;
+
+    dynamic_cast<BurgersSystem*>(this->_system)->init_bcs(); 
+
+    this->_system->reinit();
   }
 
   /********************************************//**

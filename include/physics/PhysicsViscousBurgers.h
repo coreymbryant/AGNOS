@@ -38,19 +38,12 @@ namespace AGNOS
       virtual ~PhysicsViscousBurgers( );
 
       /** Redefine exactQoi for this model */
-      T_P exactQoi( )
-      {
-        T_P resultVector(1);
-        resultVector(0) = 10.;
-        return resultVector;
-      }
+      T_P exactQoi( );
 
     protected:
       /** Geometry and boundary data */
       double          _L;
       int             _nElem;
-
-      Number          _mu;
 
       /** solver settings */ 
       unsigned int    _nonlinearTolerance;
