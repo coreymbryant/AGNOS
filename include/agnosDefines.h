@@ -3,10 +3,10 @@
 #ifndef AGNOS_DEFINES_H
 #define AGNOS_DEFINES_H
 
-#ifndef  DEBUG
-#define AGNOS_DEBUG 0
-#else
+#ifdef  DEBUG
 #define AGNOS_DEBUG 1
+#else
+#define AGNOS_DEBUG 0
 #endif
 
 #include "agnos_config.h"
