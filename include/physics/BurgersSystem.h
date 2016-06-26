@@ -49,6 +49,9 @@ public:
   double _L;
   double _uMinus;
   double _uPlus;
+  
+  // boundary condition initialization
+  virtual void init_bcs ();
 
   protected:
   // System initialization
@@ -77,20 +80,43 @@ public:
 
 void BurgersSystem::init_data ()
 {
-  unsigned int u_var = this->add_variable ("u", FIRST);
+  FEFamily fefamily = Utility::string_to_enum<FEFamily>("HIERARCHIC");
+  unsigned int u_var = this->add_variable ("u", FIRST,fefamily);
   this->time_evolving(u_var);
 
   /* this->extra_quadrature_order = 2; */
 
+  //initialize boundary conditions
+  this->init_bcs();
 
+
+  // Do the parent's initialization after variables are defined
+  FEMSystem::init_data();
+
+}
+
+void BurgersSystem::init_bcs()
+{
   //---------------------------------------------
   /** set up boundary conditions */
   if (AGNOS_DEBUG)
     std::cout << "DEBUG: pre BC set up" << std::endl;
+  
+  // get a reference to dof_map and dirichlet boundaries
+  libMesh::DofMap* dof_map = &(this->get_dof_map());
+  libMesh::DirichletBoundaries* dirichlet_boundaries 
+    = dof_map->get_dirichlet_boundaries();
+
+  // remove all old dirichlet boundaries
+  while( !(dof_map->get_dirichlet_boundaries()->empty()) )
+    dof_map->remove_dirichlet_boundary(*((*dirichlet_boundaries)[0]));
+
   std::set<boundary_id_type> minusBoundaries;
   minusBoundaries.insert(0);
   std::set<boundary_id_type> plusBoundaries;
   plusBoundaries.insert(1);
+
+  unsigned int u_var = variable_number("u");
 
   std::vector<unsigned int> variables(1,u_var);
 
@@ -99,8 +125,11 @@ void BurgersSystem::init_data ()
   _uPlus  = this->exact_solution(rp,0);
   _uMinus = this->exact_solution(lp,0);
 
-  std::cout << std::setprecision(17) << "uPlus = " << _uPlus << std::endl;
-  std::cout << std::setprecision(17) << "uMinus = " << _uMinus << std::endl;
+  if (AGNOS_DEBUG)
+  {
+    std::cout << std::setprecision(17) << "uPlus = " << _uPlus << std::endl;
+    std::cout << std::setprecision(17) << "uMinus = " << _uMinus << std::endl;
+  }
 
   ConstFunction<double> uPlus(_uPlus);
   ConstFunction<double> uMinus(_uMinus);
@@ -113,10 +142,6 @@ void BurgersSystem::init_data ()
   if (AGNOS_DEBUG)
     std::cout << "DEBUG: post BC set up" << std::endl;
   //---------------------------------------------
-
-  // Do the parent's initialization after variables are defined
-  FEMSystem::init_data();
-
 }
 
 void BurgersSystem::init_context(DiffContext &context)
@@ -237,9 +262,14 @@ void BurgersSystem::element_qoi (DiffContext &context,
   // Loop over the qps
   for (unsigned int qp=0; qp != n_qpoints; qp++)
     {
+      const Real x = q_point[qp](0);
       Number u = c.interior_value(0, qp);
 
-      Q[0] += JxW[qp] * u ;
+      /* Q[0] += JxW[qp] * u ; */
+      /* Q[0] += JxW[qp] * u * */
+      /*   std::exp( -100. * std::pow(x-0.5,2.) ); */
+      if (x >= 0)
+        Q[0] += JxW[qp] * u ;
 
     } // end of the quadrature point qp-loop
 }
@@ -277,9 +307,14 @@ void BurgersSystem::element_qoi_derivative (DiffContext &context,
   // Loop over the qps
   for (unsigned int qp=0; qp != n_qpoints; qp++)
     {
+      const Real x = q_point[qp](0);
 
       for (unsigned int i=0; i != n_u_dofs; i++)
-        Q(i) += JxW[qp] *phi[i][qp] ;
+        if (x >= 0)
+          Q(i) += JxW[qp] * phi[i][qp] ;
+        /* Q(i) += JxW[qp] *phi[i][qp] ; */
+        /* Q(i) += JxW[qp] * phi[i][qp] * */ 
+        /*   std::exp( -100. * std::pow(x-0.5,2.) ); */
 
     } // end of the quadrature point qp-loop
 }

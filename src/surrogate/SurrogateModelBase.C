@@ -689,6 +689,163 @@ namespace AGNOS
   /********************************************//**
    * \brief 
    ***********************************************/
+  template<class T_S,class T_P>
+    double SurrogateModelBase<T_S,T_P>::l2NormDifference(
+        std::string comparisonName,
+        std::string solutionName )
+    {
+
+      // initialize to zero
+      double l2norm = 0;
+
+      // make sure both solutionName and comparisonName are present 
+      // evaluate at integration points
+
+      if (this->_solutionNames.count(solutionName) == 0) 
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " base model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+      if (this->_solutionNames.count(comparisonName) == 0 )
+      {
+        std::cerr << "\n\t ERROR: requested comparison name not present in "
+          << " base model of l2NormDifference( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+
+      if(this->_groupRank==0)
+      {
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
+        {
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
+
+          T_P diffVec = this->evaluate(solutionName,paramValues);
+          /* std::cout << " test: base model eval " << std::endl; */
+          diffVec -= this->evaluate(comparisonName,paramValues);
+          /* std::cout << " test: comparison model eval " << std::endl; */
+
+
+          l2norm += diffVec.dot( diffVec )  * quadWeights[i] ; 
+          /* l2norm += 1  * quadWeights[i] ; */ 
+
+        } // end loop over quad points
+
+      } // end of if groupRank == 0
+
+      
+      // take square root
+      l2norm =  std::sqrt( l2norm );
+
+
+      return l2norm;
+
+    }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
+  template<class T_S,class T_P>
+    double SurrogateModelBase<T_S,T_P>::evaluateError(
+        std::string solutionName )
+    {
+
+      // initialize to zero
+      double error = 0;
+
+      // make sure solutionName is present in surrogate and physics model
+      if (this->_solutionNames.count(solutionName) == 0) 
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " surrogate in evaluateError( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+      if (this->_physics->getAvailableSolutions().count(solutionName) == 0 )
+      {
+        std::cerr << "\n\t ERROR: requested solution name not present in "
+          << " physics in evaluateError( ... ). \n "
+          << std::endl;
+        exit(1);
+      }
+
+      if(this->_groupRank==0)
+      {
+        //---------
+        //get integration points for higher order quad rule
+        std::vector<unsigned int> integrationOrder = this->_order;
+        for (unsigned int i=0; i<integrationOrder.size(); i++)
+          integrationOrder[i] *= 2.;
+
+        QuadratureTensorProduct integrationQuadratureRule(
+            this->_parameters, integrationOrder );
+
+        unsigned int dimension = this->_dimension;
+        unsigned int nQuadPoints = integrationQuadratureRule.getNQuadPoints();
+        double** quadPoints = integrationQuadratureRule.getQuadPoints();
+        double* quadWeights = integrationQuadratureRule.getQuadWeights();
+
+
+
+        //----------
+        // loop over quad points
+        for(unsigned int i=0; i<nQuadPoints; i++)
+        {
+          T_S paramValues(dimension);
+          for(unsigned int j=0; j<paramValues.size(); j++)
+            paramValues(j) = quadPoints[i][j];
+
+          // have to define a 1 element set with solution name in order to call
+          // compute function from base PhysicsModel
+          std::set<std::string> computeSolutions;
+          computeSolutions.insert(solutionName);
+          std::map<std::string, T_P> solutionVectors;
+
+          // call physics compute to evaluate actual value of solution at this
+          // parameter value
+          this->_physics->compute( computeSolutions, paramValues, solutionVectors );
+
+          T_P diffVec = solutionVectors[solutionName];
+          diffVec -= this->evaluate(solutionName,paramValues);
+
+          error += diffVec.dot( diffVec )  * quadWeights[i] ; 
+
+        } // end loop over quad points
+
+      } // end of if groupRank == 0
+
+      
+      // take square root
+      error =  std::sqrt( error );
+
+
+      return error;
+
+    }
+
+  /********************************************//**
+   * \brief 
+   ***********************************************/
     template<class T_S, class T_P> 
       void SurrogateModelBase<T_S,T_P>::printIndexSet( std::ostream& out ) const
       {

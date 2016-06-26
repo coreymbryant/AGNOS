@@ -84,7 +84,7 @@ namespace AGNOS
 
     // No transient time solver
     catenarySystem.time_solver =
-      AutoPtr<TimeSolver>( new SteadySolver(catenarySystem) );
+      UniquePtr<TimeSolver>( new SteadySolver(catenarySystem) );
     {
       NewtonSolver *solver = new NewtonSolver(catenarySystem);
       catenarySystem.time_solver->diff_solver().reset(solver);

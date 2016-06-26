@@ -42,13 +42,21 @@ BOOST_AUTO_TEST_CASE( PhysicsLibmesh_constructor )
       comm,inputfile
       );
 
+
+
   // check for initial parameters set to NULL values
-  BOOST_REQUIRE( &physics.getSystem() == NULL );
-  BOOST_REQUIRE( &physics.getEquationSystems() == NULL );
-  BOOST_REQUIRE( &physics.getMesh() == NULL );
-  BOOST_REQUIRE( &physics.getMeshRefinement() == NULL );
-  BOOST_REQUIRE( &physics.getEstimator() == NULL );
-  BOOST_REQUIRE( &physics.getQois() == NULL );
+  libMesh::System* nullSystemPtr;
+  BOOST_REQUIRE( &physics.getSystem() == nullSystemPtr );
+  libMesh::EquationSystems* nullEquationSystemsPtr;
+  BOOST_REQUIRE( &physics.getEquationSystems() == nullEquationSystemsPtr );
+  libMesh::MeshBase* nullMeshBasePtr;
+  BOOST_REQUIRE( &physics.getMesh() == nullMeshBasePtr );
+  libMesh::MeshRefinement* nullMeshRefinementPtr;
+  BOOST_REQUIRE( &physics.getMeshRefinement() == nullMeshRefinementPtr );
+  libMesh::AdjointRefinementEstimator* nullAdjointRefinementEstimatorPtr;
+  BOOST_REQUIRE( &physics.getEstimator() == nullAdjointRefinementEstimatorPtr );
+  libMesh::QoISet* nullQoISetPtr;
+  BOOST_REQUIRE( &physics.getQois() == nullQoISetPtr );
   BOOST_REQUIRE( physics.comm().get() == MPI_COMM_WORLD );
   BOOST_REQUIRE( physics.getAvailableSolutions().count("primal") == 1 );
 
