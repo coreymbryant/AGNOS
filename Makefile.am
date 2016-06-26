@@ -1,16 +1,16 @@
+include $(top_srcdir)/doxygen/aminclude.am
+
 AUTOMAKE_OPTIONS = foreign 
 ACLOCAL_AMFLAGS  = -I m4 -I m4/common
 
-include $(top_srcdir)/doxygen/aminclude.am
 
 SUBDIRS          = include src examples doxygen 
 if ENABLE_CPPUNIT
 SUBDIRS += test
 endif
 
-#SUBDIRS 				+= contrib
 # EXTRA_DIST       = CHANGES LICENSE COPYING docs contrib
-EXTRA_DIST       = docs contrib
+EXTRA_DIST       = README.md contrib
 
 # includedir = $(prefix)/include/
 # include_HEADERS = $(top_builddir)/agnos_config.h

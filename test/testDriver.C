@@ -26,7 +26,7 @@ int main( int argc, char **argv)
 #ifndef AGNOS_USING_MPICH
   int ierr;
   comm.barrier();
-  MPI_Finalize();
+  /* MPI_Finalize(); */
 #endif
   return 0;
 }

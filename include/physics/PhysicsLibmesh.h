@@ -54,11 +54,15 @@ namespace AGNOS
       void refine (  ) ;
       void refine ( T_P& errorIndicators ) ;
 
+      /** get number of degrees of freedom */
+      virtual unsigned int getNDofs( ) 
+      { return _equationSystems->n_active_dofs(); }
+
       /** Exact qoi */
       virtual T_P exactQoi( ) 
-      {
-        T_P resultVector ;
-        return resultVector ;
+      { 
+        T_P resultVector(1);
+        return resultVector; 
       }
 
       /** Return libMesh system object */

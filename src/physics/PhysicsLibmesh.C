@@ -6,6 +6,7 @@
 #include "libmesh/fem_system.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/mesh.h"
+#include "libmesh/elem.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/adjoint_refinement_estimator.h"
 #include "libmesh/mesh_refinement.h"
@@ -87,10 +88,10 @@ namespace AGNOS
     _meshRefinement->coarsen_by_parents()         = true;
     _meshRefinement->absolute_global_tolerance()  = 1e-6;
     /* _meshRefinement->nele_target()               = 64; */  
-    _meshRefinement->refine_fraction()            = 0.7;
-    _meshRefinement->coarsen_fraction()           = 0.3;  
-    _meshRefinement->coarsen_threshold()          = 1e-5;
-    _meshRefinement->max_h_level()                = 15;
+    _meshRefinement->refine_fraction()            = 0.5;
+    _meshRefinement->coarsen_fraction()           = 0.0;  
+    _meshRefinement->coarsen_threshold()          = 0.0;
+    _meshRefinement->max_h_level()                = 24;
   }
 
   /********************************************//**
@@ -373,8 +374,7 @@ namespace AGNOS
         system.project_solution_on_reinit() = true;
 
         // And it'll be best to avoid any repartitioning
-        AutoPtr<Partitioner> old_partitioner = mesh.partitioner();
-        mesh.partitioner().reset(NULL);
+        UniquePtr<Partitioner> old_partitioner(mesh.partitioner().release());
 
         // And we can't allow any renumbering
         const bool old_renumbering_setting = mesh.allow_renumbering();
@@ -609,7 +609,7 @@ namespace AGNOS
           // be shared on multiple processsors) onto a local ghosted vector,
           // this ensures each processor has all the dof_indices to compute an
           // error indicator for an element it owns
-          AutoPtr<NumericVector<Number> > localized_projected_residual 
+          UniquePtr<NumericVector<Number> > localized_projected_residual 
             = NumericVector<Number>::build(system.comm());
           localized_projected_residual->init(system.n_dofs(),
               system.n_local_dofs(), system.get_dof_map().get_send_list(),
@@ -619,7 +619,7 @@ namespace AGNOS
 
           // Each adjoint solution will also require ghosting; for efficiency
           // we'll reuse the same memory
-          AutoPtr<NumericVector<Number> > localized_adjoint_solution =
+          UniquePtr<NumericVector<Number> > localized_adjoint_solution =
             NumericVector<Number>::build(system.comm());
           localized_adjoint_solution->init(system.n_dofs(),
               system.n_local_dofs(), system.get_dof_map().get_send_list(),
@@ -764,7 +764,7 @@ namespace AGNOS
           }
 
         // Restore old partitioner and renumbering settings
-        mesh.partitioner() = old_partitioner;
+        mesh.partitioner().reset(old_partitioner.release());
         mesh.allow_renumbering(old_renumbering_setting);
 
         
@@ -796,7 +796,7 @@ namespace AGNOS
             std::pair<std::string,T_P >(
               "qoi", qoiValue)
               );
-        /* if(AGNOS_DEBUG) */
+        if(AGNOS_DEBUG)
           std::cout << "DEBUG: qoi[0]:" << qoiValue(0) << std::endl;
       }
 
@@ -841,7 +841,7 @@ namespace AGNOS
       _equationSystems->reinit();
 
       /* if ( this->_communicator.rank() == 0 ) */
-        std::cout << "   refined n_active_elem(): " 
+        std::cout << "un_refined n_active_elem(): " 
           << _mesh->n_active_elem() << std::endl;
 
     }
@@ -869,8 +869,8 @@ namespace AGNOS
       
       //TODO input options to control type of refinement
       /* _meshRefinement->flag_elements_by_error_tolerance (error_per_cell); */            
-      /* _meshRefinement->flag_elements_by_error_fraction (error_per_cell); */             
-      _meshRefinement->flag_elements_by_elem_fraction (error_per_cell);              
+      _meshRefinement->flag_elements_by_error_fraction (error_per_cell);             
+      /* _meshRefinement->flag_elements_by_elem_fraction (error_per_cell); */              
                    
       //TODO input options to control whether we coarsen as well
       _meshRefinement->refine_and_coarsen_elements();

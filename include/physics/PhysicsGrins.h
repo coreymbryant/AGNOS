@@ -85,8 +85,8 @@ namespace AGNOS
     /* MyQoI( std::string& qoi_name ) : QoIBase(qoi_name){ return; } */ 
     /* bool assemble_on_interior() const { return true; } */
     /* bool assemble_on_sides() const { return false; } */
-      libMesh::AutoPtr<libMesh::DifferentiableQoI> clone() 
-      { return libMesh::AutoPtr<libMesh::DifferentiableQoI>(new MyQoI( *this ) ); }
+      libMesh::UniquePtr<libMesh::DifferentiableQoI> clone() 
+      { return libMesh::UniquePtr<libMesh::DifferentiableQoI>(new MyQoI( *this ) ); }
     //! Compute the qoi value for element interiors.
     virtual void element_qoi( libMesh::DiffContext& context,
                               const libMesh::QoISet& qoi_indices )

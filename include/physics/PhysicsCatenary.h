@@ -41,7 +41,10 @@ namespace AGNOS
 
     /** Refinement methods for the physics model */
     virtual void refine( );
-  
+
+    /** get number of degrees of freedom */
+    virtual unsigned int getNDofs( ) { return 1; }
+
   protected:
     /** communicator reference */
     const Communicator &_communicator;

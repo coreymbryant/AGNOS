@@ -88,10 +88,10 @@ namespace AGNOS
 
     // No transient time solver
     diffusionSystem.time_solver =
-        AutoPtr<TimeSolver>(new SteadySolver(diffusionSystem));
+        UniquePtr<TimeSolver>(new SteadySolver(diffusionSystem));
     {
       NewtonSolver *solver = new NewtonSolver(diffusionSystem);
-      diffusionSystem.time_solver->diff_solver() = AutoPtr<DiffSolver>(solver);
+      diffusionSystem.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
       
       solver->quiet                       = true;
       solver->verbose                     = false;

@@ -99,6 +99,16 @@ namespace AGNOS
           SurrogateModelBase<T_S,T_P>& comparisonModel,
           std::string solutionName
           ) ;
+      /** Compute the norm of the difference between two surrogates in this
+       * model */
+      virtual double l2NormDifference( 
+          std::string comparisonName,
+          std::string solutionName
+          ) ;
+
+      /** compute 'exact' error of surrogate by comparing to actual physics
+       * evaluations */
+      virtual double evaluateError( std::string solutionName );
 
       /** set parameters object  */
       void setParameters( 
@@ -118,6 +128,9 @@ namespace AGNOS
       virtual void sample( 
           std::string solutionName, unsigned int N, std::vector<T_P>& sampleVec
           );
+
+      /** Return total number of coefficients */
+      const unsigned int getTotalNCoeff() const { return _totalNCoeff; }
 
       /** Return index set for this surrogate */
       virtual const std::vector< std::vector<unsigned int> > indexSet() const 
