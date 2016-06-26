@@ -88,10 +88,10 @@ namespace AGNOS
     _meshRefinement->coarsen_by_parents()         = true;
     _meshRefinement->absolute_global_tolerance()  = 1e-6;
     /* _meshRefinement->nele_target()               = 64; */  
-    _meshRefinement->refine_fraction()            = 0.6;
+    _meshRefinement->refine_fraction()            = 0.5;
     _meshRefinement->coarsen_fraction()           = 0.0;  
     _meshRefinement->coarsen_threshold()          = 0.0;
-    _meshRefinement->max_h_level()                = 15;
+    _meshRefinement->max_h_level()                = 24;
   }
 
   /********************************************//**

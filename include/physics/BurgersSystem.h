@@ -80,7 +80,8 @@ public:
 
 void BurgersSystem::init_data ()
 {
-  unsigned int u_var = this->add_variable ("u", FIRST);
+  FEFamily fefamily = Utility::string_to_enum<FEFamily>("HIERARCHIC");
+  unsigned int u_var = this->add_variable ("u", FIRST,fefamily);
   this->time_evolving(u_var);
 
   /* this->extra_quadrature_order = 2; */
