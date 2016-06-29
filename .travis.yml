@@ -22,6 +22,6 @@ before_script:
   - cd ../
 script:
   - ./bootstrap
-  - ./configure CC="mpicc" CXX="mpicxx"
+  - ./configure --with-libmesh=/usrCC="mpicc" CXX="mpicxx"
   - make -j4
   - make check -j4
