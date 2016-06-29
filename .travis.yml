@@ -7,7 +7,7 @@ before_script:
   - sudo apt-get install -q build-essential gfortran
   - sudo apt-get install -q libgsl0-dev
   - sudo apt-get install -q openmpi-bin openmpi-dev
-  - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev
+  - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev libboost-test-dev
   - sudo apt-get install -q petsc-dev
   - sudo apt-get install -q libhdf5-openmpi-dev
   - sudo apt-get install -q libtrilinos-dev
