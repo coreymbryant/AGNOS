@@ -1,4 +1,5 @@
-AGNOS
+AGNOS [![Build Status](https://travis-ci.org/coreymbryant/AGNOS.svg?branch=master)](https://travis-ci.org/coreymbryant/AGNOS)
+https://travis-ci.org/coreymbryant/libmesh.svg?branch=build
 =====
 
 AGNOS supports non-intrusive construction of surrogate models (response surface
