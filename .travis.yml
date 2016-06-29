@@ -22,6 +22,6 @@ before_script:
   - cd ../
 script:
   - ./bootstrap
-  - ./configure --with-libmesh=/usr CC="mpicc" CXX="mpicxx"
+  - ./configure --with-libmesh=/usr --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx"
   - make -j4
   - make check -j4
