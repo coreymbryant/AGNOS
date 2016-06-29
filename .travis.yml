@@ -17,7 +17,7 @@ before_script:
   - wget https://github.com/libMesh/libmesh/releases/download/v1.0.0/libmesh-1.0.0.tar.gz
   - tar -xzvf libmesh-1.0.0.tar.gz
   - cd libmesh-1.0.0/ 
-  - ./bootstrap && ./configure --prefix=/usr --with-methods="opt" CC="mpicc" CXX="mpicxx" 
+  - ./configure --prefix=/usr --with-methods="opt" CC="mpicc" CXX="mpicxx" 
   - make -j4 && sudo make -j4 install
   - cd ../
 script:
