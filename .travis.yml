@@ -1,0 +1,27 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_script:
+  - sudo apt-get update -qq
+  - sudo apt-get install -q build-essential gfortran
+  - sudo apt-get install -q libgsl0-dev
+  - sudo apt-get install -q openmpi-bin openmpi-dev
+  - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev
+  - sudo apt-get install -q petsc-dev
+  - sudo apt-get install -q libhdf5-openmpi-dev
+  - sudo apt-get install -q libtrilinos-dev
+  - sudo apt-get install -q libvtk5-dev
+  - sudo apt-get install -q libtbb-dev
+  - sudo apt-get install -q libcppunit-dev
+  - wget https://github.com/libMesh/libmesh/releases/download/v1.0.0/libmesh-1.0.0.tar.gz
+  - tar -xzvf libmesh-1.0.0.tar.gz
+  - cd libmesh-1.0.0/ 
+  - ./bootstrap && ./configure --prefix=/usr --with-methods="opt" CC="mpicc" CXX="mpicxx" 
+  - make -j4 && sudo make -j4 install
+  - cd ../
+script:
+  - ./bootstrap
+  - ./configure CC="mpicc" CXX="mpicxx"
+  - make -j4
+  - make check -j4
