@@ -7,6 +7,7 @@ before_script:
   - sudo apt-get update -qq
   - sudo apt-get install -q gcc-4.8 g++-4.8 gfortran
   - export CXX="g++-4.8"
+  - export CXX_FLAGS="-std=c++0x"
   - export CC="gcc-4.8"
   - sudo apt-get install -q libgsl0-dev
   - sudo apt-get install -q openmpi-bin openmpi-dev
