@@ -2,6 +2,9 @@ language: cpp
 compiler:
  - g++-4.8
  #- clang
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX
 install:
 #- if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8" FC="gfortran-4.8"; fi
 #- export CXX_FLAGS="-std=c++0x"
