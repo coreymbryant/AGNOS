@@ -170,25 +170,6 @@ AM_CONDITIONAL(ENABLE_CPPUNIT, test x$enablecppunit = xyes)
 # -------------------------------------------------------------
 
 
-#--------------------------------
-# Check for channelFlow library
-#--------------------------------
-AC_ARG_ENABLE(channelflow,
-             AC_HELP_STRING([--enable-channelflow],
-                            [Build with channelflow library for RANS simulations]),
-		[case "${enableval}" in
-		  yes)  enablechannelflow=yes ;;
-		   no)  enablechannelflow=no ;;
- 		    *)  AC_MSG_ERROR(bad value ${enableval} for --enable-channelflow) ;;
-		 esac],
-		 [enablechannelflow=no])
-if (test "$enablechannelflow" = yes) ; then
-  AC_DEFINE_UNQUOTED([CHANNELFLOW_DIR],$CHANNELFLOW_DIR,[channelflow dir
-                      location])
-  AC_SUBST(CHANNELFLOW_DIR)
-  AC_DEFINE(ENABLE_CHANNELFLOW,1,[Define if we are using channelflow])
-fi
-AM_CONDITIONAL(ENABLE_CHANNELFLOW, test x$enablechannelflow = xyes)
 
 #--------------------------------
 # Check for grins library
@@ -241,7 +222,6 @@ AC_CONFIG_FILES(test/catenaryLibmeshTest.sh,	[chmod +x test/catenaryLibmeshTest.
 AC_CONFIG_FILES(test/parallelCatenary.sh,	    [chmod +x test/parallelCatenary.sh])
 AC_CONFIG_FILES(test/viscousBurgersTest.sh,	  [chmod +x test/viscousBurgersTest.sh])
 AC_CONFIG_FILES(test/elementTest.sh,	        [chmod +x test/elementTest.sh])
-AC_CONFIG_FILES(test/ChannelTest.sh,	        [chmod +x test/ChannelTest.sh])
 AC_CONFIG_FILES(test/GrinsTest.sh,	          [chmod +x test/GrinsTest.sh])
 AC_CONFIG_FILES(test/LibmeshTest.sh,	        [chmod +x test/LibmeshTest.sh])
 AC_CONFIG_FILES(test/hdf5Test.sh,	            [chmod +x test/hdf5Test.sh])
@@ -255,7 +235,6 @@ AC_CONFIG_FILES(examples/catenary/run.sh,	      [chmod +x examples/catenary/run.
 AC_CONFIG_FILES(examples/catenaryLibmesh/run.sh,[chmod +x examples/catenaryLibmesh/run.sh])
 AC_CONFIG_FILES(examples/diffusion/run.sh,[chmod +x examples/diffusion/run.sh])
 AC_CONFIG_FILES(examples/viscousBurgers/run.sh,	[chmod +x examples/viscousBurgers/run.sh])
-AC_CONFIG_FILES(examples/channelFlow/run.sh,	[chmod +x examples/channelFlow/run.sh])
 AC_CONFIG_FILES(examples/grins/run.sh,	[chmod +x examples/grins/run.sh])
 
 dnl-----------------------------------------------
