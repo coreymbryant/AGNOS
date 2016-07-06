@@ -53,7 +53,6 @@ MAINTAINERCLEANFILES = aclocal.m4                               \
 											 examples/diffusion/Makefile.in           \
 											 examples/catenaryLibmesh/Makefile.in 		\
 											 examples/viscousBurgers/Makefile.in 			\
-											 examples/channelFlow/Makefile.in 				\
 											 examples/grins/Makefile.in 				\
 											 doxygen/Makefile.in
 

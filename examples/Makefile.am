@@ -54,15 +54,6 @@ viscousburgers_DATA = $(top_srcdir)/examples/viscousBurgers/viscousBurgers.in
 viscousburgers_SCRIPTS = $(top_builddir)/examples/viscousBurgers/run.sh
 EXTRA_DIST += $(viscousburgers_DATA)
 
-#-------------------------------------
-# channel flow
-#-------------------------------------
-if ENABLE_CHANNELFLOW
-channelFlowdir = $(prefix)/examples/channelFlow
-channelFlow_SCRIPTS = $(top_builddir)/examples/channelFlow/run.sh
-channelFlow_DATA = $(top_srcdir)/examples/channelFlow/channelFlow.in $(top_srcdir)/examples/channelFlow/flow.in $(top_srcdir)/examples/channelFlow/channel_Re944_grid.xda
-EXTRA_DIST += $(channelFlow_DATA)
-endif
 
 #-------------------------------------
 # grins
@@ -83,11 +74,6 @@ MAINTAINERCLEANFILES = Makefile.in \
 											 viscousBurgers/testFile.dat \
 											 viscousBurgers/*.txt \
 											 viscousBurgers/*.gp.* \
-											 channelFlow/*.dat  \
-											 channelFlow/output/* \
-											 channelFlow/*.txt \
-											 channelFlow/*.out* \
-											 channelFlow/*.pdf \
 											 grins/*.dat  \
 											 grins/output/* \
 											 grins/*.exo \

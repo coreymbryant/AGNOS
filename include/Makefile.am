@@ -23,16 +23,12 @@ libagnos_include_HEADERS = \
 											physics/PhysicsCatenaryLibmesh.h \
 											physics/PhysicsDiffusion.h 
 
-if ENABLE_CHANNELFLOW
-libagnos_include_HEADERS += physics/PhysicsChannelFlow.h
-endif
 if ENABLE_GRINS
 libagnos_include_HEADERS += physics/PhysicsGrins.h
 endif
 
 libagnos_include_HEADERS += ioHandler.h Element.h Driver.h 
 
-# Headers required from channel exec that are not in libchannelflow
 agnos_includedir = $(prefix)/include
 agnos_include_HEADERS = 
 
