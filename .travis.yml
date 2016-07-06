@@ -21,8 +21,7 @@ before_script:
   - sudo apt-get update -qq
   - sudo apt-get install -q gcc-4.8 g++-4.8 gfortran-4.8
   - sudo apt-get install -q libgsl0-dev
-  #- sudo apt-get install -q openmpi-bin openmpi-dev
-  - sudo apt-get install libopenmpi1.10
+  - sudo apt-get install -q openmpi-bin openmpi-dev
   - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev libboost-test-dev
   #- sudo apt-get install -q petsc-dev
   #- sudo apt-get install -q libhdf5-openmpi-dev
