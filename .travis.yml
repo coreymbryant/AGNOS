@@ -4,6 +4,7 @@ compiler:
  #- clang
 install:
 - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+- export CXX_FLAGS="-std=c++0x"
 addons:
  apt:
   sources:
@@ -17,7 +18,6 @@ before_script:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
   - sudo apt-get install -q gcc-4.8 g++-4.8 gfortran-4.8
-  - export CXX_FLAGS="-std=c++0x"
   - sudo apt-get install -q libgsl0-dev
   - sudo apt-get install -q openmpi-bin openmpi-dev
   - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev libboost-test-dev
