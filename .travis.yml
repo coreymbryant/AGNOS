@@ -49,3 +49,4 @@ script:
   - ./configure --with-libmesh=/usr --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4
   - make check -j4
+  - cat test/test.log
