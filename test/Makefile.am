@@ -102,17 +102,6 @@ shellfiles_src += polynomialTest.sh \
 								 viscousBurgersTest.sh \
 								 elementTest.sh 
 
-#------------------------------------
-# channel flow test
-#------------------------------------
-if ENABLE_CHANNELFLOW
-check_PROGRAMS       += ChannelTest
-ChannelTest_SOURCES   = ChannelTest.C
-ChannelTest_CXXFLAGS  = -I$(CHANNELFLOW_DIR)/include
-ChannelTest_LDADD     = -L$(CHANNELFLOW_DIR)/lib/ -lchannelflow
-TESTS += ChannelTest.sh
-shellfiles_src += ChannelTest.sh
-endif
 
 #------------------------------------
 # Grins test

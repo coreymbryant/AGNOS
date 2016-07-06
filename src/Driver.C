@@ -10,9 +10,6 @@
 #include "PhysicsCatenary.h"
 #include "PhysicsCatenaryLibmesh.h"
 #include "PhysicsDiffusion.h"
-#ifdef AGNOS_ENABLE_CHANNELFLOW
-#include "PhysicsChannelFlow.h"
-#endif // AGNOS_ENABLE_CHANNEL_FLOW
 #ifdef AGNOS_ENABLE_GRINS
 #include "PhysicsGrins.h"
 #endif // AGNOS_ENABLE_GRINS
@@ -234,17 +231,6 @@ namespace AGNOS
             ) ;
       input.set_prefix("");
     }
-#ifdef AGNOS_ENABLE_CHANNELFLOW
-    else if ( physicsName == "channelFlow" )
-    {
-      input.set_prefix("physics/");
-      physics =
-          std::shared_ptr<AGNOS::PhysicsChannelFlow<T_S,T_P> >(
-            new AGNOS::PhysicsChannelFlow<T_S,T_P>( _physicsComm, input )
-            ) ;
-      input.set_prefix("");
-    }
-#endif // AGNOS_ENABLE_CHANNEL_FLOW
 #ifdef AGNOS_ENABLE_GRINS
     else if ( physicsName == "grins" )
     {
