@@ -21,21 +21,21 @@ before_script:
   - sudo apt-get install -q libgsl0-dev
   - sudo apt-get install -q openmpi-bin openmpi-dev
   - sudo apt-get install -q libboost-dev libboost-math-dev libboost-program-options-dev libboost-test-dev
-  #- sudo apt-get install -q petsc-dev
-  #- sudo apt-get install -q libhdf5-openmpi-dev
-  #- sudo apt-get install -q libtrilinos-dev
-  #- sudo apt-get install -q libvtk5-dev
-  #- sudo apt-get install -q libtbb-dev
-  #- sudo apt-get install -q libcppunit-dev
+  - sudo apt-get install -q petsc-dev
+  - sudo apt-get install -q libhdf5-openmpi-dev
+  - sudo apt-get install -q libtrilinos-dev
+  - sudo apt-get install -q libvtk5-dev
+  - sudo apt-get install -q libtbb-dev
+  - sudo apt-get install -q libcppunit-dev
   - mpicxx --showme
   - wget https://github.com/libMesh/libmesh/releases/download/v1.0.0/libmesh-1.0.0.tar.gz
   - tar -xzvf libmesh-1.0.0.tar.gz
   - cd libmesh-1.0.0/ 
   - ./configure --prefix=/usr --with-methods="opt" --enable-cxx11 CC="mpicc" CXX="mpicxx" 
-  #- make -j4 && sudo make -j4 install
-  #- cd ../
+  - make -j4 && sudo make -j4 install
+  - cd ../
 script:
-  #- ./bootstrap
-  #- ./configure --with-libmesh=/usr --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx"
-  #- make -j4
-  #- make check -j4
+  - ./bootstrap
+  - ./configure --with-libmesh=/usr --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx"
+  - make -j4
+  - make check -j4
