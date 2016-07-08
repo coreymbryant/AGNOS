@@ -63,8 +63,9 @@ cache:
 script:
   - ls -R $HOME/libmesh
   - ./bootstrap
-  - ./configure --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
+  - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4
+  - sudo make -j4 install
   #- make check -j4
   - make check polynomialTest
   - make check catenaryTest
