@@ -29,8 +29,7 @@ addons:
   - libboost-program-options-dev
   - libboost-test-dev
   - petsc-dev
-  - libhdf5-dev
-  # - libtrilinos-dev
+  - libhdf5-serial-dev
   - libvtk5-dev
   - libtbb-dev
   - libcppunit-dev
