@@ -57,9 +57,6 @@ before_script:
   - ./configure --prefix=$HOME/libmesh --with-methods="opt" CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4 && make -j4 install
   - cd ../
-cache:
- directories:
-  - $HOME/libmesh
 script:
   - ls -R $HOME/libmesh
   - ./bootstrap
