@@ -65,5 +65,12 @@ script:
   - ./bootstrap
   - ./configure --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4
-  - make check -j4
+  #- make check -j4
+  - make check DriverTest
+  - make check DriverTest
+  - make check DriverTest
+  - make check DriverTest
+  - make check DriverTest
+  - make check DriverTest
+  - make check DriverTest
   - cat test/test.log
