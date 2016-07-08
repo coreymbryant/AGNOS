@@ -63,15 +63,5 @@ script:
   - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4
   - sudo make -j4 install
-  #- make check -j4
-  - make check polynomialTest
-  - make check catenaryTest
-  - make check evaluationTest
-  #- make check parallelCatenary #failing
-  #- make check catenaryLibmeshTest #failing
-  #- make check viscousBurgersTest #failing
-  - make check LibmeshTest
-  - make check hdf5Test
-  - make check EvaluatorTest
-  #- make check DriverTest #failing
+  - make check -j4
   - cat test/test.log
