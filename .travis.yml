@@ -28,6 +28,7 @@ addons:
   - libboost-math-dev
   - libboost-program-options-dev
   - libboost-test-dev
+  - libpetsc3.1-dev
   - petsc-dev
   - libhdf5-serial-dev
   - libvtk5-dev
