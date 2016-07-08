@@ -63,7 +63,7 @@ cache:
 script:
   - ls -R $HOME/libmesh
   - ./bootstrap
-  - ./configure --with-libmesh=/usr --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
+  - ./configure --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
   - make -j4
   - make check -j4
   - cat test/test.log
