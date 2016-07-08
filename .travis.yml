@@ -1,6 +1,6 @@
 # Ubuntu 14.04 Trusty support
-sudo: false
-#dist: trusty
+sudo: required
+dist: trusty
 
 language: cpp
 compiler:
@@ -29,7 +29,8 @@ addons:
   - libboost-program-options-dev
   - libboost-test-dev
   - petsc-dev
-  - libhdf5-serial-dev
+  - libhdf5-dev
+  - libvtk5-dev
   - libtbb-dev
   - libcppunit-dev
 
