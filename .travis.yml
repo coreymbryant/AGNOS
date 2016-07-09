@@ -60,7 +60,7 @@ before_script:
 script:
   - ls -R $HOME/libmesh
   - ./bootstrap
-  - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"
+  - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90" --enable-glibcxx-debugging --enable-unique-ptr --enable-shared --enable-exceptions --enable-dependency-tracking --enable-reference-counting --disable-xdr --enable-default-comm-world 
   - make -j4
   - sudo make -j4 install
   - make check -j4
