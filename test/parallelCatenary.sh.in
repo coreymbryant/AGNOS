@@ -5,4 +5,5 @@ INPUT=""
 
 BOOST_TEST_OPTIONS="--log_level=test_suite"
 
+printf "\nmpirun -n 4 $PROG $INPUT $BOOST_TEST_OPTIONS \n" >> test.log
 mpirun -n 4 $PROG $INPUT $BOOST_TEST_OPTIONS >> test.log 2>&1
