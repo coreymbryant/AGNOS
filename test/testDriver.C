@@ -21,7 +21,9 @@ int main( int argc, char **argv)
     CppUnit::TextUi::TestRunner runner;
     CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
     runner.addTest( registry.makeTest() );
-    runner.run();
+    if(runner.run())
+      return 0;
+    /* runner.run(); */
   /* } */
 
 /* #ifndef AGNOS_USING_MPICH */
@@ -29,5 +31,5 @@ int main( int argc, char **argv)
 /*   comm.barrier(); */
 /*   /1* MPI_Finalize(); *1/ */
 /* #endif */
-  return 0;
+  return 1;
 }
