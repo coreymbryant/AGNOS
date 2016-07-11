@@ -54,13 +54,13 @@ before_script:
   - tar -xzvf libmesh-1.0.0.tar.gz
   - cd libmesh-1.0.0/ 
   #- ./configure --prefix=/usr --with-methods="opt" --enable-cxx11 CC="mpicc" CXX="mpicxx" FC="mpif90"
-  - ./configure --prefix=$HOME/libmesh --with-methods="opt" CC="mpicc" CXX="mpicxx" FC="mpif90"
+  - ./configure --prefix=$HOME/libmesh --with-methods="opt" CC="mpicc" CXX="mpicxx" FC="mpif90" --enable-glibcxx-debugging --enable-unique-ptr --enable-shared --enable-exceptions --enable-dependency-tracking --enable-reference-counting --disable-xdr --enable-default-comm-world
   - make -j4 && make -j4 install
   - cd ../
 script:
   - ls -R $HOME/libmesh
   - ./bootstrap
-  - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90" --enable-glibcxx-debugging --enable-unique-ptr --enable-shared --enable-exceptions --enable-dependency-tracking --enable-reference-counting --disable-xdr --enable-default-comm-world 
+  - ./configure --prefix=/usr --with-libmesh=$HOME/libmesh --enable-libmesh-flags --enable-cppunit CC="mpicc" CXX="mpicxx" FC="mpif90"  
   - make -j4
   - sudo make -j4 install
   - make check
